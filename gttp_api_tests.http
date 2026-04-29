@@ -1,0 +1,133 @@
+@baseUrl = https://gttp.efsouls.com/api
+@token = REPLACE_WITH_ACCESS_TOKEN
+
+### 1. Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "muffadalbodgam@efsouls.com",
+    "password": "password"
+}
+
+### 1b. Login - invalid credentials (negative test)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "muffadalbodgam@efsouls.com",
+    "password": "wrong-password"
+}
+
+### 2. OTP Verify
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+    "user_id": 2,
+    "otp": "661291"
+}
+
+### 2b. OTP Verify - invalid otp (negative test)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+    "user_id": 2,
+    "otp": "000000"
+}
+
+### 3. Resend OTP
+POST {{baseUrl}}/auth/resend-otp
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="user_id"
+
+2
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 4. Forgot Password
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "muffadalbodgam@efsouls.com"
+}
+
+### 4b. Forgot Password - unknown email (negative test)
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "unknown-user@gttp.test"
+}
+
+### 5. Reset Password
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+    "email": "muffadalbodgam@efsouls.com",
+    "otp": "304506",
+    "password": "newpassword123",
+    "password_confirmation": "newpassword123"
+}
+
+### ----------------------------------------------------
+### Protected Routes (Require Token)
+### ----------------------------------------------------
+
+### P0. Protected route without token (negative test)
+GET {{baseUrl}}/dashboard
+Content-Type: application/json
+
+### 6. Dashboard
+GET {{baseUrl}}/dashboard
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 7. Certificates
+GET {{baseUrl}}/certificates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 8. Schedules
+GET {{baseUrl}}/schedules
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 9. Subjects
+GET {{baseUrl}}/subjects
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 10. Syllabus
+GET {{baseUrl}}/syllabus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 11. Timetable
+GET {{baseUrl}}/timetable
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 12. Notices
+GET {{baseUrl}}/notices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 13. Schools
+GET {{baseUrl}}/schools
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 14. Students
+GET {{baseUrl}}/students
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 15. Classes
+GET {{baseUrl}}/classes
+Authorization: Bearer {{token}}
+Content-Type: application/json

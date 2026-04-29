@@ -1,0 +1,61 @@
+{
+  "/dashboard": {
+    "message": "Dashboard data",
+    "data": {
+      "total_students": 0,
+      "total_classes": 0,
+      "total_notices": 0,
+      "total_schedules": 0,
+      "total_syllabi": 0,
+      "total_certificates": 0,
+      "total_users": 1
+    }
+  },
+  "/certificates": {
+    "message": "No certificates found",
+    "total": 0,
+    "data": []
+  },
+  "/schedules": {
+    "message": "Schedules list",
+    "data": []
+  },
+  "/subjects": {
+    "message": "Subjects list",
+    "data": []
+  },
+  "/syllabus": {
+    "message": "Syllabus list",
+    "data": []
+  },
+  "/timetable": {
+    "message": "Timetable list",
+    "data": []
+  },
+  "/notices": {
+    "message": "Notices list",
+    "data": []
+  },
+  "/schools": {
+    "message": "Schools list",
+    "data": [
+      {
+        "id": 1,
+        "name": "L.P. Savani International School",
+        "code": "2000",
+        "address": " T.P 10, Gaurav Path Road, behind Nakshatra Heights, Pal Gam, Surat, Gujarat 394510",
+        "phone": "8000000000",
+        "email": null,
+        "logo": null
+      }
+    ]
+  },
+  "/students": {
+    "message": "Students list",
+    "data": []
+  },
+  "/classes": {
+    "message": "Classes list",
+    "data": []
+  }
+}
