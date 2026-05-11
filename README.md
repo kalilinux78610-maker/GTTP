@@ -15,3 +15,6 @@ A modern Flutter mobile application built with secure, highly-scalable Clean Arc
 - Events image parsing now resolves relative image paths through `/storage/...` for reliable rendering.
 - Courses UI now shows API settings details: start/end dates, enrollment type, status, and pass percentage.
 - Reports UI now shows a dedicated "Coming Soon" state for the `Flagged` review filter.
+- Added Certificates and Notices features with full UI.
+- Added offline mode support with Hive caching.
+- Added PDF/CSV/Excel export functionality.
