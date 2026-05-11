@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/school_model.dart';
 import '../providers/school_network_provider.dart';
@@ -113,8 +112,6 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   }
 
   Future<void> _refreshAllData() async {
-    ref.invalidate(studentsApiProvider);
-    ref.invalidate(schoolsApiProvider);
     ref.invalidate(schoolsProvider);
     await ref.read(schoolsProvider.future);
   }

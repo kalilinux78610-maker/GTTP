@@ -23,6 +23,7 @@ class DashboardModel {
     this.currentUserDisplayName,
   });
 
+  /// Custom fromJson that handles both snake_case and camelCase keys
   factory DashboardModel.fromJson(
     Map<String, dynamic> json, {
     String? currentUserDisplayName,

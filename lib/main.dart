@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/cache/cache_service.dart';
 import 'core/theme/app_theme.dart';
 import 'package:gttp/core/router/app_router.dart';
 
@@ -13,6 +14,8 @@ Future<void> main() async {
     // ignore: avoid_print
     debugPrint('⚠️  .env failed to load: $e');
   }
+  // Initialize cache for offline support
+  await CacheService.initialize();
   runApp(const ProviderScope(child: MyApp()));
 }
 

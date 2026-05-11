@@ -8,4 +8,5 @@ abstract class ReportsRepository {
     required String comments,
   });
   Future<void> resolveReport(String id);
+  Future<void> rejectReport(String id, {String? reason});
 }

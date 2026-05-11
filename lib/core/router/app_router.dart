@@ -6,12 +6,16 @@ import 'package:gttp/features/auth/presentation/screens/login_screen.dart';
 import 'package:gttp/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:gttp/features/auth/presentation/screens/splash_screen.dart';
 import 'package:gttp/features/auth/presentation/screens/verify_otp_screen.dart';
-import 'package:gttp/features/courses/presentation/screens/courses_placeholder_screen.dart';
+import 'package:gttp/features/certificates/presentation/screens/certificates_screen.dart';
+import 'package:gttp/features/courses/presentation/screens/courses_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/profile_screen.dart';
-import 'package:gttp/core/widgets/coming_soon_screen.dart';
+import 'package:gttp/features/notices/presentation/screens/notices_screen.dart';
 import 'package:gttp/features/reports/presentation/screens/data_export_screen.dart';
+import 'package:gttp/features/reports/presentation/screens/report_detail_screen.dart';
+import 'package:gttp/features/reports/presentation/screens/report_list_screen.dart';
 import 'package:gttp/features/school_network/presentation/screens/school_network_screen.dart';
+import 'package:gttp/features/events/presentation/screens/events_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -77,6 +81,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'data-export',
                     builder: (context, state) => const DataExportCenterScreen(),
                   ),
+                  GoRoute(
+                    path: 'certificates',
+                    builder: (context, state) => const CertificatesScreen(),
+                  ),
+                  GoRoute(
+                    path: 'notices',
+                    builder: (context, state) => const NoticesScreen(),
+                  ),
+                  GoRoute(
+                    path: 'events',
+                    builder: (context, state) => const EventsScreen(),
+                  ),
                 ],
               ),
             ],
@@ -85,12 +101,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/reports',
-                builder: (context, state) => const ComingSoonScreen(title: 'Flagged Reports Review'),
+                builder: (context, state) => const ReportListScreen(),
                 routes: [
                   GoRoute(
                     path: ':id',
                     builder: (context, state) {
-                      return const ComingSoonScreen(title: 'Flagged Reports Review');
+                      final reportId = state.pathParameters['id'] ?? '';
+                      return ReportDetailScreen(reportId: reportId);
                     },
                   ),
                 ],
@@ -101,7 +118,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/courses',
-                builder: (context, state) => const CoursesPlaceholderScreen(),
+                builder: (context, state) => const CoursesScreen(),
               ),
             ],
           ),

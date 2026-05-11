@@ -23,9 +23,9 @@ class ApiClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 20),
-        sendTimeout: const Duration(seconds: 20),
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 60),
+        sendTimeout: const Duration(seconds: 60),
         // Accept: application/json makes Laravel return JSON errors and resources
         // instead of redirecting to HTML login pages on 401/validation failures.
         headers: const {
@@ -35,6 +35,9 @@ class ApiClient {
       ),
     );
 
+    // Local variable for refresh state (closure captures this)
+    bool isRefreshing = false;
+
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -43,6 +46,72 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $accessToken';
           }
           handler.next(options);
+        },
+        onError: (error, handler) async {
+          // Only handle 401 Unauthorized errors
+          if (error.response?.statusCode != 401) {
+            return handler.next(error);
+          }
+
+          // Prevent refresh loop
+          if (isRefreshing) {
+            return handler.next(error);
+          }
+
+          isRefreshing = true;
+          try {
+            final refreshToken = await secureStorage.getRefreshToken();
+            if (refreshToken == null || refreshToken.isEmpty) {
+              // No refresh token, need to re-login
+              await secureStorage.clearTokens();
+              return handler.next(error);
+            }
+
+            // Attempt to refresh the token
+            final refreshResponse = await dio.post<dynamic>(
+              '/refresh',
+              options: Options(
+                headers: {
+                  'Authorization': 'Bearer $refreshToken',
+                },
+              ),
+            );
+
+            final body = refreshResponse.data;
+            String? newAccessToken;
+            String? newRefreshToken;
+
+            if (body is Map<String, dynamic>) {
+              // Try various token key names
+              newAccessToken = _tryGetString(body, [
+                'accessToken', 'token', 'access_token', 'jwt', 'bearerToken',
+              ]);
+              newRefreshToken = _tryGetString(body, [
+                'refreshToken', 'refresh_token', 'refreshJwt',
+              ]);
+            }
+
+            if (newAccessToken != null && newAccessToken.isNotEmpty) {
+              // Save new tokens
+              await secureStorage.saveTokens(
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+              );
+
+              // Retry the original request with new token
+              error.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+              final response = await dio.fetch<dynamic>(error.requestOptions);
+              return handler.resolve(response);
+            }
+          } catch (e) {
+            if (kDebugMode) debugPrint('[API] Token refresh failed: $e');
+            // Clear tokens on refresh failure
+            await secureStorage.clearTokens();
+          } finally {
+            isRefreshing = false;
+          }
+
+          return handler.next(error);
         },
       ),
     );
@@ -61,6 +130,14 @@ class ApiClient {
     }
 
     return ApiClient(dio, secureStorage);
+  }
+
+  static String? _tryGetString(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is String && value.isNotEmpty) return value;
+    }
+    return null;
   }
 
   Future<Map<String, dynamic>> post(

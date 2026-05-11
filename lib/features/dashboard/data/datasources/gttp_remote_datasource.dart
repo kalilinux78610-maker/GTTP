@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
@@ -67,7 +68,14 @@ class GttpRemoteDataSource {
       requiresAuth: true,
       queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
-    return _extractList(response);
+    
+    final students = _extractList(response);
+    
+    if (kDebugMode && students.isNotEmpty) {
+      debugPrint('[GttpRemoteDataSource] First student raw data: ${students.first}');
+    }
+    
+    return students;
   }
 
   Future<List<Map<String, dynamic>>> getClasses() async {

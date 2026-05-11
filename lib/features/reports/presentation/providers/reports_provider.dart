@@ -20,14 +20,34 @@ class FlaggedReportsNotifier extends AsyncNotifier<List<ReportModel>> {
     );
   }
 
-  Future<void> resolveReport(String id) async {
-    await ref.read(reportsRepositoryProvider).resolveReport(id);
-    await refresh();
+  Future<bool> resolveReport(String id) async {
+    try {
+      await ref.read(reportsRepositoryProvider).resolveReport(id);
+      await refresh();
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
-  Future<void> overrideReport(String id, String comments) async {
-    await ref.read(reportsRepositoryProvider).overrideReport(id: id, comments: comments);
-    await refresh();
+  Future<bool> overrideReport(String id, String comments) async {
+    try {
+      await ref.read(reportsRepositoryProvider).overrideReport(id: id, comments: comments);
+      await refresh();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> rejectReport(String id, {String? reason}) async {
+    try {
+      await ref.read(reportsRepositoryProvider).rejectReport(id, reason: reason);
+      await refresh();
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }
 

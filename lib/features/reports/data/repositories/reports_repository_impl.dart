@@ -31,4 +31,9 @@ class ReportsRepositoryImpl implements ReportsRepository {
   Future<void> resolveReport(String id) {
     return _remoteDataSource.resolveReport(id);
   }
+
+  @override
+  Future<void> rejectReport(String id, {String? reason}) {
+    return _remoteDataSource.rejectReport(id, reason: reason);
+  }
 }

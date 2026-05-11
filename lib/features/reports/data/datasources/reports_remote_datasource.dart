@@ -163,16 +163,34 @@ class ReportsRemoteDataSource {
         data: {'comments': comments},
         requiresAuth: true,
       );
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      if (kDebugMode) debugPrint('[Reports] overrideReport failed: $e');
+      throw ApiException('Failed to override report: $e');
     }
   }
 
   Future<void> resolveReport(String id) async {
     try {
       await _apiClient.post('/reports/$id/resolve', requiresAuth: true);
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      if (kDebugMode) debugPrint('[Reports] resolveReport failed: $e');
+      throw ApiException('Failed to resolve report: $e');
+    }
+  }
+
+  Future<void> rejectReport(String id, {String? reason}) async {
+    try {
+      await _apiClient.post(
+        '/reports/$id/reject',
+        data: reason != null ? {'reason': reason} : null,
+        requiresAuth: true,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to reject report: $e');
     }
   }
 

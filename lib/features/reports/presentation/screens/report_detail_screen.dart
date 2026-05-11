@@ -213,8 +213,16 @@ class ReportDetailScreen extends ConsumerWidget {
           Expanded(
             child: ElevatedButton(
               onPressed: () async {
-                await ref.read(flaggedReportsProvider.notifier).resolveReport(report.id);
-                if (context.mounted) context.pop();
+                final success = await ref.read(flaggedReportsProvider.notifier).resolveReport(report.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? 'Report resolved' : 'Failed to resolve report'),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                    ),
+                  );
+                  if (success) context.pop();
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -235,7 +243,7 @@ class ReportDetailScreen extends ConsumerWidget {
     final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Override Report'),
         content: TextField(
           controller: controller,
@@ -246,12 +254,20 @@ class ReportDetailScreen extends ConsumerWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
-              if (controller.text.isNotEmpty) {
-                await ref.read(flaggedReportsProvider.notifier).overrideReport(id, controller.text);
-                if (context.mounted) context.pop();
+              if (controller.text.isEmpty) return;
+              Navigator.pop(ctx);
+              final success = await ref.read(flaggedReportsProvider.notifier).overrideReport(id, controller.text);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? 'Report overridden' : 'Failed to override report'),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+                if (success) context.pop();
               }
             },
             child: const Text('Confirm Override'),

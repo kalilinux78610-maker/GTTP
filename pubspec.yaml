@@ -47,6 +47,11 @@ dependencies:
   path_provider: ^2.1.5
   csv: ^8.0.0
   pdf: ^3.12.0
+  # Offline storage (Hive - simpler than Isar, no codegen conflicts)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  # Connectivity
+  connectivity_plus: ^6.1.4
 
 dev_dependencies:
   flutter_test:

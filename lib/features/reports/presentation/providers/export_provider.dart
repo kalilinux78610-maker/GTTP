@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/features/dashboard/data/datasources/gttp_remote_datasource.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
@@ -68,7 +69,26 @@ final filteredExportStudentsProvider = FutureProvider.family<List<StudentModel>,
     school: params.school == 'All Schools' ? null : params.school,
     course: params.course == 'All Courses' ? null : params.course,
   );
-  return apiRows.map(_studentFromApi).toList();
+  
+  // Fetch schools and classes for name lookup
+  final schools = await ref.watch(schoolsApiProvider.future);
+  final classes = await ref.watch(classesApiProvider.future);
+  final schoolNameById = _buildNameByIdMap(
+    schools,
+    nameKeys: ['name', 'title', 'school_name', 'schoolName', 'institute_name'],
+  );
+  final classNameById = _buildNameByIdMap(
+    classes,
+    nameKeys: ['name', 'title', 'class_name', 'course_name', 'school_class'],
+  );
+  
+  return apiRows
+      .map((row) => _studentFromApi(
+            row,
+            schoolNameById: schoolNameById,
+            classNameById: classNameById,
+          ))
+      .toList();
 });
 
 // --- State Class ---
@@ -158,6 +178,15 @@ StudentModel _studentFromApi(
   Map<String, String> schoolNameById = const {},
   Map<String, String> classNameById = const {},
 }) {
+  // Build flattened search sources: root + nested objects
+  final sources = <Map<String, dynamic>>[json];
+  for (final nestedKey in ['data', 'user', 'student', 'profile', 'school', 'class', 'school_class', 'course']) {
+    final nested = json[nestedKey];
+    if (nested is Map<String, dynamic>) {
+      sources.add(nested);
+    }
+  }
+
   dynamic valueByPath(String path) {
     dynamic current = json;
     for (final part in path.split('.')) {
@@ -172,9 +201,12 @@ StudentModel _studentFromApi(
 
   String str(List<String> keys, {String fallback = ''}) {
     for (final k in keys) {
-      final value = k.contains('.') ? valueByPath(k) : json[k];
-      if (value != null && value.toString().trim().isNotEmpty) {
-        return value.toString().trim();
+      // Search all sources
+      for (final source in sources) {
+        final value = k.contains('.') ? valueByPath(k) : source[k];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString().trim();
+        }
       }
     }
     return fallback;
@@ -182,28 +214,42 @@ StudentModel _studentFromApi(
 
   int numVal(List<String> keys, {int fallback = 0}) {
     for (final k in keys) {
-      final value = k.contains('.') ? valueByPath(k) : json[k];
-      if (value is int) return value;
-      if (value is num) return value.toInt();
-      if (value is String) {
-        final parsed = int.tryParse(value);
-        if (parsed != null) return parsed;
+      for (final source in sources) {
+        final value = k.contains('.') ? valueByPath(k) : source[k];
+        if (value is int) return value;
+        if (value is num) return value.toInt();
+        if (value is String) {
+          final parsed = int.tryParse(value);
+          if (parsed != null) return parsed;
+        }
       }
     }
     return fallback;
   }
 
-  final expiry = str(['passport_expiry', 'passportExpiry']);
+  // Debug: print raw JSON keys on first parse
+  if (kDebugMode) {
+    debugPrint('[Export] Student JSON keys: ${json.keys.toList()}');
+    // Print nested objects too
+    for (final key in json.keys) {
+      final val = json[key];
+      if (val is Map) {
+        debugPrint('[Export]   Nested "$key" keys: ${val.keys.toList()}');
+      }
+    }
+  }
+
+  final expiry = str(['passport_expiry', 'passportExpiry', 'passport_expiration_date', 'passportExpiryDate']);
   final expiryDate = DateTime.tryParse(expiry);
   final isExpiring = expiryDate != null &&
       expiryDate.isBefore(DateTime.now().add(const Duration(days: 90)));
 
   return StudentModel(
-    id: str(['id', 'student_id'], fallback: DateTime.now().microsecondsSinceEpoch.toString()),
-    name: str(['name', 'student_name'], fallback: 'Unknown'),
-    studentCode: str(['student_code', 'studentCode', 'code', 'admission_number', 'roll_number']),
-    city: str(['city', 'location', 'address', 'district'], fallback: '-'),
-    passportNumber: str(['passport_number', 'passportNumber', 'passport_no', 'passport'], fallback: '-'),
+    id: str(['id', 'student_id', 'studentId', 'user_id', 'userId'], fallback: DateTime.now().microsecondsSinceEpoch.toString()),
+    name: str(['name', 'student_name', 'studentName', 'full_name', 'fullName', 'display_name', 'displayName', 'first_name', 'firstName', 'username'], fallback: 'Unknown'),
+    studentCode: str(['student_code', 'studentCode', 'code', 'admission_number', 'admissionNumber', 'roll_number', 'rollNumber', 'enrollment_number', 'enrolment_no', 'reg_no', 'registration_number']),
+    city: str(['city', 'location', 'address', 'district', 'state', 'region', 'town', 'place'], fallback: '-'),
+    passportNumber: str(['passport_number', 'passportNumber', 'passport_no', 'passport', 'passport_no_', 'travel_document'], fallback: '-'),
     passportExpiry: expiry,
     schoolName: str(
       [
@@ -212,30 +258,45 @@ StudentModel _studentFromApi(
         'school',
         'institute',
         'institute_name',
+        'instituteName',
         'branch_name',
+        'branchName',
+        'academy_name',
+        'center_name',
+        'centerName',
         'school.name',
         'school.title',
         'school.school_name',
+        'school_name_by_id',
       ],
       fallback: schoolNameById[str(['school_id', 'schoolId'])] ?? '-',
     ),
     courseName: str(
       [
-      'course_name',
-      'courseName',
-      'course',
-      'class_name',
-      'class.name',
-      'class.title',
-      'school_class.name',
-      'schoolClass.name',
+        'course_name',
+        'courseName',
+        'course',
+        'program',
+        'program_name',
+        'programName',
+        'class_name',
+        'className',
+        'batch',
+        'batch_name',
+        'department',
+        'discipline',
+        'class.name',
+        'class.title',
+        'school_class.name',
+        'schoolClass.name',
+        'course_name_by_id',
       ],
-      fallback: classNameById[str(['class_id', 'classId', 'school_class_id'])] ?? '-',
+      fallback: classNameById[str(['class_id', 'classId', 'school_class_id', 'course_id', 'courseId'])] ?? '-',
     ),
-    theoryCompletion: numVal(['theory_completion', 'theoryCompletion']),
-    practicalCompletion: numVal(['practical_completion', 'practicalCompletion']),
-    internshipCompletion: numVal(['internship_completion', 'internshipCompletion']),
-    visitsCompletion: numVal(['visits_completion', 'visitsCompletion']),
+    theoryCompletion: numVal(['theory_completion', 'theoryCompletion', 'theory', 'theory_progress', 'theoryProgress', 'pillar_1', 'pillar1']),
+    practicalCompletion: numVal(['practical_completion', 'practicalCompletion', 'practical', 'practical_progress', 'practicalProgress', 'pillar_2', 'pillar2']),
+    internshipCompletion: numVal(['internship_completion', 'internshipCompletion', 'internship', 'internship_progress', 'internshipProgress', 'pillar_3', 'pillar3']),
+    visitsCompletion: numVal(['visits_completion', 'visitsCompletion', 'visits', 'visits_progress', 'visitsProgress', 'visit_completion', 'pillar_4', 'pillar4']),
     isPassportExpiring: isExpiring,
   );
 }

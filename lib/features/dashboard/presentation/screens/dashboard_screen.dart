@@ -362,12 +362,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             onTap: () => context.push('/dashboard/data-export'),
           ),
           _buildQuickAccessCard(
-            title: 'Gallery',
+            title: 'Events & Gallery',
             subtitle: 'View all events, competitions & activities',
-            trailing: '124 Photos',
             icon: Icons.photo_library_outlined,
             iconColor: Colors.white,
             iconBg: const Color(0xFF29954C),
+            onTap: () => context.push('/dashboard/events'),
           ),
         ],
       ),
@@ -377,7 +377,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
   Widget _buildQuickAccessCard({
     required String title,
     required String subtitle,
-    required String trailing,
+    String? trailing,
     required IconData icon,
     required Color iconColor,
     required Color iconBg,
@@ -433,14 +433,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             ),
           ),
         ),
-        trailing: Text(
-          trailing,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Color(0xFF8692A6),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        trailing: trailing != null
+            ? Text(
+                trailing,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF8692A6),
+                  fontWeight: FontWeight.w500,
+                ),
+              )
+            : null,
         onTap: onTap,
       ),
     );

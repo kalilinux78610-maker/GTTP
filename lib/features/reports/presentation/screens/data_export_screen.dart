@@ -133,8 +133,8 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
         : displayedTotalCount.toString();
     
     final expiring = filteredStudents.where((s) => s.isPassportExpiring).length;
-    final rowEst = displayedTotalCount;
-    final sizeMb = _estimatedSizeMb(rowEst, _columnCount());
+    final rowEst = filteredStudents.length;
+    final estimatedSize = _estimatedSize(rowEst, _columnCount());
 
     // Listen for export status
     ref.listen(exportProvider, (previous, next) {
@@ -317,7 +317,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
                 _buildSummarySection(
                   totalStudents,
                   rowEst,
-                  sizeMb,
+                  estimatedSize,
                 ),
                 const SizedBox(height: 24),
                 _buildExportButton(
@@ -533,7 +533,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
   Widget _buildSummarySection(
     String totalStudents,
     int rowEst,
-    double sizeMb,
+    String estimatedSize,
   ) {
     final fmtLabel = _selectedFormat == 'PDF'
         ? 'PDF (text report)'
@@ -560,7 +560,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
           const SizedBox(height: 16),
           _buildSummaryRow('Students (approx.):', '$rowEst'),
           const SizedBox(height: 8),
-          _buildSummaryRow('Estimated file size:', '~$sizeMb MB'),
+          _buildSummaryRow('Estimated file size:', '~$estimatedSize'),
           const SizedBox(height: 8),
           _buildSummaryRow('Format:', fmtLabel),
           const SizedBox(height: 8),
@@ -591,10 +591,18 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
   }
 
 
-  double _estimatedSizeMb(int rows, int columnCount) {
+  String _estimatedSize(int rows, int columnCount) {
     final bytesPerRow = 120 + columnCount * 35;
-    final mb = (rows * bytesPerRow) / (1024 * 1024);
-    return double.parse(mb.toStringAsFixed(2));
+    final totalBytes = rows * bytesPerRow;
+    if (totalBytes < 1024) {
+      return '$totalBytes B';
+    } else if (totalBytes < 1024 * 1024) {
+      final kb = totalBytes / 1024;
+      return '${kb.toStringAsFixed(1)} KB';
+    } else {
+      final mb = totalBytes / (1024 * 1024);
+      return '${mb.toStringAsFixed(2)} MB';
+    }
   }
 
   int _columnCount() {

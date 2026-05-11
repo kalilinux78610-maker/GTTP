@@ -20,16 +20,48 @@ class ReportListScreen extends ConsumerWidget {
           child: Column(
             children: [
               _buildHeader(context),
-              _buildFilterSection(ref),
               Expanded(
-                child: reportsAsync.when(
-                  data: (reports) => _buildReportList(reports, ref),
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF3286C9),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBF5FF),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.construction_outlined,
+                            color: Color(0xFF3286C9),
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Report Review & Approval',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A1C1E),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'This feature is coming soon. You will be able to review, flag, and approve student reports here.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF6B7280),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  error: (error, _) => _buildErrorState(ref, error.toString()),
                 ),
               ),
             ],
@@ -160,6 +192,11 @@ class ReportListScreen extends ConsumerWidget {
   }
 
   Widget _buildReportList(List<ReportModel> reports, WidgetRef ref) {
+    final selectedStatus = ref.watch(selectedStatusProvider);
+    if (selectedStatus == ReportStatus.flagged) {
+      return _buildFlaggedComingSoonState(ref);
+    }
+
     if (reports.isEmpty) {
       return Center(
         child: Column(
@@ -190,6 +227,56 @@ class ReportListScreen extends ConsumerWidget {
       itemBuilder: (context, index) {
         return _ReportCard(report: reports[index]);
       },
+    );
+  }
+
+  Widget _buildFlaggedComingSoonState(WidgetRef ref) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.outlined_flag,
+                color: Color(0xFFDC2626),
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Flagged Reports Review',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Coming soon. You will be able to review and take action on flagged reports here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF6B7280),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () => ref.read(selectedStatusProvider.notifier).set(null),
+              child: const Text('Back to all reports'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -260,13 +347,13 @@ class _FilterChip<T> extends StatelessWidget {
   }
 }
 
-class _ReportCard extends StatelessWidget {
+class _ReportCard extends ConsumerWidget {
   final ReportModel report;
 
   const _ReportCard({required this.report});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -364,7 +451,7 @@ class _ReportCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          _buildActionButtons(context),
+                          _buildActionButtons(context, ref),
                         ],
                       ),
                     ],
@@ -419,21 +506,21 @@ class _ReportCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
     if (report.status == ReportStatus.flagged) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _ActionButton(
             label: 'Reject',
-            onPressed: () {},
+            onPressed: () => _showRejectDialog(context, ref, report.id),
             color: const Color(0xFFFEF2F2),
             textColor: const Color(0xFFDC2626),
           ),
           const SizedBox(width: 8),
           _ActionButton(
             label: 'Override & Approve',
-            onPressed: () {},
+            onPressed: () => _showOverrideDialog(context, ref, report.id),
             color: const Color(0xFF10B981),
             textColor: Colors.white,
           ),
@@ -442,12 +529,102 @@ class _ReportCard extends StatelessWidget {
     } else if (report.status == ReportStatus.pending) {
       return _ActionButton(
         label: 'Approve',
-        onPressed: () {},
+        onPressed: () async {
+          final success = await ref.read(flaggedReportsProvider.notifier).resolveReport(report.id);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(success ? 'Report approved' : 'Failed to approve report'),
+                backgroundColor: success ? Colors.green : Colors.red,
+              ),
+            );
+          }
+        },
         color: const Color(0xFF10B981),
         textColor: Colors.white,
       );
     }
     return const SizedBox.shrink();
+  }
+
+  void _showRejectDialog(BuildContext context, WidgetRef ref, String reportId) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject Report'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Enter rejection reason (optional)...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await ref.read(flaggedReportsProvider.notifier).rejectReport(
+                reportId,
+                reason: controller.text.isNotEmpty ? controller.text : null,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? 'Report rejected' : 'Failed to reject report'),
+                    backgroundColor: success ? Colors.orange : Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOverrideDialog(BuildContext context, WidgetRef ref, String reportId) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Override & Approve'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Enter override reason...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.isEmpty) return;
+              Navigator.pop(ctx);
+              final success = await ref.read(flaggedReportsProvider.notifier).overrideReport(
+                reportId,
+                controller.text,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? 'Report overridden and approved' : 'Failed to override report'),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
   }
 
   Color _getStatusColor(ReportStatus status) {
