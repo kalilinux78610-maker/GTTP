@@ -13,6 +13,11 @@ class ReportsRepositoryImpl implements ReportsRepository {
   ReportsRepositoryImpl(this._remoteDataSource);
 
   @override
+  Future<List<ReportModel>> getProgressReports() {
+    return _remoteDataSource.getProgressReports();
+  }
+
+  @override
   Future<List<ReportModel>> getFlaggedReports() {
     return _remoteDataSource.getFlaggedReports();
   }

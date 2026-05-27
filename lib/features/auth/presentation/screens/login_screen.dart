@@ -7,6 +7,7 @@ import 'package:gttp/core/network/api_exception.dart';
 import 'package:gttp/core/widgets/custom_text_field.dart';
 import 'package:gttp/core/widgets/custom_button.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
+import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key, this.sessionExpired = false});
@@ -35,11 +36,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.didChangeDependencies();
     if (widget.sessionExpired && !_sessionExpiredMessageShown) {
       _sessionExpiredMessageShown = true;
+      setState(() {
+        _usernameError = null;
+        _passwordError = null;
+      });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Session expired, please login again.'),
+            content: Text('Your session expired. Please sign in again.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -48,7 +53,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onFieldsChanged);
+    _passwordController.addListener(_onFieldsChanged);
+  }
+
+  void _onFieldsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    _emailController.removeListener(_onFieldsChanged);
+    _passwordController.removeListener(_onFieldsChanged);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -109,6 +127,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
       if (accessToken != null && accessToken.isNotEmpty) {
+        ref.invalidate(userModelProvider);
+        ref.invalidate(dashboardDataProvider);
         context.go('/dashboard');
         return;
       }
@@ -314,7 +334,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 32),
                           const Text(
-                            "Username",
+                            "Email Address",
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: AppTheme.deepNavy,
@@ -323,9 +343,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 8),
                           CustomTextField(
-                            hintText: "Username",
+                            hintText: "Enter your email",
                             prefixIcon: Icons.email_outlined,
                             controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            autocorrect: false,
                             errorText: _usernameError,
                             onChanged: (_) =>
                                 setState(() => _usernameError = null),
@@ -344,6 +368,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             hintText: "Enter your password",
                             prefixIcon: Icons.lock_outline,
                             isPassword: !_isPasswordVisible,
+                            keyboardType: TextInputType.visiblePassword,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
                             suffixIcon: _isPasswordVisible
                                 ? Icons.visibility_off
                                 : Icons.visibility,

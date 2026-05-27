@@ -6,6 +6,7 @@ import 'package:gttp/core/network/api_exception.dart';
 import 'package:gttp/core/theme/app_theme.dart';
 import 'package:gttp/core/widgets/custom_button.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
+import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 
 class VerifyOtpScreen extends ConsumerStatefulWidget {
   final String email;
@@ -145,6 +146,8 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       setState(() => _isLoading = false);
       
       // On success (no exception thrown), redirect to dashboard
+      ref.invalidate(userModelProvider);
+      ref.invalidate(dashboardDataProvider);
       context.go('/dashboard');
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -294,7 +297,12 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                     ),
                     const SizedBox(height: 16),
                     GestureDetector(
-                      onTap: () => context.pop(),
+                      onTap: () async {
+                        await ref.read(secureStorageProvider).clearPendingUserId();
+                        if (context.mounted) {
+                          context.go('/login');
+                        }
+                      },
                       child: const Row(
                         children: [
                           Icon(Icons.arrow_back_ios,

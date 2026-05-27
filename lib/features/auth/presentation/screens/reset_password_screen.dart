@@ -29,6 +29,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   bool _isConfirmPasswordVisible = false;
   String? _newPasswordError;
   String? _confirmPasswordError;
+  String? _apiError;
   bool _isLoading = false;
 
   bool get _isButtonEnabled =>
@@ -66,6 +67,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() {
       _newPasswordError = newPwErr;
       _confirmPasswordError = confirmPwErr;
+      _apiError = null;
     });
 
     return newPwErr == null && confirmPwErr == null;
@@ -76,7 +78,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     if (widget.email.isEmpty || widget.otp.isEmpty) {
       setState(() {
-        _newPasswordError = 'Session expired. Please request OTP again.';
+        _apiError = 'Session expired. Please request OTP again.';
       });
       return;
     }
@@ -95,13 +97,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _confirmPasswordError = e.message;
+        _apiError = e.message;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _confirmPasswordError = 'Unable to reset password. Please try again.';
+        _apiError = 'Unable to reset password. Please try again.';
       });
     }
   }
@@ -352,6 +354,30 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
+
+                    // Display API Errors (e.g. OTP expired or general failure)
+                    if (_apiError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: AppTheme.signalRed, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _apiError!,
+                                style: const TextStyle(
+                                  color: AppTheme.signalRed,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     // Reset Password Button
                     _isLoading

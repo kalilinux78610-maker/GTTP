@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/data/models/dashboard_model.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
-import 'package:gttp/features/reports/presentation/providers/reports_provider.dart';
-
+import 'package:gttp/core/auth/user_role.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -106,7 +105,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
           children: [
             _buildHeaderAndOverview(),
             _buildQuickAccessList(),
-            const SizedBox(height: 100), // padding for shell bottom nav
+            const SizedBox(height: 140), // padding for shell bottom nav
           ],
         ),
       ),
@@ -198,14 +197,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Trust Administrator',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final userAsync = ref.watch(userModelProvider);
+                      return userAsync.when(
+                        data: (user) {
+                          final role = AppUserRole.fromApi(user?.role);
+                          return Text(
+                            role.label,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -235,7 +245,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Trust Overview',
+                  'My Overview',
                   style: TextStyle(
                     color: Color(0xFF2A3A4A),
                     fontWeight: FontWeight.bold,
@@ -248,18 +258,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildStatItem(
-                        '${data.totalSchools}', // Mapped to Total Schools based on design mock
-                        'Total Schools',
+                        '${data.totalCourses > 0 ? data.totalCourses : data.totalClasses}',
+                        'Total Courses',
                         const Color(0xFF3286C9),
                       ),
                       _buildStatItem(
-                        '${data.totalClasses}', // Mapped to Active Projects
-                        'Active Projects',
+                        '${data.totalSchedules}',
+                        'Schedules',
                         const Color(0xFFE65C00),
                       ),
                       _buildStatItem(
-                        data.totalStudents > 1000 ? '${(data.totalStudents / 1000).toStringAsFixed(1)}k' : '${data.totalStudents}',
-                        'Total Students',
+                        '${data.totalCertificates}',
+                        'Certificates',
                         const Color(0xFF209E5A),
                       ),
                     ],
@@ -314,6 +324,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
   }
 
   Widget _buildQuickAccessList() {
+    final dashboardAsync = ref.watch(dashboardDataProvider);
+    final certCount = dashboardAsync.maybeWhen(
+      data: (d) => d.totalCertificates,
+      orElse: () => null,
+    );
+    final certTrailing = certCount == null
+        ? null
+        : '$certCount Earned';
+
     return Padding(
       padding: const EdgeInsets.only(top: 80, left: 24, right: 24),
       child: Column(
@@ -329,45 +348,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
           ),
           const SizedBox(height: 16),
           _buildQuickAccessCard(
-            title: 'Flagged Reports Review',
-            subtitle: 'Review & override flagged submissions',
-            trailing: ref.watch(flaggedReportsProvider).maybeWhen(
-                  data: (reports) => '${reports.length} Flagged',
-                  orElse: () => 'Loading...',
-                ),
-            icon: Icons.business_outlined,
+            title: 'Certificates',
+            subtitle: 'View all your earned certificates',
+            trailing: certTrailing,
+            icon: Icons.workspace_premium_outlined,
             iconColor: Colors.white,
-            iconBg: const Color(0xFFEA3A3D),
-            onTap: () => context.go('/reports'),
+            iconBg: const Color(0xFF209E5A),
+            onTap: () => context.go('/dashboard/certificates'),
           ),
           _buildQuickAccessCard(
-            title: 'School Network',
-            subtitle: 'Manage branch schools & coordinators',
-            trailing: ref.watch(dashboardDataProvider).maybeWhen(
-                  data: (data) => '${data.totalSchools} Schools',
-                  orElse: () => 'Loading...',
-                ),
-            icon: Icons.campaign_rounded,
-            iconColor: Colors.white,
-            iconBg: const Color(0xFFE86924),
-            onTap: () => context.push('/dashboard/school-network'),
-          ),
-          _buildQuickAccessCard(
-            title: 'Data Export & Analytics',
-            subtitle: 'Download master data with passport info',
-            trailing: 'Export Excel',
-            icon: Icons.snippet_folder_rounded,
-            iconColor: Colors.white,
-            iconBg: const Color(0xFF7A4BED),
-            onTap: () => context.push('/dashboard/data-export'),
-          ),
-          _buildQuickAccessCard(
-            title: 'Events & Gallery',
-            subtitle: 'View all events, competitions & activities',
+            title: 'Gallery',
+            subtitle: 'View school events & competitions',
             icon: Icons.photo_library_outlined,
             iconColor: Colors.white,
-            iconBg: const Color(0xFF29954C),
-            onTap: () => context.push('/dashboard/events'),
+            iconBg: const Color(0xFFEA3A3D),
+            onTap: () => context.go('/dashboard/gallery'),
           ),
         ],
       ),

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:gttp/features/auth/data/models/user_model.dart';
 
 class SecureStorageService {
   SecureStorageService(this._storage);
@@ -20,7 +22,12 @@ class SecureStorageService {
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _pendingUserIdKey = 'pending_user_id';
-  static const String _displayNameKey = 'display_name';
+  static const String _displayNameKey = 'display_name'; // legacy key
+  static const String _emailKey = 'email'; // legacy key
+  static const String _phoneKey = 'phone'; // legacy key
+  static const String _roleKey = 'role'; // legacy key
+  static const String _instituteKey = 'institute'; // legacy key
+  static const String _userProfileDataKey = 'user_profile_data';
 
   final FlutterSecureStorage _storage;
 
@@ -59,11 +66,66 @@ class SecureStorageService {
     return _storage.delete(key: _pendingUserIdKey);
   }
 
-  Future<void> saveDisplayName(String displayName) {
-    return _storage.write(key: _displayNameKey, value: displayName.trim());
+  Future<void> saveUserModel(UserModel user) async {
+    final jsonString = jsonEncode(user.toJson());
+    await _storage.write(key: _userProfileDataKey, value: jsonString);
   }
 
-  Future<String?> getDisplayName() => _storage.read(key: _displayNameKey);
+  Future<UserModel?> getUserModel() async {
+    final jsonString = await _storage.read(key: _userProfileDataKey);
+    if (jsonString == null) return null;
+    try {
+      return UserModel.fromJson(jsonDecode(jsonString));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearUserProfile() async {
+    await _storage.delete(key: _userProfileDataKey);
+    // Legacy keys cleanup
+    await _storage.delete(key: _displayNameKey);
+    await _storage.delete(key: _emailKey);
+    await _storage.delete(key: _phoneKey);
+    await _storage.delete(key: _roleKey);
+    await _storage.delete(key: _instituteKey);
+  }
+
+  Future<String?> getDisplayName() async {
+    final user = await getUserModel();
+    if (user != null && user.name.isNotEmpty) return user.name;
+    // Fallback
+    return _storage.read(key: _displayNameKey);
+  }
+
+  Future<void> saveDisplayName(String displayName) async {
+    final user = await getUserModel();
+    if (user != null) {
+      final updatedUser = UserModel(
+        id: user.id,
+        name: displayName.trim(),
+        email: user.email,
+        emailVerifiedAt: user.emailVerifiedAt,
+        phone: user.phone,
+        passportNumber: user.passportNumber,
+        passportExpiry: user.passportExpiry,
+        roleLevel: user.roleLevel,
+        isAlumni: user.isAlumni,
+        avatar: user.avatar,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        deletedAt: user.deletedAt,
+        schoolId: user.schoolId,
+        institute: user.institute,
+        role: user.role,
+        roles: user.roles,
+      );
+      await saveUserModel(updatedUser);
+    } else {
+      await _storage.write(key: _displayNameKey, value: displayName.trim());
+    }
+  }
 
   Future<void> clearDisplayName() {
     return _storage.delete(key: _displayNameKey);

@@ -10,11 +10,10 @@ import '../../data/models/student_model.dart';
 
 class ExportService {
   Future<String> exportData(
-    List<StudentModel> students, 
+    List<StudentModel> students,
     String format, {
     bool includePassport = true,
     bool includePillars = true,
-    bool includeAcademic = true,
   }) async {
     try {
       List<int> bytes;
@@ -22,25 +21,45 @@ class ExportService {
 
       if (format == 'CSV' || format == 'EXCEL') {
         final List<String> headers = [
-          'Student ID', 'Name', 'Student Code', 'School', 'Course', 'City'
+          'Student ID',
+          'Name',
+          'Student Code',
+          'School',
+          'Course',
+          'City',
         ];
         if (includePassport) {
           headers.addAll(['Passport Number', 'Passport Expiry']);
         }
         if (includePillars) {
-          headers.addAll(['Theory Completion (%)', 'Practical Completion (%)', 'Internship Completion (%)', 'Visits Completion (%)']);
+          headers.addAll([
+            'Theory Completion (%)',
+            'Practical Completion (%)',
+            'Internship Completion (%)',
+            'Visits Completion (%)',
+          ]);
         }
-        // Note: Currently StudentModel doesn't have explicit GPA/Attendance, using the existing data structure if academic is checked.
-        
         final List<List<dynamic>> rows = [
           headers,
           ...students.map((s) {
-            final List<dynamic> row = [s.id, s.name, s.studentCode, s.schoolName, s.courseName, s.city];
+            final List<dynamic> row = [
+              s.id,
+              s.name,
+              s.studentCode,
+              s.schoolName,
+              s.courseName,
+              s.city,
+            ];
             if (includePassport) {
               row.addAll([s.passportNumber, s.passportExpiry]);
             }
             if (includePillars) {
-              row.addAll([s.theoryCompletion, s.practicalCompletion, s.internshipCompletion, s.visitsCompletion]);
+              row.addAll([
+                s.theoryCompletion,
+                s.practicalCompletion,
+                s.internshipCompletion,
+                s.visitsCompletion,
+              ]);
             }
             return row;
           }),
@@ -56,7 +75,8 @@ class ExportService {
         final pdf = pw.Document();
 
         final generatedAt = DateTime.now();
-        final formattedGeneratedAt = "${generatedAt.year}-${generatedAt.month.toString().padLeft(2, '0')}-${generatedAt.day.toString().padLeft(2, '0')} ${generatedAt.hour.toString().padLeft(2, '0')}:${generatedAt.minute.toString().padLeft(2, '0')}";
+        final formattedGeneratedAt =
+            "${generatedAt.year}-${generatedAt.month.toString().padLeft(2, '0')}-${generatedAt.day.toString().padLeft(2, '0')} ${generatedAt.hour.toString().padLeft(2, '0')}:${generatedAt.minute.toString().padLeft(2, '0')}";
 
         String formatDate(String isoString) {
           if (isoString.isEmpty) return 'N/A';
@@ -66,7 +86,11 @@ class ExportService {
         }
 
         final List<String> headers = [
-          'No', 'Name', 'School Name', 'Course', 'City'
+          'No',
+          'Name',
+          'School Name',
+          'Course',
+          'City',
         ];
         if (includePassport) {
           headers.addAll(['Passport', 'Expiry']);
@@ -147,7 +171,9 @@ class ExportService {
       // Get appropriate directory
       Directory directory;
       if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
+        directory =
+            await getExternalStorageDirectory() ??
+            await getApplicationDocumentsDirectory();
       } else {
         directory = await getApplicationDocumentsDirectory();
       }
@@ -158,15 +184,15 @@ class ExportService {
       final file = File(path);
 
       await file.writeAsBytes(bytes);
-      
+
       if (kDebugMode) {
-        print('File saved to: $path');
+        debugPrint('[ExportService] File saved to: $path');
       }
-      
+
       return path;
     } catch (e) {
       if (kDebugMode) {
-        print('Error in ExportService: $e');
+        debugPrint('[ExportService] Error: $e');
       }
       rethrow;
     }

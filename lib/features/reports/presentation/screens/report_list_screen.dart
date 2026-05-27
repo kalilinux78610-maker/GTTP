@@ -1,3 +1,4 @@
+// ignore_for_file: unused_element, unused_local_variable
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,7 +17,9 @@ class ReportListScreen extends ConsumerWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 90),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom,
+          ),
           child: Column(
             children: [
               _buildHeader(context),
@@ -191,7 +194,7 @@ class ReportListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildReportList(List<ReportModel> reports, WidgetRef ref) {
+  Widget _buildReportList(BuildContext context, List<ReportModel> reports, WidgetRef ref) {
     final selectedStatus = ref.watch(selectedStatusProvider);
     if (selectedStatus == ReportStatus.flagged) {
       return _buildFlaggedComingSoonState(ref);
@@ -222,9 +225,12 @@ class ReportListScreen extends ConsumerWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16, 16, 16,
+        MediaQuery.of(context).padding.bottom + 16,
+      ),
       itemCount: reports.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (ctx, index) {
         return _ReportCard(report: reports[index]);
       },
     );

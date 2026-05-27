@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/school_model.dart';
 import '../providers/school_network_provider.dart';
@@ -67,6 +70,21 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
     return cleaned;
   }
 
+  String _formatDate(String value) {
+    final cleaned = value.trim();
+    if (cleaned.isEmpty || cleaned == '-' || cleaned.toLowerCase() == 'null') {
+      return 'Not provided yet';
+    }
+    try {
+      final date = DateTime.parse(cleaned);
+      final day = date.day.toString().padLeft(2, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      return '$day/$month/${date.year}';
+    } catch (_) {
+      return cleaned;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -86,7 +104,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
             coordinatorName: _displayOrPending(s.coordinatorName),
             phone: _displayOrPending(s.phone),
             email: _displayOrPending(s.email),
-            establishedYear: _displayOrPending(s.establishedYear),
+            establishedYear: _formatDate(s.establishedYear),
             activeCourses: '${s.activeCourses} Active Courses',
           ),
         )
@@ -113,7 +131,11 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
 
   Future<void> _refreshAllData() async {
     ref.invalidate(schoolsProvider);
-    await ref.read(schoolsProvider.future);
+    ref.invalidate(coursesApiProvider);
+    await Future.wait([
+      ref.read(schoolsProvider.future),
+      ref.read(coursesApiProvider.future),
+    ]);
   }
 
   void _clearSearch() {
@@ -124,48 +146,36 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   @override
   Widget build(BuildContext context) {
     final schoolsAsync = ref.watch(schoolsProvider);
+    final dashboardAsync = ref.watch(dashboardDataProvider);
+    final dashboardTotalCourses = dashboardAsync.maybeWhen(
+      data: (d) => d.totalCourses,
+      orElse: () => null,
+    );
+    final coursesApiCount = ref.watch(coursesApiProvider).maybeWhen(
+      data: (list) => list.length,
+      orElse: () => null,
+    );
     final allSchools = schoolsAsync.maybeWhen(data: _mapSchools, orElse: () => const <_SchoolRow>[]);
     final filteredSchools = _filterSchools(allSchools);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
-      body: schoolsAsync.when(
-        data: (_) => RefreshIndicator(
-          onRefresh: _refreshAllData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                _buildHeaderStack(context),
-                _buildStatsSection(allSchools),
-                _buildSchoolListSection(filteredSchools, allSchools.length),
-                const SizedBox(height: 100),
-              ],
-            ),
-          ),
-        ),
-        loading: () => Column(
-          children: [
-            _buildHeaderStack(context),
-            const Expanded(child: Center(child: CircularProgressIndicator())),
-          ],
-        ),
-        error: (error, _) => Column(
-          children: [
-            _buildHeaderStack(context),
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Failed to load schools: $error',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppTheme.textBody),
-                  ),
-                ),
+      body: RefreshIndicator(
+        onRefresh: _refreshAllData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildHeaderStack(context),
+              _buildStatsSection(
+                allSchools,
+                dashboardTotalCourses: dashboardTotalCourses,
+                coursesApiCount: coursesApiCount,
               ),
-            ),
-          ],
+              _buildSchoolListSection(schoolsAsync, filteredSchools, allSchools.length),
+              const SizedBox(height: 140),
+            ],
+          ),
         ),
       ),
     );
@@ -179,45 +189,49 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
           height: 240,
           width: double.infinity,
           color: const Color(0xFFF27121),
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                  onPressed: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    }
-                  },
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      }
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
-                child: Text(
-                  'School Network',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const Text(
+                'School Network',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
                 ),
               ),
               const SizedBox(height: 4),
-              const Center(
-                child: Text(
-                  'Manage branch schools & coordinators',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+              const Text(
+                'Manage branch schools & coordinators',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  height: 1.3,
                 ),
               ),
             ],
@@ -261,17 +275,17 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                 ),
                 cursorColor: const Color(0xFFF27121),
                 decoration: InputDecoration(
-                  hintText: 'Search schools by name or location...',
+                  hintText: 'Search by name or location',
                   hintStyle: const TextStyle(
                     color: Color(0xFF94A3B8),
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                   prefixIcon: const Padding(
-                    padding: EdgeInsets.only(left: 16, right: 12),
-                    child: Icon(Icons.search, color: Color(0xFF64748B), size: 24),
+                    padding: EdgeInsets.only(left: 14, right: 8),
+                    child: Icon(Icons.search, color: Color(0xFF64748B), size: 22),
                   ),
-                  prefixIconConstraints: const BoxConstraints(minWidth: 46),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 40),
                   suffixIcon: _searchQuery.isEmpty
                       ? null
                       : IconButton(
@@ -292,7 +306,11 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
     );
   }
 
-  Widget _buildStatsSection(List<_SchoolRow> allSchools) {
+  Widget _buildStatsSection(
+    List<_SchoolRow> allSchools, {
+    int? dashboardTotalCourses,
+    int? coursesApiCount,
+  }) {
     final total = allSchools.length;
     final totalFaculty = allSchools.fold<int>(
       0,
@@ -302,12 +320,18 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
       0,
       (sum, school) => sum + (int.tryParse(school.studentCount) ?? 0),
     );
-    final avgStudents = total == 0 ? 0 : (totalStudents / total).round();
-    final totalCourses = allSchools.fold<int>(
+    final avgRaw = total == 0 ? 0.0 : totalStudents / total;
+    final avgStudents = avgRaw == avgRaw.roundToDouble()
+        ? '${avgRaw.round()}'
+        : avgRaw.toStringAsFixed(1);
+    final fromSchoolRows = allSchools.fold<int>(
       0,
       (sum, school) =>
           sum + (int.tryParse(school.activeCourses.split(' ').first) ?? 0),
     );
+    final totalCourses = coursesApiCount ??
+        ((dashboardTotalCourses ?? 0) > 0 ? dashboardTotalCourses! : null) ??
+        fromSchoolRows;
     return Column(
       children: [
         const SizedBox(height: 16),
@@ -357,26 +381,29 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
         const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildInfoCard(
-                  color: const Color(0xFF8B5CF6),
-                  icon: Icons.trending_up,
-                  value: '$avgStudents',
-                  label: 'Avg Students/School',
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _buildInfoCard(
+                    color: const Color(0xFF8B5CF6),
+                    icon: Icons.trending_up,
+                    value: avgStudents,
+                    label: 'Avg Students/School',
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildInfoCard(
-                  color: const Color(0xFFEC4899),
-                  icon: Icons.emoji_events_outlined,
-                  value: '$totalCourses',
-                  label: 'Total Courses',
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildInfoCard(
+                    color: const Color(0xFFEC4899),
+                    icon: Icons.emoji_events_outlined,
+                    value: '$totalCourses',
+                    label: 'Total Courses',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -478,7 +505,11 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
     );
   }
 
-  Widget _buildSchoolListSection(List<_SchoolRow> filtered, int total) {
+  Widget _buildSchoolListSection(
+    AsyncValue<List<SchoolModel>> schoolsAsync,
+    List<_SchoolRow> filtered, 
+    int total,
+  ) {
     final subtitle = _searchQuery.trim().isEmpty
         ? null
         : '${filtered.length} of $total schools';
@@ -523,23 +554,56 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
             ],
           ),
           const SizedBox(height: 16),
-          if (filtered.isEmpty)
-            _buildEmptySearchState()
-          else
-            ...filtered.map(
-              (s) => SchoolListCard(
-                title: s.title,
-                location: s.location,
-                facultyCount: s.facultyCount,
-                studentCount: s.studentCount,
-                principalName: s.principalName,
-                coordinatorName: s.coordinatorName,
-                phone: s.phone,
-                email: s.email,
-                establishedYear: s.establishedYear,
-                activeCourses: s.activeCourses,
+          schoolsAsync.when(
+            data: (_) {
+              if (filtered.isEmpty) {
+                return _buildEmptySearchState();
+              }
+              return Column(
+                children: filtered.map(
+                  (s) => SchoolListCard(
+                    title: s.title,
+                    location: s.location,
+                    facultyCount: s.facultyCount,
+                    studentCount: s.studentCount,
+                    principalName: s.principalName,
+                    coordinatorName: s.coordinatorName,
+                    phone: s.phone,
+                    email: s.email,
+                    establishedYear: s.establishedYear,
+                    activeCourses: s.activeCourses,
+                  ),
+                ).toList(),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(48.0),
+              child: Center(
+                child: CircularProgressIndicator(),
               ),
             ),
+            error: (error, _) => Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Failed to load schools:\n$error',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.red.shade400, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _refreshAllData,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

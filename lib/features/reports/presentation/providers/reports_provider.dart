@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
 import 'package:gttp/features/reports/data/repositories/reports_repository_impl.dart';
 
@@ -8,9 +10,32 @@ final flaggedReportsProvider = AsyncNotifierProvider<FlaggedReportsNotifier, Lis
 );
 
 class FlaggedReportsNotifier extends AsyncNotifier<List<ReportModel>> {
+  Timer? _pollingTimer;
+
   @override
   Future<List<ReportModel>> build() async {
+    // Set up Smart Polling
+    ref.onDispose(() {
+      _pollingTimer?.cancel();
+    });
+    
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (ref.read(isOnlineProvider)) {
+        _pollUpdates();
+      }
+    });
+
     return ref.read(reportsRepositoryProvider).getFlaggedReports();
+  }
+
+  /// Silently fetches updates in the background without causing a loading flicker
+  Future<void> _pollUpdates() async {
+    try {
+      final reports = await ref.read(reportsRepositoryProvider).getFlaggedReports();
+      state = AsyncData(reports);
+    } catch (_) {
+      // Ignore polling errors
+    }
   }
 
   Future<void> refresh() async {

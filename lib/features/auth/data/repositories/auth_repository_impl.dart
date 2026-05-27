@@ -77,6 +77,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     await _secureStorage.clearTokens();
     await _secureStorage.clearPendingUserId();
-    await _secureStorage.clearDisplayName();
+    await _secureStorage.clearUserProfile();
   }
 }

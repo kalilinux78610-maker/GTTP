@@ -45,7 +45,10 @@ class EventsScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async => ref.refresh(eventsProvider),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(
+                16, 16, 16,
+                MediaQuery.of(context).padding.bottom + 16,
+              ),
               itemCount: events.length,
               itemBuilder: (context, index) {
                 return _EventCard(event: events[index]);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/notices/data/models/notice_model.dart';
 import 'package:gttp/features/notices/presentation/providers/notices_provider.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 
 class NoticesScreen extends ConsumerStatefulWidget {
   const NoticesScreen({super.key});
@@ -15,6 +16,22 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedCategory;
+  String? _userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadRole);
+  }
+
+  Future<void> _loadRole() async {
+    final user = await ref.read(secureStorageProvider).getUserModel();
+    if (mounted) {
+      setState(() {
+        _userRole = user?.role;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -28,13 +45,28 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
+      floatingActionButton: (_userRole?.toLowerCase() == 'national coordinator' || _userRole?.toLowerCase() == 'principal')
+          ? Padding(
+              // Push FAB above the floating nav bar (70px height + 20px gap)
+              padding: const EdgeInsets.only(bottom: 90),
+              child: FloatingActionButton.extended(
+                onPressed: () => context.push('/notices/create'),
+                backgroundColor: const Color(0xFFE65C00),
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'Create Notice',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            )
+          : null,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF2A3A4A), size: 20),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/dashboard'),
         ),
         title: const Text(
           'Notices',
@@ -166,7 +198,11 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                 return RefreshIndicator(
                   onRefresh: () => ref.read(noticesNotifierProvider.notifier).refresh(),
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.fromLTRB(
+                      16, 16, 16,
+                      // Nav bar (70) + gap (20) + FAB height (56) + spacer (16)
+                      MediaQuery.of(context).padding.bottom + 162,
+                    ),
                     itemCount: notices.length,
                     itemBuilder: (context, index) {
                       return _NoticeCard(notice: notices[index]);
@@ -180,21 +216,25 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                 ),
               ),
               error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Failed to load notices',
-                      style: TextStyle(fontSize: 16, color: Colors.red.shade400),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => ref.read(noticesNotifierProvider.notifier).refresh(),
-                      child: const Text('Retry'),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Failed to load notices:\n$error',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.red.shade400),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => ref.read(noticesNotifierProvider.notifier).refresh(),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -266,9 +306,7 @@ class _NoticeCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            // TODO: Navigate to detail screen
-          },
+          onTap: () => context.push('/notices/${notice.id}'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -327,6 +365,10 @@ class _NoticeCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               if (notice.isHighPriority)
                                 _PriorityBadge(),
+                              if (notice.targetAudience != null && notice.targetAudience!.isNotEmpty) ...[
+                                if (notice.isHighPriority) const SizedBox(width: 8),
+                                _TargetBadge(target: notice.targetAudience!),
+                              ],
                             ],
                           ),
                         ],
@@ -373,20 +415,22 @@ class _NoticeCard extends StatelessWidget {
                         color: Colors.grey.shade500,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.access_time,
-                      size: 14,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      notice.createdAt,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
+                    if (notice.createdAt.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey.shade400,
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      Text(
+                        notice.createdAt,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
                     if (notice.attachmentUrl != null) ...[
                       const Spacer(),
                       Icon(
@@ -472,6 +516,39 @@ class _PriorityBadge extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w600,
               color: Color(0xFFDC2626),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TargetBadge extends StatelessWidget {
+  final String target;
+
+  const _TargetBadge({required this.target});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.group, size: 10, color: Color(0xFF6B7280)),
+          const SizedBox(width: 2),
+          Text(
+            target,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF4B5563),
             ),
           ),
         ],

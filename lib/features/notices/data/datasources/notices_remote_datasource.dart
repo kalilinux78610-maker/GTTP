@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/core/network/api_exception.dart';
+import 'package:gttp/core/network/api_json_parser.dart';
 
 class NoticesRemoteDataSource {
   NoticesRemoteDataSource(this._apiClient);
@@ -10,6 +11,7 @@ class NoticesRemoteDataSource {
   Future<List<Map<String, dynamic>>> getNotices() async {
     try {
       final response = await _apiClient.get('/notices', requiresAuth: true);
+      ApiJsonParser.throwIfErrorResponse(response);
       return _extractList(response);
     } on ApiException {
       rethrow;
@@ -21,6 +23,7 @@ class NoticesRemoteDataSource {
   Future<Map<String, dynamic>> getNoticeDetail(String id) async {
     try {
       final response = await _apiClient.get('/notices/$id', requiresAuth: true);
+      ApiJsonParser.throwIfErrorResponse(response);
       return response;
     } on ApiException {
       rethrow;
@@ -39,26 +42,41 @@ class NoticesRemoteDataSource {
     }
   }
 
+  Future<Map<String, dynamic>> createNotice({
+    required String title,
+    required String content,
+    required String category,
+    required String priority,
+    required bool isPinned,
+    required String targetAudience,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        '/notices',
+        requiresAuth: true,
+        data: {
+          'title': title,
+          'content': content,
+          'category': category,
+          'priority': priority,
+          'is_pinned': isPinned,
+          'target_audience': targetAudience,
+        },
+      );
+      ApiJsonParser.throwIfErrorResponse(response);
+      return response;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to create notice: $e');
+    }
+  }
+
   List<Map<String, dynamic>> _extractList(Map<String, dynamic> response) {
-    // Handle various response shapes
-    if (response['data'] is List) {
-      return (response['data'] as List).whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+    final list = ApiJsonParser.extractList(response);
+    if (list.isEmpty && kDebugMode) {
+      debugPrint('[Notices] No list found in response.');
     }
-    if (response['notices'] is List) {
-      return (response['notices'] as List).whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
-    }
-    if (response['items'] is List) {
-      return (response['items'] as List).whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
-    }
-    // Fallback: find first list value
-    for (final value in response.values) {
-      if (value is List) {
-        return value.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
-      }
-    }
-    if (kDebugMode) {
-      debugPrint('[Notices] No list found in response: $response');
-    }
-    return [];
+    return list;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gttp/core/auth/user_profile_sync.dart';
 import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/core/network/api_exception.dart';
 import 'package:gttp/core/security/secure_storage_service.dart';
@@ -17,18 +18,12 @@ class AuthRemoteDataSource {
     // Clear any old state before starting a new login session
     await _secureStorage.clearTokens();
     await _secureStorage.clearPendingUserId();
+    await _secureStorage.clearUserProfile();
 
     final response = await _apiClient.post(
       '/auth/login',
-      data: {
-        'email': usernameOrEmail,
-        'password': password,
-      },
+      data: {'email': usernameOrEmail, 'password': password},
     );
-
-    if (kDebugMode) {
-      debugPrint('[AuthDataSource] Login raw response: $response');
-    }
 
     // Try every common token key across flat and nested structures
     final accessToken = _readString(
@@ -39,12 +34,10 @@ class AuthRemoteDataSource {
       response,
       keys: ['refreshToken', 'refresh_token', 'refreshJwt'],
     );
+
     /// OTP / verify-otp step only — do not use generic `id` (e.g. from `user`)
     /// or token+logins that include `user.id` will be mistaken for an OTP session.
-    final userIdForOtp = _readInt(
-      response,
-      keys: ['user_id', 'userId'],
-    );
+    final userIdForOtp = _readInt(response, keys: ['user_id', 'userId']);
     final displayName = _readString(
       response,
       keys: [
@@ -69,10 +62,16 @@ class AuthRemoteDataSource {
     // Fallback logic for first_name and last_name
     String? finalDisplayName = displayName;
     if (finalDisplayName == null || finalDisplayName.isEmpty) {
-      final firstName = _readString(response, keys: ['first_name', 'firstName']);
+      final firstName = _readString(
+        response,
+        keys: ['first_name', 'firstName'],
+      );
       final lastName = _readString(response, keys: ['last_name', 'lastName']);
       if (firstName != null && firstName.isNotEmpty) {
-        finalDisplayName = [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' ');
+        finalDisplayName = [
+          firstName,
+          lastName,
+        ].where((s) => s != null && s.isNotEmpty).join(' ');
       }
     }
 
@@ -88,6 +87,11 @@ class AuthRemoteDataSource {
       await _secureStorage.savePendingUserId(userIdForOtp);
     }
     await _saveDisplayName(finalDisplayName, fallbackEmail: usernameOrEmail);
+    await UserProfileSync.mergeFromApiResponse(
+      _secureStorage,
+      response,
+      fallbackEmail: usernameOrEmail,
+    );
 
     // If backend explicitly asks for OTP, force verify-otp flow even if token
     // is present in the response.
@@ -97,9 +101,7 @@ class AuthRemoteDataSource {
 
     // Same response contains both user_id (OTP step) and a token — do not store
     // the token yet; user must complete verify-otp first (avoids "logged in" while OTP is still pending).
-    if (userIdForOtp != null &&
-        accessToken != null &&
-        accessToken.isNotEmpty) {
+    if (userIdForOtp != null && accessToken != null && accessToken.isNotEmpty) {
       if (kDebugMode) {
         debugPrint(
           '[AuthDataSource] user_id + token together — deferring token until verify-otp',
@@ -136,20 +138,22 @@ class AuthRemoteDataSource {
       data: {'email': email},
     );
 
-    if (kDebugMode) {
-      debugPrint('[AuthDataSource] ForgotPassword raw response: $response');
-    }
-
     final userIdForOtp = _readInt(response, keys: ['user_id', 'userId']);
     if (userIdForOtp != null) {
       await _secureStorage.savePendingUserId(userIdForOtp);
       return;
     }
 
-    // Fallback error check if expected success data is missing
-    final errorMessage = _readString(response, keys: ['message', 'error']);
-    if (errorMessage != null && errorMessage.toLowerCase().contains('invalid')) {
-      throw ApiException(errorMessage, statusCode: 200);
+    // Check for explicit failure status or 'error' key instead of blinding throwing on 'message'
+    final success = _readBool(response, keys: ['status', 'success']);
+    if (success == false) {
+      final errorMessage = _readString(response, keys: ['message', 'error']);
+      throw ApiException(errorMessage ?? 'Request failed', statusCode: 200);
+    } else if (success == null) {
+      final errorStr = _readString(response, keys: ['error']);
+      if (errorStr != null && errorStr.isNotEmpty) {
+        throw ApiException(errorStr, statusCode: 200);
+      }
     }
   }
 
@@ -167,10 +171,6 @@ class AuthRemoteDataSource {
       data: {'user_id': userId, 'otp': otp},
     );
 
-    if (kDebugMode) {
-      debugPrint('[AuthDataSource] VerifyOtp raw response: $response');
-    }
-
     // If the verify-otp response also returns a token, save it
     final accessToken = _readString(
       response,
@@ -187,34 +187,47 @@ class AuthRemoteDataSource {
         'username',
       ],
     );
-    final email = _readString(
-      response,
-      keys: ['email', 'user_email'],
-    );
-    
+    final email = _readString(response, keys: ['email', 'user_email']);
+
     String? finalDisplayName = displayName;
     if (finalDisplayName == null || finalDisplayName.isEmpty) {
-      final firstName = _readString(response, keys: ['first_name', 'firstName']);
+      final firstName = _readString(
+        response,
+        keys: ['first_name', 'firstName'],
+      );
       final lastName = _readString(response, keys: ['last_name', 'lastName']);
       if (firstName != null && firstName.isNotEmpty) {
-        finalDisplayName = [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' ');
+        finalDisplayName = [
+          firstName,
+          lastName,
+        ].where((s) => s != null && s.isNotEmpty).join(' ');
       }
     }
 
-    if (kDebugMode) {
-      debugPrint('[AuthDataSource] Captured name: $finalDisplayName, email: $email');
-    }
-    
     await _saveDisplayName(finalDisplayName, fallbackEmail: email);
-    
-    // If no access token is found, this might be a 200-OK failure
-    if (accessToken == null || accessToken.isEmpty) {
-      final errorMessage = _readString(response, keys: ['message', 'error']);
-      if (errorMessage != null && (errorMessage.toLowerCase().contains('invalid') || errorMessage.toLowerCase().contains('wrong') || errorMessage.toLowerCase().contains('expired'))) {
-        throw ApiException(errorMessage, statusCode: 200);
+    await UserProfileSync.mergeFromApiResponse(
+      _secureStorage,
+      response,
+      fallbackEmail: email,
+    );
+
+      // Check for explicit failure status or 'error' key instead of blinding throwing on 'message'
+      final success = _readBool(response, keys: ['status', 'success']);
+      if (success == false) {
+        final errorMessage = _readString(response, keys: ['message', 'error']);
+        throw ApiException(errorMessage ?? 'Failed to verify OTP', statusCode: 200);
+      } else if (success == null) {
+        final errorStr = _readString(response, keys: ['error']);
+        if (errorStr != null && errorStr.isNotEmpty) {
+          throw ApiException(errorStr, statusCode: 200);
+        }
       }
-    }
-    
+      
+      // If we reach here and there is no token AND no error message, something is very wrong.
+      if (accessToken == null || accessToken.isEmpty) {
+        throw ApiException('Unexpected response from server.', statusCode: 200);
+      }
+
     // Clear pending user_id after successful OTP verification (we assume success if we reach here without throwing error)
     await _secureStorage.clearPendingUserId();
 
@@ -222,12 +235,10 @@ class AuthRemoteDataSource {
       response,
       keys: ['refreshToken', 'refresh_token'],
     );
-    if (accessToken != null && accessToken.isNotEmpty) {
-      await _secureStorage.saveTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      );
-    }
+    await _secureStorage.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
   }
 
   Future<void> _saveDisplayName(
@@ -247,13 +258,11 @@ class AuthRemoteDataSource {
             .replaceAll(RegExp(r'[._-]+'), ' ')
             .split(' ')
             .where((part) => part.isNotEmpty)
-            .map((part) =>
-                part[0].toUpperCase() + part.substring(1).toLowerCase())
+            .map(
+              (part) => part[0].toUpperCase() + part.substring(1).toLowerCase(),
+            )
             .join(' ');
         if (readable.isNotEmpty) {
-          if (kDebugMode) {
-            debugPrint('[AuthDataSource] Fallback to email-name: $readable');
-          }
           await _secureStorage.saveDisplayName(readable);
         }
       }
@@ -268,22 +277,22 @@ class AuthRemoteDataSource {
         statusCode: 401,
       );
     }
-    
+
     // Create FormData because Postman request body mode was "formdata"
     final formData = FormData.fromMap({'user_id': userId.toString()});
 
-    final response = await _apiClient.post(
-      '/auth/resend-otp',
-      data: formData,
-    );
-    
-    if (kDebugMode) {
-      debugPrint('[AuthDataSource] ResendOtp raw response: $response');
-    }
-    
-    final errorMessage = _readString(response, keys: ['message', 'error']);
-    if (errorMessage != null && errorMessage.toLowerCase().contains('invalid')) {
-      throw ApiException(errorMessage, statusCode: 200);
+    final response = await _apiClient.post('/auth/resend-otp', data: formData);
+
+    // Check for explicit failure status or 'error' key instead of blinding throwing on 'message'
+    final success = _readBool(response, keys: ['status', 'success']);
+    if (success == false) {
+      final errorMessage = _readString(response, keys: ['message', 'error']);
+      throw ApiException(errorMessage ?? 'Request failed', statusCode: 200);
+    } else if (success == null) {
+      final errorStr = _readString(response, keys: ['error']);
+      if (errorStr != null && errorStr.isNotEmpty) {
+        throw ApiException(errorStr, statusCode: 200);
+      }
     }
   }
 
@@ -301,11 +310,17 @@ class AuthRemoteDataSource {
         'password_confirmation': newPassword,
       },
     );
-    
-    // Fallback error check
-    final errorMessage = _readString(response, keys: ['message', 'error']);
-    if (errorMessage != null && (errorMessage.toLowerCase().contains('invalid') || errorMessage.toLowerCase().contains('fail'))) {
-      throw ApiException(errorMessage, statusCode: 200);
+
+    // Check for explicit failure status or 'error' key instead of blinding throwing on 'message'
+    final success = _readBool(response, keys: ['status', 'success']);
+    if (success == false) {
+      final errorMessage = _readString(response, keys: ['message', 'error']);
+      throw ApiException(errorMessage ?? 'Failed to reset password', statusCode: 200);
+    } else if (success == null) {
+      final errorStr = _readString(response, keys: ['error']);
+      if (errorStr != null && errorStr.isNotEmpty) {
+        throw ApiException(errorStr, statusCode: 200);
+      }
     }
   }
 
@@ -327,10 +342,7 @@ class AuthRemoteDataSource {
   }
 
   /// Searches [response] for an integer value under any of [keys].
-  int? _readInt(
-    Map<String, dynamic> response, {
-    required List<String> keys,
-  }) {
+  int? _readInt(Map<String, dynamic> response, {required List<String> keys}) {
     final sources = _buildSources(response);
     for (final source in sources) {
       for (final key in keys) {
@@ -346,10 +358,7 @@ class AuthRemoteDataSource {
   }
 
   /// Searches [response] for a boolean value under any of [keys].
-  bool? _readBool(
-    Map<String, dynamic> response, {
-    required List<String> keys,
-  }) {
+  bool? _readBool(Map<String, dynamic> response, {required List<String> keys}) {
     final sources = _buildSources(response);
     for (final source in sources) {
       for (final key in keys) {

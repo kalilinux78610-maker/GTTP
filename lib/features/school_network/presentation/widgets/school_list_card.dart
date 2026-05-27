@@ -29,6 +29,8 @@ class SchoolListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final establishedLabel = _formatEstablishedYear(establishedYear);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -237,13 +239,26 @@ class SchoolListCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Established: $establishedYear', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-              Text(
-                activeCourses,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFF27121),
+              Expanded(
+                child: Text(
+                  'Established: $establishedLabel',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  activeCourses,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFF27121),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -251,5 +266,17 @@ class SchoolListCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatEstablishedYear(String value) {
+    final cleaned = value.trim();
+    if (cleaned.isEmpty || cleaned == '-' || cleaned.toLowerCase() == 'null') {
+      return 'Not provided yet';
+    }
+
+    final parsed = DateTime.tryParse(cleaned);
+    if (parsed != null) return parsed.year.toString();
+
+    return cleaned;
   }
 }

@@ -46,15 +46,15 @@ class AppBottomNav extends StatelessWidget {
             },
           ),
           _NavItem(
-            icon: Icons.insert_page_break_outlined,
-            label: 'Reports',
+            icon: Icons.notifications_none_outlined,
+            label: 'Notices',
             isSelected: activeIndex == 1,
             badge: reportsBadge,
             onTap: () {
               if (onTabTap != null) {
                 onTabTap!(1);
               } else {
-                context.go('/reports');
+                context.go('/notices');
               }
             },
           ),

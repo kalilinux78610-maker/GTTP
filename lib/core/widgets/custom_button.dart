@@ -24,7 +24,7 @@ class CustomButton extends StatelessWidget {
       height: 54,
       decoration: BoxDecoration(
         color: isEnabled ? activeColor : disabledColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(100),
         boxShadow: isEnabled
             ? [
                 BoxShadow(
@@ -40,7 +40,7 @@ class CustomButton extends StatelessWidget {
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(100),
           ),
         ),
         onPressed: isEnabled ? onPressed : null,

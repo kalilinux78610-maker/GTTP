@@ -9,6 +9,50 @@ import 'package:gttp/features/dashboard/presentation/providers/dashboard_provide
 import 'package:gttp/features/reports/presentation/providers/export_provider.dart';
 import 'package:gttp/features/school_network/presentation/providers/school_network_provider.dart';
 
+/// Resolves a display title from `/courses` (or similar) API maps.
+String _titleFromCourseApiMap(Map<String, dynamic> c) {
+  for (final key in [
+    'title',
+    'name',
+    'course_name',
+    'course_title',
+    'class_name',
+    'school_class',
+    'course',
+    'class',
+    'program',
+    'program_name',
+    'batch',
+    'batch_name',
+    'department',
+    'discipline',
+  ]) {
+    final val = c[key];
+    if (val == null) continue;
+    if (val is Map) {
+      final nested =
+          val['title'] ??
+          val['name'] ??
+          val['class_name'] ??
+          val['course_name'] ??
+          val['course_title'];
+      if (nested != null && nested.toString().trim().isNotEmpty) {
+        return nested.toString().trim();
+      }
+      if (val.isNotEmpty) {
+        final firstVal = val.values.first;
+        if (firstVal != null && firstVal.toString().trim().isNotEmpty) {
+          return firstVal.toString().trim();
+        }
+      }
+      continue;
+    }
+    final text = val.toString().trim();
+    if (text.isNotEmpty) return text;
+  }
+  return '';
+}
+
 class DataExportCenterScreen extends ConsumerStatefulWidget {
   const DataExportCenterScreen({super.key});
 
@@ -29,7 +73,6 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
 
   bool _includePassport = true;
   bool _includePillars = true;
-  bool _includeAcademic = true;
 
   bool _showPreview = false;
 
@@ -55,6 +98,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
 
   Future<void> _refreshExportData() async {
     ref.invalidate(studentsApiProvider);
+    ref.invalidate(coursesApiProvider);
     ref.invalidate(exportStudentsProvider);
     ref.invalidate(
       filteredExportStudentsProvider(
@@ -68,6 +112,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
     ref.invalidate(dashboardDataProvider);
     await Future.wait([
       ref.read(exportStudentsProvider.future),
+      ref.read(coursesApiProvider.future),
       ref.read(
         filteredExportStudentsProvider(
           StudentFilterParams(
@@ -83,34 +128,67 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
 
   @override
   Widget build(BuildContext context) {
-    final filteredStudentsAsync = ref.watch(filteredExportStudentsProvider(
-      StudentFilterParams(
-        year: _selectedYear,
-        school: _selectedSchool,
-        course: _selectedCourse,
+    final filteredStudentsAsync = ref.watch(
+      filteredExportStudentsProvider(
+        StudentFilterParams(
+          year: _selectedYear,
+          school: _selectedSchool,
+          course: _selectedCourse,
+        ),
       ),
-    ));
+    );
     final filteredStudents = filteredStudentsAsync.maybeWhen(
       data: (data) => data,
       orElse: () => const <StudentModel>[],
     );
-    
+
     // We still need the unfiltered students just for populating the dropdown choices if they are not available from the schools endpoint
     final studentsAsync = ref.watch(exportStudentsProvider);
-    final allStudents = studentsAsync.maybeWhen(data: (data) => data, orElse: () => const <StudentModel>[]);
-    
+    final allStudents = studentsAsync.maybeWhen(
+      data: (data) => data,
+      orElse: () => const <StudentModel>[],
+    );
+
     final schoolsAsync = ref.watch(schoolsProvider);
-    final allSchoolsFromApi = schoolsAsync.maybeWhen(data: (d) => d, orElse: () => null);
+    final allSchoolsFromApi = schoolsAsync.maybeWhen(
+      data: (d) => d,
+      orElse: () => null,
+    );
+    final coursesAsync = ref.watch(coursesApiProvider);
+    final allCoursesFromApi = coursesAsync.maybeWhen(
+      data: (d) => d,
+      orElse: () => null,
+    );
 
     List<String> schoolChoices;
     if (allSchoolsFromApi != null && allSchoolsFromApi.isNotEmpty) {
-      final unique = allSchoolsFromApi.map((s) => s.title).where((s) => s.trim().isNotEmpty).toSet().toList()..sort();
+      final unique =
+          allSchoolsFromApi
+              .map((s) => s.title)
+              .where((s) => s.trim().isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       schoolChoices = [_allSchools, ...unique];
     } else {
       schoolChoices = _schoolChoices(allStudents);
     }
 
-    final courseChoices = _courseChoices(allStudents);
+    final fromApi = <String>{};
+    if (allCoursesFromApi != null) {
+      for (final c in allCoursesFromApi) {
+        final t = _titleFromCourseApiMap(c);
+        if (t.isNotEmpty) fromApi.add(t);
+      }
+    }
+    final fromStudents = allStudents
+        .map((s) => s.courseName.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    final merged = {...fromApi, ...fromStudents}.toList()..sort();
+    final courseChoices = merged.isEmpty
+        ? <String>[_allCourses]
+        : [_allCourses, ...merged];
     if (!schoolChoices.contains(_selectedSchool)) _selectedSchool = _allSchools;
     if (!courseChoices.contains(_selectedCourse)) _selectedCourse = _allCourses;
 
@@ -127,20 +205,23 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
       ),
     );
 
-    final displayedTotalCount = allStudents.length;
-    final displayedTotalStudents = studentsAsync.isLoading
-        ? '...'
-        : displayedTotalCount.toString();
-    
-    final expiring = filteredStudents.where((s) => s.isPassportExpiring).length;
-    final rowEst = filteredStudents.length;
-    final estimatedSize = _estimatedSize(rowEst, _columnCount());
+    final displayedTotalStudents = totalStudents;
+
+    final previewRows = filteredStudents;
+
+    final expiring = previewRows.where((s) => s.isPassportExpiring).length;
+    final rowEst = filteredStudents.isEmpty ? 0 : filteredStudents.length;
+    final previewCount = filteredStudents.length;
+    final estimatedSize = _estimatedSize(
+      filteredStudents.isEmpty ? previewRows.length : rowEst,
+      _columnCount(),
+    );
 
     // Listen for export status
     ref.listen(exportProvider, (previous, next) {
       final savedPath = next.savedPath;
       final error = next.error;
-      
+
       if (savedPath != null) {
         _showSuccessDialog(savedPath);
         ref.read(exportProvider.notifier).clearStatus();
@@ -162,7 +243,11 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Column(
@@ -178,10 +263,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
             ),
             Text(
               'Download master student data with filters',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ],
         ),
@@ -207,126 +289,112 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatTile(
-                        'Total Students',
-                        displayedTotalStudents,
-                        const Color(0xFF3B82F6),
-                        Icons.people_outline,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatTile(
+                          'Total Students',
+                          displayedTotalStudents,
+                          const Color(0xFF3B82F6),
+                          Icons.people_outline,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildStatTile(
-                        'Expiring Soon',
-                        '$expiring',
-                        const Color(0xFFF59E0B),
-                        Icons.warning_amber_rounded,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildStatTile(
+                          'Expiring Soon',
+                          '$expiring',
+                          const Color(0xFFF59E0B),
+                          Icons.warning_amber_rounded,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildSectionCard(
-                  title: 'Academic Year',
-                  icon: Icons.calendar_today_outlined,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: ['2026', '2025', '2024', '2023'].map((year) {
-                      final isSelected = _selectedYear == year;
-                      return InkWell(
-                        onTap: () => setState(() => _selectedYear = year),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFF3B82F6)
-                                : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            year,
-                            style: TextStyle(
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSectionCard(
+                    title: 'Academic Year',
+                    icon: Icons.calendar_today_outlined,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ['2026', '2025', '2024', '2023'].map((year) {
+                        final isSelected = _selectedYear == year;
+                        return InkWell(
+                          onTap: () => setState(() => _selectedYear = year),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
                               color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF64748B),
-                              fontWeight:
-                                  isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
+                                  ? const Color(0xFF3B82F6)
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              year,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF64748B),
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildSectionCard(
-                  title: 'Filter by School',
-                  icon: Icons.filter_alt_outlined,
-                  iconColor: const Color(0xFF3B82F6),
-                  child: DropdownButtonFormField<String>(
-                    // ignore: deprecated_member_use
-                    value: _selectedSchool,
-                    decoration: _dropdownDecoration(),
-                    items: schoolChoices
-                        .map(
-                          (s) => DropdownMenuItem(value: s, child: Text(s)),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedSchool = v);
-                    },
+                  const SizedBox(height: 16),
+                  _buildSectionCard(
+                    title: 'Filter by School',
+                    icon: Icons.filter_alt_outlined,
+                    iconColor: const Color(0xFF3B82F6),
+                    child: _buildFilterTile(
+                      value: _selectedSchool,
+                      choices: schoolChoices,
+                      hint: 'Select School',
+                      onSelected: (v) => setState(() => _selectedSchool = v),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildSectionCard(
-                  title: 'Filter by Course',
-                  icon: Icons.filter_alt_outlined,
-                  iconColor: const Color(0xFF3B82F6),
-                  child: DropdownButtonFormField<String>(
-                    // ignore: deprecated_member_use
-                    value: _selectedCourse,
-                    decoration: _dropdownDecoration(),
-                    items: courseChoices
-                        .map(
-                          (c) => DropdownMenuItem(value: c, child: Text(c)),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedCourse = v);
-                    },
+                  const SizedBox(height: 16),
+                  _buildSectionCard(
+                    title: 'Filter by Course',
+                    icon: Icons.filter_alt_outlined,
+                    iconColor: const Color(0xFF3B82F6),
+                    child: _buildFilterTile(
+                      value: _selectedCourse,
+                      choices: courseChoices,
+                      hint: 'Select Course',
+                      onSelected: (v) => setState(() => _selectedCourse = v),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildDataFieldsSection(),
-                const SizedBox(height: 16),
-                _buildFormatSection(),
-                const SizedBox(height: 20),
-                _buildPreviewButton(filteredStudents.length),
-                const SizedBox(height: 20),
-                if (_showPreview) ..._buildDataPreviewSection(filteredStudents),
-                if (_showPreview) const SizedBox(height: 20),
-                _buildSummarySection(
-                  totalStudents,
-                  rowEst,
-                  estimatedSize,
-                ),
-                const SizedBox(height: 24),
-                _buildExportButton(
-                  totalStudents,
-                  apiTotal,
-                  rowEst,
-                  filteredStudents,
-                ),
-                const SizedBox(height: 100),
+                  const SizedBox(height: 16),
+                  _buildDataFieldsSection(),
+                  const SizedBox(height: 16),
+                  _buildFormatSection(),
+                  const SizedBox(height: 20),
+                  _buildPreviewButton(previewCount),
+                  const SizedBox(height: 20),
+                  if (_showPreview)
+                    ..._buildDataPreviewSection(
+                      previewRows,
+                    ),
+                  if (_showPreview) const SizedBox(height: 20),
+                  _buildSummarySection(totalStudents, rowEst, estimatedSize),
+                  const SizedBox(height: 24),
+                  _buildExportButton(
+                    totalStudents,
+                    apiTotal,
+                    rowEst,
+                    filteredStudents,
+                  ),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -355,20 +423,114 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
     );
   }
 
-  InputDecoration _dropdownDecoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+  // Tappable filter tile that opens a bottom sheet picker
+  Widget _buildFilterTile({
+    required String value,
+    required List<String> choices,
+    required String hint,
+    required ValueChanged<String> onSelected,
+  }) {
+    return InkWell(
+      onTap: () => _showPickerBottomSheet(
+        choices: choices,
+        selected: value,
+        onSelected: onSelected,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF1E293B),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF64748B)),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showPickerBottomSheet({
+    required List<String> choices,
+    required String selected,
+    required ValueChanged<String> onSelected,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: choices.length,
+                    itemBuilder: (context, index) {
+                      final choice = choices[index];
+                      final isSelected = choice == selected;
+                      return ListTile(
+                        title: Text(
+                          choice,
+                          style: TextStyle(
+                            color: isSelected
+                                ? const Color(0xFF3B82F6)
+                                : const Color(0xFF1E293B),
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check,
+                                color: Color(0xFF3B82F6))
+                            : null,
+                        onTap: () {
+                          onSelected(choice);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -458,20 +620,6 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
             activeThumbColor: const Color(0xFF3B82F6),
             onChanged: (v) => setState(() => _includePillars = v),
           ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Academic Performance',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            subtitle: const Text(
-              'GPA, attendance, certificates',
-              style: TextStyle(fontSize: 11),
-            ),
-            value: _includeAcademic,
-            activeThumbColor: const Color(0xFF3B82F6),
-            onChanged: (v) => setState(() => _includeAcademic = v),
-          ),
         ],
       ),
     );
@@ -512,18 +660,20 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
 
   Widget _buildPreviewButton(int count) {
     return OutlinedButton(
-      onPressed: () => setState(() => _showPreview = !_showPreview),
+      onPressed: count == 0 ? null : () => setState(() => _showPreview = !_showPreview),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        side: const BorderSide(color: Color(0xFF3B82F6)),
+        side: BorderSide(color: count == 0 ? Colors.grey.shade400 : const Color(0xFF3B82F6)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Text(
         _showPreview
             ? 'Hide Preview'
-            : 'Show Data Preview ($count sample${count == 1 ? '' : 's'})',
-        style: const TextStyle(
-          color: Color(0xFF3B82F6),
+            : count == 0
+                ? 'No Preview Available'
+                : 'Show Data Preview ($count row${count == 1 ? '' : 's'})',
+        style: TextStyle(
+          color: count == 0 ? Colors.grey.shade400 : const Color(0xFF3B82F6),
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -579,17 +729,15 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
   }
 
   List<String> _schoolChoices(List<StudentModel> students) {
-    final unique = students.map((s) => s.schoolName).where((s) => s.trim().isNotEmpty).toSet().toList()
-      ..sort();
+    final unique =
+        students
+            .map((s) => s.schoolName)
+            .where((s) => s.trim().isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return [_allSchools, ...unique];
   }
-
-  List<String> _courseChoices(List<StudentModel> students) {
-    final unique = students.map((s) => s.courseName).where((s) => s.trim().isNotEmpty).toSet().toList()
-      ..sort();
-    return [_allCourses, ...unique];
-  }
-
 
   String _estimatedSize(int rows, int columnCount) {
     final bytesPerRow = 120 + columnCount * 35;
@@ -606,28 +754,34 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
   }
 
   int _columnCount() {
-    var n = 4;
-    if (_includePassport) n += 3;
-    if (_includePillars) n += 2;
-    if (_includeAcademic) n += 2;
+    var n = 6;
+    if (_includePassport) n += 2;
+    if (_includePillars) n += 4;
     return n;
   }
 
-  Future<void> _runExport(String totalStudentsLabel, int? apiTotal, List<StudentModel> students) async {
+  Future<void> _runExport(
+    String totalStudentsLabel,
+    int? apiTotal,
+    List<StudentModel> students,
+  ) async {
     if (totalStudentsLabel == '...') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please wait for dashboard data to load.')),
+        const SnackBar(
+          content: Text('Please wait for dashboard data to load.'),
+        ),
       );
       return;
     }
-    
-    ref.read(exportProvider.notifier).exportData(
-      students: students,
-      format: _selectedFormat,
-      includePassport: _includePassport,
-      includePillars: _includePillars,
-      includeAcademic: _includeAcademic,
-    );
+
+    ref
+        .read(exportProvider.notifier)
+        .exportData(
+          students: students,
+          format: _selectedFormat,
+          includePassport: _includePassport,
+          includePillars: _includePillars,
+        );
   }
 
   void _showSuccessDialog(String path) {
@@ -645,7 +799,9 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('The data has been exported and saved successfully to your device.'),
+            const Text(
+              'The data has been exported and saved successfully to your device.',
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(10),
@@ -655,7 +811,11 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
               ),
               child: Text(
                 path,
-                style: const TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           ],
@@ -691,7 +851,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
   ) {
     final exportState = ref.watch(exportProvider);
     final disabled = totalStudents == '...' || exportState.isLoading;
-    
+
     return ElevatedButton(
       onPressed: disabled
           ? null
@@ -714,7 +874,11 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
                     color: Colors.white,
                   ),
                 )
-              : const Icon(Icons.download_outlined, color: Colors.white, size: 20),
+              : const Icon(
+                  Icons.download_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
           const SizedBox(width: 8),
           Text(
             exportState.isLoading
@@ -733,6 +897,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
 
   List<Widget> _buildDataPreviewSection(List<StudentModel> list) {
     return [
+
       Container(
         padding: const EdgeInsets.all(20),
         decoration: _cardDecoration(),
@@ -797,8 +962,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
             ),
             if (s.isPassportExpiring)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF7ED),
                   border: Border.all(color: const Color(0xFFF59E0B)),
@@ -818,42 +982,32 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
         const SizedBox(height: 4),
         Text(
           '${s.studentCode} · ${s.city}',
-          style: const TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
         Text(
           '${s.schoolName} · ${s.courseName}',
-          style: TextStyle(
-            color: Colors.grey.shade700,
-            fontSize: 11,
-          ),
+          style: TextStyle(color: Colors.grey.shade700, fontSize: 11),
         ),
         if (_includePassport) ...[
           const SizedBox(height: 6),
           Text(
             'Passport: ${s.passportNumber}  ·  Expiry: ${s.passportExpiry}',
-            style: const TextStyle(
-              color: Color(0xFF475569),
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
           ),
         ],
-        if (_includePillars || _includeAcademic) ...[
+        if (_includePillars) ...[
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.check_circle,
-                  color: Color(0xFF22C55E), size: 14),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF22C55E),
+                size: 14,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  [
-                    if (_includePillars)
-                      'Reports: T ${s.theoryCompletion}% · P ${s.practicalCompletion}% · I ${s.internshipCompletion}% · V ${s.visitsCompletion}%',
-                    if (_includeAcademic) 'Academic data from API',
-                  ].join(' · '),
+                  'Reports: T ${s.theoryCompletion}% · P ${s.practicalCompletion}% · I ${s.internshipCompletion}% · V ${s.visitsCompletion}%',
                   style: const TextStyle(
                     color: Color(0xFF22C55E),
                     fontSize: 12,
@@ -886,8 +1040,10 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
               const SizedBox(width: 8),
               Text(
                 title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -907,8 +1063,9 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
-            color:
-                isSelected ? const Color(0xFF3B82F6) : const Color(0xFFF8FAFC),
+            color: isSelected
+                ? const Color(0xFF3B82F6)
+                : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -922,10 +1079,8 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
               Text(
                 format,
                 style: TextStyle(
-                  color:
-                      isSelected ? Colors.white : const Color(0xFF64748B),
-                  fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   fontSize: 12,
                 ),
               ),
@@ -943,10 +1098,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
         Flexible(
           child: Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
           ),
         ),
         const SizedBox(width: 8),

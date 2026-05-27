@@ -1,4 +1,5 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 
 class EventModel {
   final String id;
@@ -37,44 +38,15 @@ class EventModel {
       return '';
     }
 
-    String? processImageUrl(dynamic value) {
-      if (value == null) return null;
-
-      String? url;
-      if (value is List && value.isNotEmpty) {
-        url = value.first?.toString().trim();
-      } else if (value is String) {
-        String stringValue = value.trim();
-        if (stringValue.startsWith('[') && stringValue.endsWith(']')) {
-          stringValue = stringValue.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll('\\', '').trim();
-          final parts = stringValue.split(',');
-          if (parts.isNotEmpty && parts.first.isNotEmpty) {
-            url = parts.first.trim();
-          }
-        } else {
-          url = stringValue;
-        }
-      } else {
-        url = value.toString().trim();
-      }
-
-      if (url == null || url.isEmpty) return null;
-      if (url.startsWith('http://') || url.startsWith('https://')) return url;
-      final baseUrl = dotenv.env['API_BASE_URL']?.replaceAll('/api', '') ?? 'https://gttp.efsouls.com';
-      final normalizedPath = url.startsWith('/')
-          ? url.substring(1)
-          : url;
-      final storageAwarePath = normalizedPath.startsWith('storage/')
-          ? normalizedPath
-          : 'storage/$normalizedPath';
-      return '$baseUrl/$storageAwarePath';
-    }
-
     return EventModel(
       id: getString(['id', 'event_id', 'eventId']),
       title: getString(['title', 'name', 'event_name', 'heading']),
       description: getString(['description', 'details', 'summary', 'about']),
-      imageUrl: processImageUrl(json['image_url'] ?? json['image'] ?? json['thumbnail_url'] ?? json['banner_url']),
+      imageUrl: CourseAssetUrl.resolve(getString([
+        'image_url', 'image', 'thumbnail_url', 'banner_url', 
+        'cover_image', 'cover_image_url', 'thumbnail', 
+        'course_image', 'featured_image', 'picture', 'photo'
+      ])),
       eventDate: tryString(json['event_date'] ?? json['date'] ?? json['start_date']),
       eventTime: tryString(json['event_time'] ?? json['time'] ?? json['start_time']),
       location: tryString(json['location'] ?? json['venue'] ?? json['address']),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/cache/cache_service.dart';
 import 'package:gttp/core/network/connectivity_service.dart';
@@ -45,16 +46,42 @@ final noticesProvider = FutureProvider<List<NoticeModel>>((ref) async {
 
 /// Provider for individual notice detail
 final noticeDetailProvider = FutureProvider.family<NoticeModel, String>((ref, id) async {
-  return ref.read(noticesRepositoryProvider).getNoticeDetail(id);
+  // First try to find it in the already loaded list to display it instantly
+  try {
+    final noticesList = await ref.read(noticesNotifierProvider.future);
+    final notice = noticesList.firstWhere((n) => n.id == id);
+    
+    // Optionally mark it as read in the background if it's unread
+    if (!notice.isRead) {
+      Future.microtask(() => ref.read(noticesNotifierProvider.notifier).markAsRead(id));
+    }
+    return notice;
+  } catch (_) {
+    // Fallback to API if it's not in the list (e.g. from a deep link)
+    return ref.read(noticesRepositoryProvider).getNoticeDetail(id);
+  }
 });
 
 /// Notifier for managing notices state with offline support
 class NoticesNotifier extends AsyncNotifier<List<NoticeModel>> {
+  Timer? _pollingTimer;
+
   @override
   Future<List<NoticeModel>> build() async {
     final isOnline = ref.read(isOnlineProvider);
     final cache = CacheService.instance;
     final repository = ref.read(noticesRepositoryProvider);
+    
+    // Set up Smart Polling (every 15 seconds)
+    ref.onDispose(() {
+      _pollingTimer?.cancel();
+    });
+    
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (ref.read(isOnlineProvider)) {
+        _pollUpdates();
+      }
+    });
     
     // Try cache first
     final cached = cache.getList<NoticeModel>(
@@ -76,6 +103,21 @@ class NoticesNotifier extends AsyncNotifier<List<NoticeModel>> {
       // If API fails but we have cache, return cache
       if (cached != null) return cached;
       rethrow;
+    }
+  }
+
+  /// Silently fetches updates in the background without causing a loading flicker
+  Future<void> _pollUpdates() async {
+    try {
+      final repository = ref.read(noticesRepositoryProvider);
+      final cache = CacheService.instance;
+      final notices = await repository.getNotices();
+      await cache.putList(_noticesCacheKey, notices, ttl: _cacheTTL);
+      
+      // Update state if we successfully fetched new data
+      state = AsyncData(notices);
+    } catch (_) {
+      // Ignore polling errors so the UI isn't disrupted
     }
   }
 
@@ -106,6 +148,26 @@ class NoticesNotifier extends AsyncNotifier<List<NoticeModel>> {
     }
     
     await ref.read(noticesRepositoryProvider).markAsRead(id);
+    await refresh();
+  }
+
+  Future<void> createNotice({
+    required String title,
+    required String content,
+    required String category,
+    required String priority,
+    required bool isPinned,
+    required String targetAudience,
+  }) async {
+    await ref.read(noticesRepositoryProvider).createNotice(
+      title: title,
+      content: content,
+      category: category,
+      priority: priority,
+      isPinned: isPinned,
+      targetAudience: targetAudience,
+    );
+    // Refresh the list so the new notice appears immediately
     await refresh();
   }
 }
@@ -149,7 +211,7 @@ final filteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref) {
   final asyncNotices = ref.watch(noticesNotifierProvider);
 
   return asyncNotices.whenData((notices) {
-    var filtered = notices;
+    var filtered = List<NoticeModel>.from(notices);
     
     // Filter by category
     if (category != null && category.isNotEmpty) {

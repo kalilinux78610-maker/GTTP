@@ -23,4 +23,14 @@ class CoursesRepositoryImpl implements CoursesRepository {
       throw ApiException('Failed to fetch courses: $e');
     }
   }
+
+  @override
+  Future<CourseModel?> getCourseDetails(String id) async {
+    try {
+      return await _remoteDataSource.getCourseDetails(id);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to fetch course details: $e');
+    }
+  }
 }

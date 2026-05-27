@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/core/security/secure_storage_service.dart';
 import 'package:gttp/features/auth/data/auth_remote_datasource.dart';
+import 'package:gttp/features/auth/data/models/user_model.dart';
 import 'package:gttp/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:gttp/features/auth/domain/repositories/auth_repository.dart';
 
@@ -29,4 +31,13 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.read(authRemoteDataSourceProvider),
     ref.read(secureStorageProvider),
   );
+});
+
+final userModelProvider = FutureProvider<UserModel?>((ref) async {
+  return await ref.read(secureStorageProvider).getUserModel();
+});
+
+final currentUserRoleProvider = FutureProvider<AppUserRole>((ref) async {
+  final user = await ref.watch(userModelProvider.future);
+  return AppUserRole.fromApi(user?.role);
 });

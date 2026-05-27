@@ -7,6 +7,8 @@ class DashboardModel {
   final int totalCertificates;
   final int totalUsers;
   final int totalSchools;
+  /// Published / catalog courses count when the dashboard API sends it.
+  final int totalCourses;
 
   /// Logged-in user display name when the API includes it (e.g. under `user`).
   final String? currentUserDisplayName;
@@ -20,6 +22,7 @@ class DashboardModel {
     required this.totalCertificates,
     required this.totalUsers,
     required this.totalSchools,
+    this.totalCourses = 0,
     this.currentUserDisplayName,
   });
 
@@ -35,6 +38,11 @@ class DashboardModel {
       return int.tryParse('$v') ?? 0;
     }
 
+    var totalCourses = pick('total_courses', 'totalCourses');
+    if (totalCourses == 0) {
+      totalCourses = pick('courses_count', 'coursesCount');
+    }
+
     return DashboardModel(
       totalStudents: pick('total_students', 'totalStudents'),
       totalClasses: pick('total_classes', 'totalClasses'),
@@ -44,6 +52,7 @@ class DashboardModel {
       totalCertificates: pick('total_certificates', 'totalCertificates'),
       totalUsers: pick('total_users', 'totalUsers'),
       totalSchools: pick('total_schools', 'totalSchools'),
+      totalCourses: totalCourses,
       currentUserDisplayName: currentUserDisplayName,
     );
   }

@@ -35,71 +35,35 @@ class ApiClient {
       ),
     );
 
-    // Local variable for refresh state (closure captures this)
-    bool isRefreshing = false;
+    // Shared refresh request so concurrent 401s wait for the same token.
+    Future<String?>? refreshRequest;
 
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final accessToken = await secureStorage.getAccessToken();
-          if (accessToken != null && accessToken.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $accessToken';
+          // Do not attach stale tokens to public auth endpoints (login, OTP, etc.).
+          if (!_isPublicAuthPath(options)) {
+            final accessToken = await secureStorage.getAccessToken();
+            if (accessToken != null && accessToken.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $accessToken';
+            }
           }
           handler.next(options);
         },
         onError: (error, handler) async {
-          // Only handle 401 Unauthorized errors
-          if (error.response?.statusCode != 401) {
+          // Only refresh session for authenticated API calls — not login/OTP.
+          if (!_shouldAttemptTokenRefresh(error)) {
             return handler.next(error);
           }
 
-          // Prevent refresh loop
-          if (isRefreshing) {
-            return handler.next(error);
-          }
-
-          isRefreshing = true;
           try {
-            final refreshToken = await secureStorage.getRefreshToken();
-            if (refreshToken == null || refreshToken.isEmpty) {
-              // No refresh token, need to re-login
-              await secureStorage.clearTokens();
-              return handler.next(error);
-            }
-
-            // Attempt to refresh the token
-            final refreshResponse = await dio.post<dynamic>(
-              '/refresh',
-              options: Options(
-                headers: {
-                  'Authorization': 'Bearer $refreshToken',
-                },
-              ),
-            );
-
-            final body = refreshResponse.data;
-            String? newAccessToken;
-            String? newRefreshToken;
-
-            if (body is Map<String, dynamic>) {
-              // Try various token key names
-              newAccessToken = _tryGetString(body, [
-                'accessToken', 'token', 'access_token', 'jwt', 'bearerToken',
-              ]);
-              newRefreshToken = _tryGetString(body, [
-                'refreshToken', 'refresh_token', 'refreshJwt',
-              ]);
-            }
+            final newAccessToken = await (refreshRequest ??=
+                _refreshAccessToken(dio, secureStorage));
 
             if (newAccessToken != null && newAccessToken.isNotEmpty) {
-              // Save new tokens
-              await secureStorage.saveTokens(
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-              );
-
               // Retry the original request with new token
-              error.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+              error.requestOptions.headers['Authorization'] =
+                  'Bearer $newAccessToken';
               final response = await dio.fetch<dynamic>(error.requestOptions);
               return handler.resolve(response);
             }
@@ -108,7 +72,7 @@ class ApiClient {
             // Clear tokens on refresh failure
             await secureStorage.clearTokens();
           } finally {
-            isRefreshing = false;
+            refreshRequest = null;
           }
 
           return handler.next(error);
@@ -119,8 +83,8 @@ class ApiClient {
     if (kDebugMode) {
       dio.interceptors.add(
         LogInterceptor(
-          requestBody: true,
-          responseBody: true,
+          requestBody: false,
+          responseBody: false,
           requestHeader: false,
           responseHeader: false,
           error: true,
@@ -138,6 +102,46 @@ class ApiClient {
       if (value is String && value.isNotEmpty) return value;
     }
     return null;
+  }
+
+  static Future<String?> _refreshAccessToken(
+    Dio dio,
+    SecureStorageService secureStorage,
+  ) async {
+    final refreshToken = await secureStorage.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await secureStorage.clearTokens();
+      return null;
+    }
+
+    final refreshResponse = await dio.post<dynamic>(
+      '/refresh',
+      options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
+    );
+
+    final body = refreshResponse.data;
+    if (body is! Map<String, dynamic>) return null;
+
+    final newAccessToken = _tryGetString(body, [
+      'accessToken',
+      'token',
+      'access_token',
+      'jwt',
+      'bearerToken',
+    ]);
+    final newRefreshToken = _tryGetString(body, [
+      'refreshToken',
+      'refresh_token',
+      'refreshJwt',
+    ]);
+
+    if (newAccessToken == null || newAccessToken.isEmpty) return null;
+
+    await secureStorage.saveTokens(
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    );
+    return newAccessToken;
   }
 
   Future<Map<String, dynamic>> post(
@@ -160,7 +164,10 @@ class ApiClient {
       }
       return {'data': body};
     } on DioException catch (e) {
-      throw ApiException(_extractErrorMessage(e), statusCode: e.response?.statusCode);
+      throw ApiException(
+        _extractErrorMessage(e),
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -189,19 +196,77 @@ class ApiClient {
       }
       return {'data': body};
     } on DioException catch (e) {
-      throw ApiException(_extractErrorMessage(e), statusCode: e.response?.statusCode);
+      throw ApiException(
+        _extractErrorMessage(e),
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
+  static Map<String, dynamic>? _responseAsMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return null;
+  }
+
+  static bool _isPublicAuthPath(RequestOptions options) {
+    final path = options.uri.path.toLowerCase();
+    return path.contains('/auth/login') ||
+        path.contains('/auth/verify-otp') ||
+        path.contains('/auth/forgot-password') ||
+        path.contains('/auth/resend-otp') ||
+        path.contains('/auth/reset-password');
+  }
+
+  static bool _shouldAttemptTokenRefresh(DioException error) {
+    if (error.response?.statusCode != 401) return false;
+    final path = error.requestOptions.uri.path.toLowerCase();
+    if (path.contains('/refresh')) return false;
+    if (_isPublicAuthPath(error.requestOptions)) return false;
+    return true;
+  }
+
+  static String _pathLower(DioException error) =>
+      error.requestOptions.uri.path.toLowerCase();
+
   String _extractErrorMessage(DioException error) {
+    final statusCode = error.response?.statusCode;
+    final path = _pathLower(error);
+
+    // Prefer server message when present (Laravel JSON errors).
     final responseData = error.response?.data;
-    if (responseData is Map<String, dynamic>) {
-      final message = responseData['message'] ?? responseData['error'];
-      if (message is String && message.isNotEmpty) {
-        return message;
+    final map = _responseAsMap(responseData);
+    if (map != null) {
+      final message = map['message'] ?? map['error'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
       }
     }
 
+    if (statusCode == 401) {
+      if (path.contains('/auth/login')) {
+        return 'Invalid email or password. Please try again.';
+      }
+      if (path.contains('/auth/verify-otp')) {
+        return 'Invalid or expired OTP. Please check the code and try again.';
+      }
+      if (path.contains('/auth/resend-otp') ||
+          path.contains('/auth/forgot-password')) {
+        return 'Unable to complete this step. Please log in again.';
+      }
+      return 'Session expired. Please log in again.';
+    }
+    if (statusCode == 422) {
+      return 'Validation failed. Please check your inputs.';
+    }
+    if (statusCode == 404) {
+      return 'Requested resource not found.';
+    }
+    if (statusCode == 403) {
+      return 'You do not have permission to perform this action.';
+    }
+
+    // Fallback for network timeouts
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:

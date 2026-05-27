@@ -1,4 +1,6 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:gttp/core/network/api_json_parser.dart';
+import 'package:gttp/features/courses/data/models/course_asset_url.dart';
+import 'course_module_model.dart';
 
 class CourseModel {
   final String id;
@@ -14,6 +16,9 @@ class CourseModel {
   final String? status;
   final String? passPercentage;
   final bool isEnrolled;
+  final int? progressPercent;
+  final String? pdfUrl;
+  final List<CourseModuleModel> modules;
 
   CourseModel({
     required this.id,
@@ -29,19 +34,23 @@ class CourseModel {
     this.status,
     this.passPercentage,
     this.isEnrolled = false,
+    this.progressPercent,
+    this.pdfUrl,
+    this.modules = const [],
   });
 
   factory CourseModel.fromJson(Map<String, dynamic> json) {
     String? tryString(dynamic value) {
-      if (value == null) return null;
-      return value.toString().trim();
+      final s = ApiJsonParser.asString(value);
+      return s.isEmpty ? null : s;
     }
 
     String getString(List<String> keys) {
       for (final key in keys) {
         final value = _getValueByPath(json, key);
-        if (value != null && value.toString().trim().isNotEmpty) {
-          return value.toString().trim();
+        if (value != null) {
+          final s = ApiJsonParser.asString(value);
+          if (s.isNotEmpty) return s;
         }
       }
       return '';
@@ -50,46 +59,9 @@ class CourseModel {
     bool getBool(List<String> keys) {
       for (final key in keys) {
         final value = json[key];
-        if (value is bool) return value;
-        if (value is String) {
-          return value.toLowerCase() == 'true' || value == '1';
-        }
-        if (value is int) return value == 1;
+        if (value != null) return ApiJsonParser.asBool(value);
       }
       return false;
-    }
-
-    String? processImageUrl(dynamic value) {
-      if (value == null) return null;
-
-      String? url;
-      if (value is List && value.isNotEmpty) {
-        url = value.first?.toString().trim();
-      } else if (value is String) {
-        String stringValue = value.trim();
-        if (stringValue.startsWith('[') && stringValue.endsWith(']')) {
-          stringValue = stringValue.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll('\\', '').trim();
-          final parts = stringValue.split(',');
-          if (parts.isNotEmpty && parts.first.isNotEmpty) {
-            url = parts.first.trim();
-          }
-        } else {
-          url = stringValue;
-        }
-      } else {
-        url = value.toString().trim();
-      }
-
-      if (url == null || url.isEmpty) return null;
-      if (url.startsWith('http://') || url.startsWith('https://')) return url;
-      final baseUrl = dotenv.env['API_BASE_URL']?.replaceAll('/api', '') ?? 'https://gttp.efsouls.com';
-      final normalizedPath = url.startsWith('/')
-          ? url.substring(1)
-          : url;
-      final storageAwarePath = normalizedPath.startsWith('storage/')
-          ? normalizedPath
-          : 'storage/$normalizedPath';
-      return '$baseUrl/$storageAwarePath';
     }
 
     String stripHtml(String value) {
@@ -105,39 +77,149 @@ class CourseModel {
           .trim();
     }
 
+    List<CourseModuleModel> parseModules() {
+      final raw = json['modules'] ?? json['course_modules'];
+      if (raw is! List) return [];
+
+      final sorted = raw.whereType<Map>().map(Map<String, dynamic>.from).toList()
+        ..sort((a, b) {
+          final ao = int.tryParse(ApiJsonParser.asString(a['order'])) ?? 0;
+          final bo = int.tryParse(ApiJsonParser.asString(b['order'])) ?? 0;
+          return ao.compareTo(bo);
+        });
+
+      final modules = <CourseModuleModel>[];
+      for (var i = 0; i < sorted.length; i++) {
+        var locked = false;
+        for (var j = 0; j < i; j++) {
+          if (!modules[j].isCompleted) {
+            locked = true;
+            break;
+          }
+        }
+        modules.add(CourseModuleModel.fromJson(sorted[i], index: i, lockedBySequence: locked));
+      }
+      return modules.where((m) => m.title.isNotEmpty).toList();
+    }
+
+    int? parseProgress(List<CourseModuleModel> modules) {
+      final raw = json['progress_percent'] ??
+          json['progressPercent'] ??
+          json['overall_progress'] ??
+          json['progress'];
+      if (raw != null) {
+        if (raw is int) return raw.clamp(0, 100);
+        if (raw is double) return raw.round().clamp(0, 100);
+        final n = int.tryParse(ApiJsonParser.asString(raw).replaceAll('%', ''));
+        if (n != null) return n.clamp(0, 100);
+      }
+      if (modules.isEmpty) return null;
+      final done = modules.where((m) => m.isCompleted).length;
+      return ((done / modules.length) * 100).round();
+    }
+
+    String? formatDate(String? raw) {
+      if (raw == null || raw.isEmpty) return null;
+      try {
+        final dt = DateTime.parse(raw);
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        ];
+        return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+      } catch (_) {
+        return raw;
+      }
+    }
+
     final rawDescription = getString(['description', 'details', 'summary', 'about']);
+    final modules = parseModules();
+
+    final idRaw = json['id'] ?? json['course_id'];
+    final id = ApiJsonParser.asString(idRaw);
 
     return CourseModel(
-      id: getString(['id', 'course_id', 'courseId']),
+      id: id.isEmpty ? getString(['courseId']) : id,
       title: getString(['title', 'name', 'course_name', 'heading']),
       description: stripHtml(rawDescription),
-      thumbnailUrl: processImageUrl(
-        json['cover_image'] ??
-            json['thumbnail_url'] ??
-            json['thumbnail'] ??
-            json['image_url'] ??
-            json['image'],
+      thumbnailUrl: CourseAssetUrl.resolve(
+        getString([
+          'cover_image',
+          'cover_image_url',
+          'coverImageUrl',
+          'thumbnail_url',
+          'thumbnail',
+          'image_url',
+          'image',
+          'course_image',
+          'featured_image',
+          'picture',
+          'photo'
+        ]),
       ),
       instructor: tryString(json['instructor'] ?? json['teacher'] ?? json['author']),
       duration: tryString(
-        json['duration'] ??
-            json['total_hours'] ??
-            json['length'] ??
-            json['time'],
+        json['total_hours'] ?? json['duration'] ?? json['length'] ?? json['time'],
       ),
       level: tryString(json['level'] ?? json['difficulty'] ?? json['grade']),
-      startDate: tryString(json['start_date'] ?? json['startDate']),
-      endDate: tryString(json['end_date'] ?? json['endDate']),
+      startDate: formatDate(tryString(json['start_date'] ?? json['startDate'])),
+      endDate: formatDate(tryString(json['end_date'] ?? json['endDate'])),
       enrollmentType: tryString(json['enrollment_type'] ?? json['enrollmentType']),
       status: tryString(json['status'] ?? json['state']),
       passPercentage: tryString(json['pass_percentage'] ?? json['passPercentage']),
       isEnrolled: getBool(['is_enrolled', 'isEnrolled', 'enrolled', 'joined']),
+      progressPercent: parseProgress(modules),
+      pdfUrl: CourseAssetUrl.resolve(
+        json['course_details_pdf'] ??
+            json['pdf_url'] ??
+            json['pdfUrl'] ??
+            json['course_pdf_url'],
+      ),
+      modules: modules,
+    );
+  }
+
+  CourseModel copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? thumbnailUrl,
+    String? instructor,
+    String? duration,
+    String? level,
+    String? startDate,
+    String? endDate,
+    String? enrollmentType,
+    String? status,
+    String? passPercentage,
+    bool? isEnrolled,
+    int? progressPercent,
+    String? pdfUrl,
+    List<CourseModuleModel>? modules,
+  }) {
+    return CourseModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      instructor: instructor ?? this.instructor,
+      duration: duration ?? this.duration,
+      level: level ?? this.level,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      enrollmentType: enrollmentType ?? this.enrollmentType,
+      status: status ?? this.status,
+      passPercentage: passPercentage ?? this.passPercentage,
+      isEnrolled: isEnrolled ?? this.isEnrolled,
+      progressPercent: progressPercent ?? this.progressPercent,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
+      modules: modules ?? this.modules,
     );
   }
 
   static dynamic _getValueByPath(Map<String, dynamic> json, String path) {
     if (!path.contains('.')) return json[path];
-    
+
     dynamic current = json;
     for (final part in path.split('.')) {
       if (current is Map<String, dynamic> && current.containsKey(part)) {

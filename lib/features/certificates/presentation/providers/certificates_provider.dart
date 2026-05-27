@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/cache/cache_service.dart';
 import 'package:gttp/core/network/connectivity_service.dart';
@@ -52,11 +53,24 @@ final certificateDetailProvider = FutureProvider.family<CertificateModel, String
 
 /// Notifier for managing certificates state with offline support
 class CertificatesNotifier extends AsyncNotifier<List<CertificateModel>> {
+  Timer? _pollingTimer;
+
   @override
   Future<List<CertificateModel>> build() async {
     final isOnline = ref.read(isOnlineProvider);
     final cache = CacheService.instance;
     final repository = ref.read(certificatesRepositoryProvider);
+    
+    // Set up Smart Polling
+    ref.onDispose(() {
+      _pollingTimer?.cancel();
+    });
+    
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (ref.read(isOnlineProvider)) {
+        _pollUpdates();
+      }
+    });
     
     // Try cache first
     final cached = cache.getList<CertificateModel>(
@@ -78,6 +92,19 @@ class CertificatesNotifier extends AsyncNotifier<List<CertificateModel>> {
       // If API fails but we have cache, return cache
       if (cached != null) return cached;
       rethrow;
+    }
+  }
+
+  /// Silently fetches updates in the background without causing a loading flicker
+  Future<void> _pollUpdates() async {
+    try {
+      final repository = ref.read(certificatesRepositoryProvider);
+      final cache = CacheService.instance;
+      final certificates = await repository.getCertificates();
+      await cache.putList(_certificatesCacheKey, certificates, ttl: _cacheTTL);
+      state = AsyncData(certificates);
+    } catch (_) {
+      // Ignore polling errors
     }
   }
 

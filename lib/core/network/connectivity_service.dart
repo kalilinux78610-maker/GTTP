@@ -6,11 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Service for checking network connectivity
 class ConnectivityService {
   final Connectivity _connectivity;
-  StreamSubscription<List<ConnectivityResult>>? _subscription;
   List<ConnectivityResult> _currentResults = [ConnectivityResult.none];
 
   ConnectivityService({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   /// Check if device is currently online
   bool get isOnline =>
@@ -22,22 +21,20 @@ class ConnectivityService {
   bool get isOffline => !isOnline;
 
   /// Get current connectivity results
-  List<ConnectivityResult> get currentResults => List.unmodifiable(_currentResults);
+  List<ConnectivityResult> get currentResults =>
+      List.unmodifiable(_currentResults);
 
   /// Stream of connectivity changes
   Stream<List<ConnectivityResult>> get onConnectivityChanged =>
-      _connectivity.onConnectivityChanged;
+      _connectivity.onConnectivityChanged.map((results) {
+        _currentResults = results;
+        return results;
+      });
 
   /// Initialize and get current status
   Future<void> initialize() async {
     _currentResults = await _connectivity.checkConnectivity();
-    _subscription = _connectivity.onConnectivityChanged.listen((results) {
-      _currentResults = results;
-      if (kDebugMode) {
-        debugPrint('[Connectivity] Status changed: $results');
-      }
-    });
-    
+
     if (kDebugMode) {
       debugPrint('[Connectivity] Initial status: $_currentResults');
     }
@@ -50,9 +47,7 @@ class ConnectivityService {
   }
 
   /// Dispose subscription
-  void dispose() {
-    _subscription?.cancel();
-  }
+  void dispose() {}
 }
 
 /// Provider for ConnectivityService
@@ -69,10 +64,12 @@ final isOnlineProvider = NotifierProvider<ConnectivityNotifier, bool>(() {
 
 class ConnectivityNotifier extends Notifier<bool> {
   ConnectivityService? _connectivityService;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   @override
   bool build() {
     _connectivityService = ref.read(connectivityServiceProvider);
+    ref.onDispose(() => _subscription?.cancel());
     _initialize();
     return false;
   }
@@ -80,11 +77,17 @@ class ConnectivityNotifier extends Notifier<bool> {
   Future<void> _initialize() async {
     await _connectivityService!.initialize();
     state = _connectivityService!.isOnline;
-    
-    _connectivityService!.onConnectivityChanged.listen((results) {
-      final isOnline = !results.contains(ConnectivityResult.none) &&
-          results.isNotEmpty;
+
+    await _subscription?.cancel();
+    _subscription = _connectivityService!.onConnectivityChanged.listen((
+      results,
+    ) {
+      final isOnline =
+          !results.contains(ConnectivityResult.none) && results.isNotEmpty;
       state = isOnline;
+      if (kDebugMode) {
+        debugPrint('[Connectivity] Status changed: $results');
+      }
     });
   }
 

@@ -15,3 +15,6 @@
 - Show course settings details in app UI (`start_date`, `end_date`, `enrollment_type`, `status`, `pass_percentage`).
 - Fix course pass-percentage chip formatting to avoid duplicate `%` display.
 - Add "Coming Soon" placeholder for `Flagged Reports Review` filter state.
+
+## 2026-05-12
+- Fix course cover image URLs: parse API origin from `API_BASE_URL`, avoid double slashes, accept `cover_image_url` / full `https` URLs from API.

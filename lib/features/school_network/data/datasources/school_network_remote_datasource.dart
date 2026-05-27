@@ -40,6 +40,17 @@ class SchoolNetworkRemoteDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getClasses() async {
+    try {
+      final response = await _apiClient.get('/classes', requiresAuth: true);
+      return _extractList(response);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch classes: $e');
+    }
+  }
+
   List<Map<String, dynamic>> _extractList(Map<String, dynamic> response) {
     // Handle various response shapes
     if (response['data'] is List) {
@@ -60,9 +71,7 @@ class SchoolNetworkRemoteDataSource {
         return value.cast<Map<String, dynamic>>();
       }
     }
-    if (kDebugMode) {
-      debugPrint('[SchoolNetwork] No list found in response: $response');
-    }
+    if (kDebugMode) debugPrint('[SchoolNetwork] No list found in response.');
     return [];
   }
 }

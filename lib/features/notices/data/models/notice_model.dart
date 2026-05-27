@@ -8,6 +8,7 @@ class NoticeModel {
   final String createdAt;
   final String? attachmentUrl;
   final String? expiryDate;
+  final String? targetAudience;
   final bool isPinned;
   final bool isRead;
 
@@ -21,6 +22,7 @@ class NoticeModel {
     required this.createdAt,
     this.attachmentUrl,
     this.expiryDate,
+    this.targetAudience,
     this.isPinned = false,
     this.isRead = false,
   });
@@ -63,6 +65,7 @@ class NoticeModel {
       createdAt: getString(['created_at', 'createdAt', 'date', 'posted_at', 'published_at']),
       attachmentUrl: tryString(json['attachment_url'] ?? json['attachment'] ?? json['file_url']),
       expiryDate: tryString(json['expiry_date'] ?? json['expires_at'] ?? json['valid_until']),
+      targetAudience: tryString(json['target_audience'] ?? json['targetAudience'] ?? json['target']),
       isPinned: getBool(['is_pinned', 'isPinned', 'pinned', 'sticky']),
       isRead: getBool(['is_read', 'isRead', 'read']),
     );
@@ -84,4 +87,21 @@ class NoticeModel {
 
   bool get isHighPriority => priority.toLowerCase() == 'high' || priority.toLowerCase() == 'urgent';
   bool get isAnnouncement => category.toLowerCase() == 'announcement';
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'content': content,
+      'category': category,
+      'priority': priority,
+      'authorName': authorName,
+      'createdAt': createdAt,
+      if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
+      if (expiryDate != null) 'expiryDate': expiryDate,
+      if (targetAudience != null) 'targetAudience': targetAudience,
+      'isPinned': isPinned,
+      'isRead': isRead,
+    };
+  }
 }

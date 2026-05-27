@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/api_client.dart';
+import 'package:gttp/core/network/api_json_parser.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import '../models/course_model.dart';
 
@@ -15,11 +16,14 @@ class CoursesRemoteDataSource {
 
   Future<List<CourseModel>> getCourses() async {
     final response = await _apiClient.get('/courses', requiresAuth: true);
-    
-    final data = response['data'];
-    if (data is List) {
-      return data.map((json) => CourseModel.fromJson(json as Map<String, dynamic>)).toList();
-    }
-    return [];
+    final list = ApiJsonParser.extractList(response);
+    return list.map(CourseModel.fromJson).toList();
+  }
+
+  Future<CourseModel?> getCourseDetails(String id) async {
+    final response = await _apiClient.get('/courses/$id', requiresAuth: true);
+    final object = ApiJsonParser.extractObject(response);
+    if (object == null) return null;
+    return CourseModel.fromJson(object);
   }
 }

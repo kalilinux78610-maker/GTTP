@@ -1,8 +1,17 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/school_network/data/repositories/school_network_repository_impl.dart';
 import '../../data/models/school_model.dart';
 
 final schoolsProvider = FutureProvider<List<SchoolModel>>((ref) async {
+  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+    if (ref.read(isOnlineProvider)) {
+      ref.invalidateSelf();
+    }
+  });
+  ref.onDispose(timer.cancel);
+
   return ref.read(schoolNetworkRepositoryProvider).getSchools();
 });
 
