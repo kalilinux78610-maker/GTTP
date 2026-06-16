@@ -33,8 +33,11 @@ import 'package:gttp/features/reports/presentation/screens/submit_report_screen.
 import 'package:gttp/features/school_network/presentation/screens/school_network_screen.dart';
 import 'package:gttp/features/events/presentation/screens/events_screen.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     redirect: (context, state) async {
       final loc = state.uri.path;
@@ -239,6 +242,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                           ),
                           GoRoute(
                             path: 'quiz',
+                            parentNavigatorKey: _rootNavigatorKey,
                             builder: (context, state) {
                               final courseId = state.pathParameters['id'] ?? '';
                               final moduleId =
