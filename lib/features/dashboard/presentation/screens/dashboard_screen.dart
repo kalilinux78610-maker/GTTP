@@ -95,6 +95,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     ref.listen<AsyncValue<DashboardModel>>(dashboardDataProvider, (previous, next) {
       next.whenData((data) {
         final fromApi = data.currentUserDisplayName?.trim();
@@ -116,7 +119,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             right: 0,
             height: 300, // Enough to cover overscroll
             child: Container(
-              color: _getGradientColors(isDark)[0],
+              color: _getGradientColors()[0],
             ),
           ),
           RefreshIndicator(
@@ -128,7 +131,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
-                  child: _buildHeaderAndOverview(_getGradientColors(isDark)),
+                  child: _buildHeaderAndOverview(_getGradientColors()),
                 ),
                 SliverToBoxAdapter(
                   child: _buildQuickAccessList(),
