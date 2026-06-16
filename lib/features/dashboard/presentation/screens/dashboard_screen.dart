@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -107,9 +108,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
 
     final gradientColors = _getGradientColors();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
-      body: _buildDashboardBody(gradientColors),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F8FA),
+        body: _buildDashboardBody(gradientColors),
+      ),
     );
   }
 

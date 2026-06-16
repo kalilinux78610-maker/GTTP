@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,8 +51,10 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(dashboardDataProvider);
@@ -114,7 +117,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildHeaderWithOverview(AsyncValue dashboardAsync, bool isDark) {
