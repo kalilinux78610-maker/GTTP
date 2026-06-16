@@ -96,25 +96,27 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
         elevation: 0,
         foregroundColor: const Color(0xFF1A1C1E),
       ),
-      body: moduleAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error loading quiz: $err')),
-        data: (module) {
-          if (module == null) {
-            return const Center(child: Text('Module not found.'));
-          }
-          var questions = module.mcqQuestions;
-          
-          if (questions.isEmpty) {
-            return const Center(child: Text('No quiz questions available.'));
-          }
+      body: SafeArea(
+        child: moduleAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error loading quiz: $err')),
+          data: (module) {
+            if (module == null) {
+              return const Center(child: Text('Module not found.'));
+            }
+            var questions = module.mcqQuestions;
+            
+            if (questions.isEmpty) {
+              return const Center(child: Text('No quiz questions available.'));
+            }
 
-          if (_isSubmitted) {
-            return _buildResultView(questions);
-          }
+            if (_isSubmitted) {
+              return _buildResultView(questions);
+            }
 
-          return _buildQuizView(questions);
-        },
+            return _buildQuizView(questions);
+          },
+        ),
       ),
     );
   }
