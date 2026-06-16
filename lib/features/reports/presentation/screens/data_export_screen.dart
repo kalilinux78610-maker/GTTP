@@ -279,7 +279,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
           IconButton(
             tooltip: 'Export now',
             icon: const Icon(Icons.file_download_outlined, color: Colors.blue),
-            onPressed: ref.watch(exportProvider).isLoading
+            onPressed: ref.watch(exportProvider).isLoading || rowEst == 0
                 ? null
                 : () => _runExport(totalStudents, apiTotal, filteredStudents),
           ),
@@ -868,7 +868,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
     List<StudentModel> students,
   ) {
     final exportState = ref.watch(exportProvider);
-    final disabled = totalStudents == '...' || exportState.isLoading;
+    final disabled = totalStudents == '...' || exportState.isLoading || rowEst == 0;
 
     return ElevatedButton(
       onPressed: disabled
@@ -901,7 +901,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
           Text(
             exportState.isLoading
                 ? 'Saving File…'
-                : 'Export ~$rowEst students ($_selectedFormat)',
+                : 'Export ${rowEst > 0 ? '~$rowEst students ' : ''}($_selectedFormat)',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,

@@ -158,6 +158,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'data-export',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const DataExportCenterScreen(),
                   ),
                   GoRoute(
