@@ -62,6 +62,7 @@ void main() {
       when(() => mockSecureStorage.clearTokens()).thenAnswer((_) async {});
       when(() => mockSecureStorage.clearPendingUserId()).thenAnswer((_) async {});
       when(() => mockSecureStorage.clearDisplayName()).thenAnswer((_) async {});
+      when(() => mockSecureStorage.clearUserProfile()).thenAnswer((_) async {});
 
       await repository.logout();
 

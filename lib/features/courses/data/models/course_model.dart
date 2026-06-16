@@ -1,11 +1,13 @@
 import 'package:gttp/core/network/api_json_parser.dart';
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
+import 'package:gttp/features/courses/domain/entities/course.dart';
 import 'course_module_model.dart';
 
 class CourseModel {
   final String id;
   final String title;
-  final String description;
+  final String description; // Plain text description
+  final String htmlDescription; // Raw HTML description
   final String? thumbnailUrl;
   final String? instructor;
   final String? duration;
@@ -15,6 +17,7 @@ class CourseModel {
   final String? enrollmentType;
   final String? status;
   final String? passPercentage;
+  final bool isEnrollable;
   final bool isEnrolled;
   final int? progressPercent;
   final String? pdfUrl;
@@ -24,6 +27,7 @@ class CourseModel {
     required this.id,
     required this.title,
     required this.description,
+    this.htmlDescription = '',
     this.thumbnailUrl,
     this.instructor,
     this.duration,
@@ -33,6 +37,7 @@ class CourseModel {
     this.enrollmentType,
     this.status,
     this.passPercentage,
+    this.isEnrollable = false,
     this.isEnrolled = false,
     this.progressPercent,
     this.pdfUrl,
@@ -91,10 +96,13 @@ class CourseModel {
       final modules = <CourseModuleModel>[];
       for (var i = 0; i < sorted.length; i++) {
         var locked = false;
-        for (var j = 0; j < i; j++) {
-          if (!modules[j].isCompleted) {
-            locked = true;
-            break;
+        final isSequential = ApiJsonParser.asBool(sorted[i]['is_sequential'] ?? sorted[i]['isSequential'] ?? '1');
+        if (isSequential) {
+          for (var j = 0; j < i; j++) {
+            if (!modules[j].isCompleted) {
+              locked = true;
+              break;
+            }
           }
         }
         modules.add(CourseModuleModel.fromJson(sorted[i], index: i, lockedBySequence: locked));
@@ -142,6 +150,7 @@ class CourseModel {
       id: id.isEmpty ? getString(['courseId']) : id,
       title: getString(['title', 'name', 'course_name', 'heading']),
       description: stripHtml(rawDescription),
+      htmlDescription: rawDescription,
       thumbnailUrl: CourseAssetUrl.resolve(
         getString([
           'cover_image',
@@ -167,6 +176,7 @@ class CourseModel {
       enrollmentType: tryString(json['enrollment_type'] ?? json['enrollmentType']),
       status: tryString(json['status'] ?? json['state']),
       passPercentage: tryString(json['pass_percentage'] ?? json['passPercentage']),
+      isEnrollable: getBool(['is_enrollable', 'isEnrollable', 'enrollable']),
       isEnrolled: getBool(['is_enrolled', 'isEnrolled', 'enrolled', 'joined']),
       progressPercent: parseProgress(modules),
       pdfUrl: CourseAssetUrl.resolve(
@@ -183,6 +193,7 @@ class CourseModel {
     String? id,
     String? title,
     String? description,
+    String? htmlDescription,
     String? thumbnailUrl,
     String? instructor,
     String? duration,
@@ -192,6 +203,7 @@ class CourseModel {
     String? enrollmentType,
     String? status,
     String? passPercentage,
+    bool? isEnrollable,
     bool? isEnrolled,
     int? progressPercent,
     String? pdfUrl,
@@ -201,6 +213,7 @@ class CourseModel {
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
+      htmlDescription: htmlDescription ?? this.htmlDescription,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       instructor: instructor ?? this.instructor,
       duration: duration ?? this.duration,
@@ -210,6 +223,7 @@ class CourseModel {
       enrollmentType: enrollmentType ?? this.enrollmentType,
       status: status ?? this.status,
       passPercentage: passPercentage ?? this.passPercentage,
+      isEnrollable: isEnrollable ?? this.isEnrollable,
       isEnrolled: isEnrolled ?? this.isEnrolled,
       progressPercent: progressPercent ?? this.progressPercent,
       pdfUrl: pdfUrl ?? this.pdfUrl,
@@ -229,5 +243,51 @@ class CourseModel {
       }
     }
     return current;
+  }
+
+  Course toEntity() {
+    return Course(
+      id: id,
+      title: title,
+      description: description,
+      htmlDescription: htmlDescription,
+      thumbnailUrl: thumbnailUrl,
+      instructor: instructor,
+      duration: duration,
+      level: level,
+      startDate: startDate,
+      endDate: endDate,
+      enrollmentType: enrollmentType,
+      status: status,
+      passPercentage: passPercentage,
+      isEnrollable: isEnrollable,
+      isEnrolled: isEnrolled,
+      progressPercent: progressPercent,
+      pdfUrl: pdfUrl,
+      modules: modules.map((m) => m.toEntity()).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'htmlDescription': htmlDescription,
+      'thumbnailUrl': thumbnailUrl,
+      'instructor': instructor,
+      'duration': duration,
+      'level': level,
+      'start_date': startDate,
+      'end_date': endDate,
+      'enrollment_type': enrollmentType,
+      'status': status,
+      'pass_percentage': passPercentage,
+      'is_enrollable': isEnrollable,
+      'is_enrolled': isEnrolled,
+      'progressPercent': progressPercent,
+      'pdfUrl': pdfUrl,
+      'modules': modules.map((m) => m.toJson()).toList(),
+    };
   }
 }

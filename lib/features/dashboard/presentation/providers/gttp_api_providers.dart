@@ -5,9 +5,13 @@ import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/core/utils/student_row_parser.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/data/datasources/gttp_remote_datasource.dart';
+import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 
-void _setupPolling(Ref ref) {
-  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+import 'package:flutter/foundation.dart';
+import 'package:gttp/core/cache/cache_service.dart';
+
+void _setupPolling(Ref ref, {Duration duration = const Duration(minutes: 5)}) {
+  final timer = Timer.periodic(duration, (_) {
     if (ref.read(isOnlineProvider)) {
       ref.invalidateSelf();
     }
@@ -15,46 +19,130 @@ void _setupPolling(Ref ref) {
   ref.onDispose(timer.cancel);
 }
 
+final _lastFetchTimes = <String, DateTime>{};
+
+Future<List<Map<String, dynamic>>> _cacheFirstNetworkSecondFetch(
+  Ref ref,
+  String cacheKey,
+  Future<List<Map<String, dynamic>>> Function() networkFetch,
+) async {
+  _setupPolling(ref);
+
+  final cached = CacheService.instance.getList<Map<String, dynamic>>(
+    cacheKey,
+    fromJson: (json) => json,
+  );
+
+  final lastFetch = _lastFetchTimes[cacheKey] ?? DateTime.fromMillisecondsSinceEpoch(0);
+  final isFresh = DateTime.now().difference(lastFetch) < const Duration(seconds: 10);
+
+  if (!isFresh) {
+    Future.microtask(() async {
+      try {
+        if (!ref.read(isOnlineProvider)) return;
+        _lastFetchTimes[cacheKey] = DateTime.now();
+        final newData = await networkFetch();
+        
+        await CacheService.instance.putList(cacheKey, newData);
+        
+        if (cached != null) {
+          ref.invalidateSelf();
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('[Cache-First] Background fetch failed for $cacheKey: $e');
+      }
+    });
+  }
+
+  if (cached != null && cached.isNotEmpty) {
+    return cached;
+  }
+
+  final data = await networkFetch();
+  await CacheService.instance.putList(cacheKey, data);
+  _lastFetchTimes[cacheKey] = DateTime.now();
+  return data;
+}
+
 final certificatesProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getCertificates();
+    FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'certificates_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getCertificates(),
+  );
 });
 
-final schedulesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getSchedules();
+final schedulesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'schedules_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getSchedules(),
+  );
 });
 
-final subjectsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getSubjects();
+final subjectsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'subjects_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getSubjects(),
+  );
 });
 
-final syllabusProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getSyllabus();
+final syllabusProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'syllabus_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getSyllabus(),
+  );
 });
 
-final timetableProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getTimetable();
+final timetableProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'timetable_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getTimetable(),
+  );
 });
 
-final noticesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getNotices();
+final noticesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'notices_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getNotices(),
+  );
 });
 
-final schoolsApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getSchools();
+final schoolsApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'schools_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getSchools(),
+  );
 });
 
 final studentsApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  // Pass the school name if the user is a teacher/coordinator
-  return ref.read(gttpRemoteDataSourceProvider).getStudents();
+  // Watch at root to rebuild if they change
+  ref.watch(userModelProvider);
+  ref.watch(currentUserRoleProvider);
+
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'students_cache',
+    () async {
+      final user = await ref.read(userModelProvider.future);
+      final role = await ref.read(currentUserRoleProvider.future);
+      
+      String? schoolQuery;
+      if (user != null && (role == AppUserRole.faculty || role == AppUserRole.coordinator || role == AppUserRole.principal || role == AppUserRole.unknown)) {
+        if (user.institute != null && user.institute!.isNotEmpty) {
+          schoolQuery = user.institute;
+        }
+      }
+
+      return ref.read(gttpRemoteDataSourceProvider).getStudents(school: schoolQuery);
+    },
+  );
 });
 
 
@@ -63,36 +151,74 @@ final myStudentsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) asyn
   final user = await ref.watch(userModelProvider.future);
   
   if (user != null && user.institute != null && user.institute!.isNotEmpty) {
-    // Check if user is a teacher or coordinator
     final role = await ref.watch(currentUserRoleProvider.future);
-    if (role == AppUserRole.faculty || role == AppUserRole.coordinator) {
+    if (role == AppUserRole.faculty || role == AppUserRole.coordinator || role == AppUserRole.principal || role == AppUserRole.unknown) {
+      
+      // Get the real school name from dashboard if available synchronously (avoids blocking and infinite loading!)
+      final asyncDashboard = ref.read(dashboardDataProvider);
+      final dashboard = asyncDashboard.hasValue ? asyncDashboard.value : null;
+      final realSchoolName = dashboard?.schoolName?.toLowerCase().trim();
+      
       final userSchool = user.institute!.toLowerCase().trim();
+      
       return allStudents.where((student) {
-        final studentSchool = StudentRowParser.school(student).toLowerCase().trim();
-        // If student school is empty, we might exclude them or include them. We exclude them for strict filtering.
-        if (studentSchool.isEmpty || studentSchool == 'unknown school') return false;
+        // 1. Try strict ID match
+        if (user.schoolId != null) {
+          final sId = student['school_id'] ?? student['schoolId'];
+          if (sId != null && sId.toString() == user.schoolId.toString()) {
+            return true;
+          }
+        }
         
-        // Exact match or partial match (e.g. "St. John's" matches "St. John's High School")
-        return studentSchool.contains(userSchool) || userSchool.contains(studentSchool);
+        final studentSchool = StudentRowParser.school(student).toLowerCase().trim();
+        final studentInstituteName = (student['institute_name']?.toString() ?? '').toLowerCase().trim();
+        
+        final effectiveStudentSchool = studentInstituteName.isNotEmpty ? studentInstituteName : studentSchool;
+        
+        if (effectiveStudentSchool.isEmpty || effectiveStudentSchool == 'unknown school') return false;
+        
+        // 2. Try real school name strict match if available
+        if (realSchoolName != null && realSchoolName.isNotEmpty) {
+           if (effectiveStudentSchool == realSchoolName) return true;
+        }
+        
+        // 3. Exact match with user.institute
+        if (effectiveStudentSchool == userSchool) return true;
+        
+        // 4. Fallback relaxed match if the user institute is long enough (to avoid generic 'school' matching everything)
+        if (userSchool != 'school' && userSchool != 'college') {
+           return effectiveStudentSchool.contains(userSchool) || userSchool.contains(effectiveStudentSchool);
+        }
+        
+        // If userSchool is just 'school', we only match if the backend literally returned 'school' as the institute_name
+        return false;
       }).toList();
     }
   }
   
-  // Admins or users without a school see all students
   return allStudents;
 });
 
-final classesApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getClasses();
+final classesApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'classes_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getClasses(),
+  );
 });
 
-final coursesApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getCourses();
+final coursesApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'courses_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getCourses(),
+  );
 });
 
-final facultyApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  _setupPolling(ref);
-  return ref.read(gttpRemoteDataSourceProvider).getFaculty();
+final facultyApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return _cacheFirstNetworkSecondFetch(
+    ref,
+    'faculty_cache',
+    () => ref.read(gttpRemoteDataSourceProvider).getFaculty(),
+  );
 });

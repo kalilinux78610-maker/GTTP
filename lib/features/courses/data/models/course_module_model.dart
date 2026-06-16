@@ -1,7 +1,9 @@
 import 'package:gttp/core/network/api_json_parser.dart';
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
+import 'package:gttp/features/courses/domain/entities/course_module.dart';
+import 'package:gttp/features/courses/data/models/course_session_model.dart';
 
-class CourseModuleRequirement {
+class CourseModuleRequirementModel {
   final String id;
   final String title;
   final String description;
@@ -13,7 +15,7 @@ class CourseModuleRequirement {
   final String? submittedAt;
   final String? fileUrl;
 
-  const CourseModuleRequirement({
+  const CourseModuleRequirementModel({
     required this.id,
     required this.title,
     required this.description,
@@ -26,13 +28,13 @@ class CourseModuleRequirement {
     this.fileUrl,
   });
 
-  factory CourseModuleRequirement.fromJson(Map<String, dynamic> json) {
+  factory CourseModuleRequirementModel.fromJson(Map<String, dynamic> json) {
     String str(dynamic v) => ApiJsonParser.asString(v);
 
     final submission = ApiJsonParser.asMap(json['submission'] ?? json['student_submission']);
     final student = ApiJsonParser.asMap(json['student'] ?? submission?['student']);
 
-    return CourseModuleRequirement(
+    return CourseModuleRequirementModel(
       id: str(json['id'] ?? json['criteria_id'] ?? json['requirement_id']),
       title: str(json['title'] ?? json['name'] ?? json['criteria_title']),
       description: str(json['description'] ?? json['details'] ?? json['instruction']),
@@ -85,6 +87,156 @@ class CourseModuleRequirement {
     final s = status.toLowerCase();
     return s.contains('pending') || s.contains('awaiting') || s.contains('review');
   }
+
+  CourseModuleRequirement toEntity() {
+    return CourseModuleRequirement(
+      id: id,
+      title: title,
+      description: description,
+      status: status,
+      needsAdminApproval: needsAdminApproval,
+      studentName: studentName,
+      rollNo: rollNo,
+      className: className,
+      submittedAt: submittedAt,
+      fileUrl: fileUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'status': status,
+      'needs_admin_approval': needsAdminApproval,
+      'student_name': studentName,
+      'roll_no': rollNo,
+      'class': className,
+      'submitted_at': submittedAt,
+      'file_url': fileUrl,
+    };
+  }
+}
+
+class CourseModuleMcqOptionModel {
+  final String id;
+  final String questionId;
+  final String optionText;
+  final bool isCorrect;
+  final int order;
+
+  const CourseModuleMcqOptionModel({
+    required this.id,
+    required this.questionId,
+    required this.optionText,
+    required this.isCorrect,
+    this.order = 0,
+  });
+
+  factory CourseModuleMcqOptionModel.fromJson(Map<String, dynamic> json) {
+    String str(dynamic v) => ApiJsonParser.asString(v);
+    return CourseModuleMcqOptionModel(
+      id: str(json['id']),
+      questionId: str(json['question_id']),
+      optionText: str(json['option_text']),
+      isCorrect: ApiJsonParser.asBool(json['is_correct']),
+      order: int.tryParse(str(json['order'])) ?? 0,
+    );
+  }
+
+  CourseModuleMcqOption toEntity() {
+    return CourseModuleMcqOption(
+      id: id,
+      questionId: questionId,
+      optionText: optionText,
+      isCorrect: isCorrect,
+      order: order,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question_id': questionId,
+      'option_text': optionText,
+      'is_correct': isCorrect ? 1 : 0,
+      'order': order,
+    };
+  }
+}
+
+class CourseModuleMcqQuestionModel {
+  final String id;
+  final String moduleId;
+  final String questionText;
+  final String? questionImage;
+  final String? explanation;
+  final int points;
+  final int order;
+  final List<CourseModuleMcqOptionModel> options;
+
+  const CourseModuleMcqQuestionModel({
+    required this.id,
+    required this.moduleId,
+    required this.questionText,
+    this.questionImage,
+    this.explanation,
+    this.points = 1,
+    this.order = 0,
+    this.options = const [],
+  });
+
+  factory CourseModuleMcqQuestionModel.fromJson(Map<String, dynamic> json) {
+    String str(dynamic v) => ApiJsonParser.asString(v);
+    
+    final optionsRaw = json['options'];
+    final options = <CourseModuleMcqOptionModel>[];
+    if (optionsRaw is List) {
+      for (final item in optionsRaw) {
+        if (item is Map) {
+          options.add(CourseModuleMcqOptionModel.fromJson(Map<String, dynamic>.from(item)));
+        }
+      }
+    }
+
+    return CourseModuleMcqQuestionModel(
+      id: str(json['id']),
+      moduleId: str(json['module_id']),
+      questionText: str(json['question_text']),
+      questionImage: CourseAssetUrl.resolve(json['question_image']),
+      explanation: str(json['explanation']).isEmpty ? null : str(json['explanation']),
+      points: int.tryParse(str(json['points'])) ?? 1,
+      order: int.tryParse(str(json['order'])) ?? 0,
+      options: options,
+    );
+  }
+
+  CourseModuleMcqQuestion toEntity() {
+    return CourseModuleMcqQuestion(
+      id: id,
+      moduleId: moduleId,
+      questionText: questionText,
+      questionImage: questionImage,
+      explanation: explanation,
+      points: points,
+      order: order,
+      options: options.map((o) => o.toEntity()).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'module_id': moduleId,
+      'question_text': questionText,
+      'question_image': questionImage,
+      'explanation': explanation,
+      'points': points,
+      'order': order,
+      'options': options.map((o) => o.toJson()).toList(),
+    };
+  }
 }
 
 class CourseModuleModel {
@@ -102,8 +254,12 @@ class CourseModuleModel {
   final String? externalUrl;
   final String? materialUrl;
   final String? materialLabel;
-  final List<CourseModuleRequirement> requirements;
+  final List<CourseModuleRequirementModel> requirements;
+  final List<CourseSessionModel> sessions;
   final int order;
+
+  final bool mcqEnabled;
+  final List<CourseModuleMcqQuestionModel> mcqQuestions;
 
   const CourseModuleModel({
     required this.id,
@@ -121,7 +277,10 @@ class CourseModuleModel {
     this.materialUrl,
     this.materialLabel,
     this.requirements = const [],
+    this.sessions = const [],
     this.order = 0,
+    this.mcqEnabled = false,
+    this.mcqQuestions = const [],
   });
 
   factory CourseModuleModel.fromJson(
@@ -135,12 +294,51 @@ class CourseModuleModel {
     final tags = _buildTags(json, type);
 
     final requirementsRaw = json['criterias'] ?? json['criteria'] ?? json['requirements'];
-    final requirements = <CourseModuleRequirement>[];
+    final requirements = <CourseModuleRequirementModel>[];
     if (requirementsRaw is List) {
       for (final item in requirementsRaw) {
         if (item is Map) {
           requirements.add(
-            CourseModuleRequirement.fromJson(Map<String, dynamic>.from(item)),
+            CourseModuleRequirementModel.fromJson(Map<String, dynamic>.from(item)),
+          );
+        }
+      }
+    }
+
+    // Fallback for upload modules if backend didn't provide criterias
+    if (requirements.isEmpty && (type.contains('upload') || type == 'report')) {
+      requirements.add(
+        CourseModuleRequirementModel(
+          id: str(json['id'] ?? json['module_id'] ?? 'req_1'),
+          title: 'Upload your analysis report *',
+          description: 'Please upload your completed analysis or required document.',
+          status: str(json['status']).isEmpty ? 'pending' : str(json['status']).toLowerCase(),
+          needsAdminApproval: true,
+          submittedAt: str(json['submitted_at']).isEmpty ? null : str(json['submitted_at']),
+          fileUrl: CourseAssetUrl.resolve(json['proof_url'] ?? json['submission_url']),
+        ),
+      );
+    }
+
+    final sessionsRaw = json['sessions'] ?? json['submodules'];
+    final sessions = <CourseSessionModel>[];
+    if (sessionsRaw is List) {
+      for (final item in sessionsRaw) {
+        if (item is Map) {
+          sessions.add(
+            CourseSessionModel.fromJson(Map<String, dynamic>.from(item)),
+          );
+        }
+      }
+    }
+
+    final mcqQuestionsRaw = json['mcq_questions'];
+    final mcqQuestions = <CourseModuleMcqQuestionModel>[];
+    if (mcqQuestionsRaw is List) {
+      for (final item in mcqQuestionsRaw) {
+        if (item is Map) {
+          mcqQuestions.add(
+            CourseModuleMcqQuestionModel.fromJson(Map<String, dynamic>.from(item)),
           );
         }
       }
@@ -166,7 +364,10 @@ class CourseModuleModel {
       materialUrl: CourseAssetUrl.resolve(json['file_path'] ?? json['material_url'] ?? json['file_url']),
       materialLabel: str(json['material_label']).isEmpty ? 'Guidelines Document' : str(json['material_label']),
       requirements: requirements,
+      sessions: sessions,
       order: int.tryParse(str(json['order'])) ?? index,
+      mcqEnabled: ApiJsonParser.asBool(json['mcq_enabled'] ?? json['mcqEnabled']),
+      mcqQuestions: mcqQuestions,
     );
   }
 
@@ -229,5 +430,53 @@ class CourseModuleModel {
     } catch (_) {
       return raw;
     }
+  }
+
+  CourseModule toEntity() {
+    return CourseModule(
+      id: id,
+      courseId: courseId,
+      title: title,
+      type: type,
+      typeLabel: typeLabel,
+      durationHours: durationHours,
+      dueDate: dueDate,
+      tags: tags,
+      isCompleted: isCompleted,
+      isSequential: isSequential,
+      isLocked: isLocked,
+      externalUrl: externalUrl,
+      materialUrl: materialUrl,
+      materialLabel: materialLabel,
+      requirements: requirements.map((r) => r.toEntity()).toList(),
+      sessions: sessions.map((s) => s.toEntity()).toList(),
+      order: order,
+      mcqEnabled: mcqEnabled,
+      mcqQuestions: mcqQuestions.map((q) => q.toEntity()).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'course_id': courseId,
+      'title': title,
+      'type': type,
+      'typeLabel': typeLabel,
+      'duration_hours': durationHours,
+      'due_date': dueDate,
+      'tags': tags,
+      'is_completed': isCompleted,
+      'is_sequential': isSequential,
+      'isLocked': isLocked,
+      'external_url': externalUrl,
+      'material_url': materialUrl,
+      'material_label': materialLabel,
+      'requirements': requirements.map((r) => r.toJson()).toList(),
+      'sessions': sessions.map((s) => s.toJson()).toList(),
+      'order': order,
+      'mcq_enabled': mcqEnabled,
+      'mcq_questions': mcqQuestions.map((q) => q.toJson()).toList(),
+    };
   }
 }

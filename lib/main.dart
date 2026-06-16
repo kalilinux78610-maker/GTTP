@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/cache/cache_service.dart';
-import 'core/theme/app_theme.dart';
+import 'core/cache/sync_queue_service.dart';
+import 'package:gttp/core/theme/app_theme.dart';
 import 'package:gttp/core/router/app_router.dart';
+import 'package:flutter/gestures.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +18,7 @@ Future<void> main() async {
   }
   // Initialize cache for offline support
   await CacheService.initialize();
+  await SyncQueueService.initialize();
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -31,6 +34,14 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.touch,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.trackpad,
+        },
+      ),
     );
   }
 }

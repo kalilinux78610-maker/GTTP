@@ -6,7 +6,7 @@ import 'package:gttp/features/courses/data/models/course_module_model.dart';
 import 'package:gttp/features/courses/presentation/providers/course_details_provider.dart';
 import 'package:gttp/features/courses/presentation/utils/course_links.dart';
 import 'package:gttp/features/courses/presentation/widgets/course_cover_image.dart';
-import 'package:gttp/features/courses/presentation/screens/create_course_module_screen.dart';
+
 class CoordinatorCourseDetailsScreen extends ConsumerWidget {
   final String courseId;
 
@@ -67,19 +67,6 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
                               color: Color(0xFF1E293B),
                             ),
                           ),
-                          TextButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => CreateCourseModuleScreen(
-                                    courseId: courseId,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.add, size: 20),
-                            label: const Text('Add Module'),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -131,8 +118,6 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildCourseInfo(BuildContext context, CourseModel course) {
-    final progress = (course.progressPercent ?? 0).clamp(0, 100);
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -176,36 +161,8 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Overall Progress',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-              Text(
-                '$progress% Complete',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F62FE),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress / 100,
-            backgroundColor: Colors.grey.shade200,
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0F62FE)),
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(4),
-          ),
+          _PendingApprovalsWidget(courseId: course.id),
+
         ],
       ),
     );
@@ -235,47 +192,55 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: color.withValues(alpha: 0.1),
-            radius: 20,
-            child: Text(
-              number,
-              style: TextStyle(color: color, fontWeight: FontWeight.bold),
-            ),
+        onTap: () => context.push('/courses/$courseId/modules/${module.id}'),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  module.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withValues(alpha: 0.1),
+                radius: 20,
+                child: Text(
+                  number,
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
                 ),
-                if (module.typeLabel.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    module.typeLabel,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                ],
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      module.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    if (module.typeLabel.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        module.typeLabel,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Color(0xFF94A3B8), size: 24),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -341,17 +306,6 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (status == 'Pending Review')
-                ElevatedButton(
-                  onPressed: () {
-                    context.push('/dashboard/assignment-review/$courseId/$moduleId');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F62FE),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Review'),
-                ),
             ],
           ),
         ],
@@ -359,3 +313,77 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
     );
   }
 }
+
+class _PendingApprovalsWidget extends ConsumerWidget {
+  final String courseId;
+
+  const _PendingApprovalsWidget({required this.courseId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(coursePendingSubmissionsProvider(courseId));
+
+    return pendingAsync.when(
+      data: (pendingItems) {
+        if (pendingItems.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7E6), // Light orange background
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFFCC80)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE0B2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.assignment_late_outlined,
+                  color: Color(0xFFF57C00),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${pendingItems.length} Items Pending Approval',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  context.push('/courses/$courseId/pending-submissions');
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFF57C00),
+                ),
+                child: const Text(
+                  'Review Now',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (error, stack) => const SizedBox.shrink(),
+    );
+  }
+}
+

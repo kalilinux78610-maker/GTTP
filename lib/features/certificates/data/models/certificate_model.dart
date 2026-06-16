@@ -69,4 +69,19 @@ class CertificateModel {
 
   bool get isValid => status.toLowerCase() == 'valid' || status.toLowerCase() == 'active';
   bool get isExpired => status.toLowerCase() == 'expired';
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'studentName': studentName,
+      'schoolName': schoolName,
+      'courseName': courseName,
+      'issuedDate': issuedDate,
+      'expiryDate': expiryDate,
+      'status': status,
+      'certificateUrl': certificateUrl,
+      'description': description,
+    };
+  }
 }

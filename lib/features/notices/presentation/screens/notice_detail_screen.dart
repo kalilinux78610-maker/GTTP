@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/notices/data/models/notice_model.dart';
 import 'package:gttp/features/notices/presentation/providers/notices_provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class NoticeDetailScreen extends ConsumerWidget {
   final String noticeId;
@@ -14,10 +15,85 @@ class NoticeDetailScreen extends ConsumerWidget {
     final noticeAsync = ref.watch(noticeDetailProvider(noticeId));
 
     return noticeAsync.when(
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+      loading: () => Skeletonizer(
+        enabled: true,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 20,
+                  left: 20,
+                  right: 20,
+                  bottom: 30,
+                ),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.grey, Colors.black38],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      height: 24,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(height: 28, width: 250, color: Colors.white),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(height: 16, width: 100, color: Colors.white),
+                        const SizedBox(width: 16),
+                        Container(height: 16, width: 100, color: Colors.white),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    20, 20, 20,
+                    MediaQuery.of(context).padding.bottom + 20,
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: List.generate(10, (index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Container(height: 16, width: double.infinity, color: Colors.grey),
+                      )),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -49,6 +125,10 @@ class _NoticeDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final catColor = _categoryColor(notice.category);
+    
+    // Create a darker shade for the gradient
+    final hsl = HSLColor.fromColor(catColor);
+    final darkColor = hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -62,9 +142,9 @@ class _NoticeDetailBody extends StatelessWidget {
               right: 20,
               bottom: 30,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                colors: [catColor, darkColor],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -88,16 +168,16 @@ class _NoticeDetailBody extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    notice.category,
-                    style: TextStyle(
-                      color: catColor,
+                    notice.category.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+                      letterSpacing: 1.0,
                     ),
                   ),
                 ),
@@ -199,15 +279,16 @@ class _NoticeDetailBody extends StatelessWidget {
 
   Color _categoryColor(String category) {
     switch (category.toLowerCase()) {
-      case 'announcement':
-        return const Color(0xFF8B5CF6);
       case 'event':
-        return const Color(0xFF3B82F6);
+        return const Color(0xFF8B5CF6); // Purple
+      case 'announcement':
+        return const Color(0xFF3B82F6); // Blue
       case 'alert':
+        return const Color(0xFFF97316); // Orange
       case 'update':
-        return const Color(0xFFF59E0B);
+        return const Color(0xFF10B981); // Green
       default:
-        return const Color(0xFFF59E0B);
+        return const Color(0xFFE5E7EB); // Grey
     }
   }
 }

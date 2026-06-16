@@ -5,6 +5,7 @@ import 'package:gttp/core/theme/app_theme.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
 import 'package:gttp/features/reports/presentation/providers/reports_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class ReportDetailScreen extends ConsumerWidget {
   final String reportId;
@@ -28,7 +29,77 @@ class ReportDetailScreen extends ConsumerWidget {
       ),
       body: reportAsync.when(
         data: (report) => _buildDetail(context, ref, report),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Skeletonizer(
+          enabled: true,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Container(height: 14, width: 120, color: Colors.grey),
+                const SizedBox(height: 16),
+                ...List.generate(3, (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(width: 34, height: 34, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8))),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(height: 12, width: 80, color: Colors.grey),
+                          const SizedBox(height: 4),
+                          Container(height: 14, width: 140, color: Colors.grey),
+                        ],
+                      ),
+                    ],
+                  ),
+                )),
+                const SizedBox(height: 32),
+                Container(height: 14, width: 100, color: Colors.grey),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(width: 34, height: 34, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8))),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(height: 12, width: 80, color: Colors.grey),
+                          const SizedBox(height: 4),
+                          Container(height: 14, width: 140, color: Colors.grey),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(height: 16, width: 150, color: Colors.grey),
+                const SizedBox(height: 8),
+                Container(
+                  height: 100,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         error: (error, _) => Center(child: Text('Error: $error')),
       ),
       bottomNavigationBar: reportAsync.maybeWhen(
@@ -200,24 +271,24 @@ class ReportDetailScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => _showOverrideDialog(context, ref, report.id),
+              onPressed: () => _showRejectDialog(context, ref, report.submissionId),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
-                side: const BorderSide(color: Colors.blue),
+                side: const BorderSide(color: Colors.red),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text('Override', style: TextStyle(color: Colors.blue)),
+              child: const Text('Reject', style: TextStyle(color: Colors.red)),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
               onPressed: () async {
-                final success = await ref.read(flaggedReportsProvider.notifier).resolveReport(report.id);
+                final success = await ref.read(flaggedReportsProvider.notifier).approveReport(report.submissionId);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? 'Report resolved' : 'Failed to resolve report'),
+                      content: Text(success ? 'Report approved' : 'Failed to approve report'),
                       backgroundColor: success ? Colors.green : Colors.red,
                     ),
                   );
@@ -231,7 +302,7 @@ class ReportDetailScreen extends ConsumerWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text('Resolve'),
+              child: const Text('Approve'),
             ),
           ),
         ],
@@ -239,17 +310,17 @@ class ReportDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showOverrideDialog(BuildContext context, WidgetRef ref, String id) {
+  void _showRejectDialog(BuildContext context, WidgetRef ref, String submissionId) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Override Report'),
+        title: const Text('Reject Report'),
         content: TextField(
           controller: controller,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'Enter reason for override...',
+            hintText: 'Enter reason for rejection...',
             border: OutlineInputBorder(),
           ),
         ),
@@ -259,18 +330,19 @@ class ReportDetailScreen extends ConsumerWidget {
             onPressed: () async {
               if (controller.text.isEmpty) return;
               Navigator.pop(ctx);
-              final success = await ref.read(flaggedReportsProvider.notifier).overrideReport(id, controller.text);
+              final success = await ref.read(flaggedReportsProvider.notifier).rejectReport(submissionId, reason: controller.text);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? 'Report overridden' : 'Failed to override report'),
+                    content: Text(success ? 'Report rejected' : 'Failed to reject report'),
                     backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
                 if (success) context.pop();
               }
             },
-            child: const Text('Confirm Override'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Confirm Reject'),
           ),
         ],
       ),

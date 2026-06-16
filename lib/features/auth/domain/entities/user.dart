@@ -17,6 +17,10 @@ class User {
     this.schoolId,
     this.institute,
     this.role,
+    this.studentClass,
+    this.parentName,
+    this.parentMobile,
+    this.instituteType,
     this.roles = const [],
   });
 
@@ -37,7 +41,19 @@ class User {
   final int? schoolId;
   final String? institute;
   final String? role;
+  final String? studentClass;
+  final String? parentName;
+  final String? parentMobile;
+  final String? instituteType;
   final List<UserRole> roles;
+
+  String get effectiveRole {
+    if (role != null && role!.trim().isNotEmpty) return role!;
+    if (roles.isNotEmpty && roles.first.name.trim().isNotEmpty) {
+      return roles.first.name;
+    }
+    return roleLevel.toString();
+  }
 }
 
 class UserRole {

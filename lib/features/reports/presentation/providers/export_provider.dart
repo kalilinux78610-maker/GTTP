@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gttp/features/dashboard/data/datasources/gttp_remote_datasource.dart';
+
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
 import '../../data/models/student_model.dart';
 import '../../domain/services/export_service.dart';
@@ -75,54 +75,36 @@ final filteredExportStudentsProvider =
       ref,
       params,
     ) async {
-      final gttpDataSource = ref.read(gttpRemoteDataSourceProvider);
-      final apiRows = await gttpDataSource.getStudents(
-        year: params.year,
-        school: params.school == 'All Schools' ? null : params.school,
-        course: params.course == 'All Courses' ? null : params.course,
-      );
+      // Fetch all students without query parameters
+      final allStudents = await ref.watch(exportStudentsProvider.future);
 
-      // Fetch schools and classes for name lookup
-      final schools = await ref.watch(schoolsApiProvider.future);
+      // Filter locally
+      return allStudents.where((student) {
+        // Filter by school
+        if (params.school != 'All Schools') {
+          final sName = student.schoolName.toLowerCase().trim();
+          final filterSchool = params.school.toLowerCase().trim();
+          if (sName.isEmpty || sName == '-' || sName == 'unknown') return false;
+          if (!sName.contains(filterSchool) && !filterSchool.contains(sName)) {
+            return false;
+          }
+        }
 
-      // /classes endpoint may be broken on the backend — fail gracefully
-      List<Map<String, dynamic>> classes = [];
-      try {
-        classes = await ref.watch(classesApiProvider.future);
-      } catch (e) {
-        debugPrint('[filteredExportStudentsProvider] /classes failed (backend issue): $e');
-      }
-
-      final schoolNameById = _buildNameByIdMap(
-        schools,
-        nameKeys: [
-          'name',
-          'title',
-          'school_name',
-          'schoolName',
-          'institute_name',
-        ],
-      );
-      final classNameById = _buildNameByIdMap(
-        classes,
-        nameKeys: [
-          'name',
-          'title',
-          'class_name',
-          'course_name',
-          'school_class',
-        ],
-      );
-
-      return apiRows
-          .map(
-            (row) => _studentFromApi(
-              row,
-              schoolNameById: schoolNameById,
-              classNameById: classNameById,
-            ),
-          )
-          .toList();
+        // Filter by course
+        if (params.course != 'All Courses') {
+          final cName = student.courseName.toLowerCase().trim();
+          final filterCourse = params.course.toLowerCase().trim();
+          if (cName.isEmpty || cName == '-' || cName == 'unknown') return false;
+          if (!cName.contains(filterCourse) && !filterCourse.contains(cName)) {
+            return false;
+          }
+        }
+        
+        // Optionally filter by year if we had a year field in StudentModel
+        // For now, if year is not supported in the API or model, we skip it
+        // or we could filter by admission date if available.
+        return true;
+      }).toList();
     });
 
 // --- State Class ---

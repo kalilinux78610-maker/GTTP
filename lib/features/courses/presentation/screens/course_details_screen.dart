@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:gttp/features/downloads/domain/services/pdf_download_service.dart';
+import 'offline_pdf_viewer_screen.dart';
 import '../../data/models/course_model.dart';
 import '../../data/models/course_module_model.dart';
 import '../providers/course_details_provider.dart';
-import '../utils/course_links.dart';
+import '../providers/courses_provider.dart';
+import '../../data/repositories/courses_repository_impl.dart';
+
+import 'package:gttp/core/auth/user_role.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
+
 import '../widgets/course_cover_image.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class CourseDetailsScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -13,7 +22,8 @@ class CourseDetailsScreen extends ConsumerStatefulWidget {
   const CourseDetailsScreen({super.key, required this.courseId});
 
   @override
-  ConsumerState<CourseDetailsScreen> createState() => _CourseDetailsScreenState();
+  ConsumerState<CourseDetailsScreen> createState() =>
+      _CourseDetailsScreenState();
 }
 
 class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
@@ -29,23 +39,163 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final detailsAsync = ref.watch(courseDetailsProvider(widget.courseId));
+    final roleAsync = ref.watch(currentUserRoleProvider);
+    final isStudent = roleAsync.value == AppUserRole.student;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
       body: detailsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF398FDE)),
+        loading: () => Skeletonizer(
+          enabled: true,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 240,
+                  width: double.infinity,
+                  child: Container(color: Colors.grey),
+                ),
+                Transform.translate(
+                  offset: const Offset(0, -28),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(height: 24, width: 250, color: Colors.grey),
+                          const SizedBox(height: 10),
+                          Container(
+                            height: 14,
+                            width: double.infinity,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            height: 14,
+                            width: double.infinity,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(height: 14, width: 200, color: Colors.grey),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Container(
+                                height: 24,
+                                width: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                height: 24,
+                                width: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Container(
+                                height: 16,
+                                width: 120,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 16),
+                              Container(
+                                height: 16,
+                                width: 120,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            height: 48,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                height: 14,
+                                width: 100,
+                                color: Colors.grey,
+                              ),
+                              Container(
+                                height: 14,
+                                width: 50,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 8,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(height: 20, width: 150, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                ...List.generate(
+                  3,
+                  (index) => Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Failed to load course', style: TextStyle(color: Colors.red.shade400)),
+              Text(
+                'Failed to load course',
+                style: TextStyle(color: Colors.red.shade400),
+              ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => ref.invalidate(courseDetailsProvider(widget.courseId)),
+                onPressed: () =>
+                    ref.invalidate(courseDetailsProvider(widget.courseId)),
                 child: const Text('Retry'),
               ),
             ],
@@ -58,12 +208,17 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
 
           final bottomPad = MediaQuery.of(context).padding.bottom + 100;
           final progress = (course.progressPercent ?? 0).clamp(0, 100);
-          final hasDates = (course.startDate?.isNotEmpty ?? false) ||
+          final hasDates =
+              (course.startDate?.isNotEmpty ?? false) ||
               (course.endDate?.isNotEmpty ?? false);
 
           return SafeArea(
             bottom: false,
-            child: SingleChildScrollView(
+            child: RefreshIndicator(
+              onRefresh: () async =>
+                  ref.invalidate(courseDetailsProvider(widget.courseId)),
+              child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.only(bottom: bottomPad),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,6 +232,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                         course: course,
                         progress: progress,
                         hasDates: hasDates,
+                        isStudent: isStudent,
                       ),
                     ),
                   ),
@@ -95,18 +251,20 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                     ),
                     const SizedBox(height: 12),
                     ...course.modules.asMap().entries.map(
-                          (e) => Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            child: _buildModuleCard(
-                              context,
-                              course: course,
-                              module: e.value,
-                              index: e.key,
-                            ),
-                          ),
+                      (e) => Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: _buildModuleCard(
+                          context,
+                          course: course,
+                          module: e.value,
+                          index: e.key,
+                          isStudent: isStudent,
                         ),
+                      ),
+                    ),
                   ],
                 ],
+              ),
               ),
             ),
           );
@@ -139,10 +297,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 16,
-            child: _overlayIconButton(
-              icon: Icons.share_outlined,
-              onTap: () {},
-            ),
+            child: _overlayIconButton(icon: Icons.share_outlined, onTap: () {}),
           ),
         ],
       ),
@@ -171,6 +326,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
     required CourseModel course,
     required int progress,
     required bool hasDates,
+    required bool isStudent,
   }) {
     final description = course.description.isNotEmpty
         ? course.description
@@ -202,21 +358,47 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            description,
-            maxLines: _readMoreExpanded ? null : 3,
-            overflow: _readMoreExpanded ? null : TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF6B7280),
-              height: 1.5,
+          if (!_readMoreExpanded)
+            Text(
+              description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF6B7280),
+                height: 1.5,
+              ),
+            )
+          else
+            Html(
+              data: course.htmlDescription.isNotEmpty
+                  ? course.htmlDescription
+                  : description,
+              style: {
+                "body": Style(
+                  fontSize: FontSize(14),
+                  color: const Color(0xFF6B7280),
+                  lineHeight: const LineHeight(1.5),
+                  margin: Margins.zero,
+                  padding: HtmlPaddings.zero,
+                ),
+                "p": Style(
+                  margin: Margins.only(bottom: 8),
+                  padding: HtmlPaddings.zero,
+                ),
+                "ul": Style(
+                  margin: Margins.only(bottom: 8, top: 0),
+                  padding: HtmlPaddings.only(left: 20),
+                ),
+                "li": Style(margin: Margins.only(bottom: 4)),
+              },
             ),
-          ),
           if (showReadMore)
             GestureDetector(
-              onTap: () => setState(() => _readMoreExpanded = !_readMoreExpanded),
+              onTap: () =>
+                  setState(() => _readMoreExpanded = !_readMoreExpanded),
               child: Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   _readMoreExpanded ? 'Read less' : 'Read more',
                   style: const TextStyle(
@@ -232,14 +414,18 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (course.enrollmentType != null && course.enrollmentType!.isNotEmpty)
+              if (course.enrollmentType != null &&
+                  course.enrollmentType!.isNotEmpty)
                 _outlineBadge(
                   _enrollmentLabel(course.enrollmentType!),
                   const Color(0xFF1F9254),
                 ),
               if (course.status != null && course.status!.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1F9254),
                     borderRadius: BorderRadius.circular(6),
@@ -277,69 +463,43 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             ),
           ],
           const SizedBox(height: 16),
-          Material(
-            color: const Color(0xFFF1F4F8),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => openCourseUrl(
-                context,
-                course.pdfUrl,
-                errorMessage: 'Course PDF not available.',
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  children: [
-                    const Icon(Icons.download_outlined, color: Color(0xFF398FDE)),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Download Course PDF',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: Color(0xFF181C1F),
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey.shade500,
-                    ),
-                  ],
-                ),
-              ),
+          if (course.pdfUrl != null && course.pdfUrl!.isNotEmpty)
+            _PdfDownloadButton(
+              courseId: course.id,
+              pdfUrl: course.pdfUrl!,
+              title: course.title,
             ),
-          ),
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Overall Progress',
-                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-              ),
-              Text(
-                '$progress% Complete',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF181C1F),
+          if (course.isEnrolled && isStudent) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Overall Progress',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress / 100,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE8ECF0),
-              color: const Color(0xFF398FDE),
+                Text(
+                  '$progress% Complete',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF181C1F),
+                  ),
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress / 100,
+                minHeight: 8,
+                backgroundColor: const Color(0xFFE8ECF0),
+                color: const Color(0xFF398FDE),
+              ),
+            ),
+          ] else if (course.isEnrollable && isStudent)
+            _EnrollButton(courseId: course.id),
         ],
       ),
     );
@@ -385,6 +545,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
     required CourseModel course,
     required CourseModuleModel module,
     required int index,
+    required bool isStudent,
   }) {
     final accent = _moduleAccentColors[index % _moduleAccentColors.length];
     final typeStyle = _typeBadgeStyle(module.typeLabel);
@@ -395,10 +556,20 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
       elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: module.isLocked
+        onTap: (!course.isEnrolled && isStudent)
             ? () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Complete previous modules to unlock.')),
+                  const SnackBar(
+                    content: Text('Please enroll to view this module.'),
+                  ),
+                );
+              }
+            : (module.isLocked && isStudent)
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Complete previous modules to unlock.'),
+                  ),
                 );
               }
             : () => context.push('/courses/${course.id}/modules/${module.id}'),
@@ -424,7 +595,10 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                    ),
                     alignment: Alignment.center,
                     child: Text(
                       '${index + 1}',
@@ -451,7 +625,10 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                         if (module.typeLabel.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: typeStyle.bg,
                               borderRadius: BorderRadius.circular(4),
@@ -477,20 +654,34 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                 Row(
                   children: [
                     if (module.durationHours != null) ...[
-                      const Icon(Icons.schedule, size: 14, color: Color(0xFF9CA3AF)),
+                      const Icon(
+                        Icons.schedule,
+                        size: 14,
+                        color: Color(0xFF9CA3AF),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${module.durationHours} hours',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
                       ),
                       const SizedBox(width: 16),
                     ],
                     if (module.dueDate != null) ...[
-                      const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF9CA3AF)),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: Color(0xFF9CA3AF),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Due: ${module.dueDate}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
                       ),
                     ],
                   ],
@@ -545,7 +736,11 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
       ),
       child: Text(
         tag,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: style.fg),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: style.fg,
+        ),
       ),
     );
   }
@@ -596,5 +791,219 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
         .where((w) => w.isNotEmpty)
         .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
         .join(' ');
+  }
+}
+
+class _PdfDownloadButton extends ConsumerStatefulWidget {
+  final String courseId;
+  final String pdfUrl;
+  final String title;
+
+  const _PdfDownloadButton({
+    required this.courseId,
+    required this.pdfUrl,
+    required this.title,
+  });
+
+  @override
+  ConsumerState<_PdfDownloadButton> createState() => _PdfDownloadButtonState();
+}
+
+class _PdfDownloadButtonState extends ConsumerState<_PdfDownloadButton> {
+  bool _isDownloading = false;
+  String? _localPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    final service = ref.read(pdfDownloadServiceProvider);
+    final path = await service.getOfflinePdfPath(widget.courseId);
+    if (mounted) {
+      setState(() {
+        _localPath = path;
+      });
+    }
+  }
+
+  Future<void> _download() async {
+    setState(() {
+      _isDownloading = true;
+    });
+    final service = ref.read(pdfDownloadServiceProvider);
+    final path = await service.downloadCoursePdf(
+      widget.courseId,
+      widget.pdfUrl,
+    );
+    if (mounted) {
+      setState(() {
+        _isDownloading = false;
+        _localPath = path;
+      });
+      if (path == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to download PDF')));
+      }
+    }
+  }
+
+  void _openOffline() {
+    if (_localPath != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => OfflinePdfViewerScreen(
+            title: widget.title,
+            localPath: _localPath!,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDownloaded = _localPath != null;
+
+    return Material(
+      color: hasDownloaded ? const Color(0xFFE8F5E9) : const Color(0xFFF1F4F8),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          if (hasDownloaded) {
+            _openOffline();
+          } else if (!_isDownloading) {
+            _download();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              if (_isDownloading)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(
+                  hasDownloaded
+                      ? Icons.check_circle_outline
+                      : Icons.download_outlined,
+                  color: hasDownloaded ? Colors.green : const Color(0xFF398FDE),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _isDownloading
+                      ? 'Downloading...'
+                      : (hasDownloaded
+                            ? 'Read Offline'
+                            : 'Download Course PDF'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: hasDownloaded
+                        ? Colors.green.shade800
+                        : const Color(0xFF181C1F),
+                  ),
+                ),
+              ),
+              if (!hasDownloaded && !_isDownloading)
+                Icon(
+                  Icons.cloud_download_outlined,
+                  color: Colors.grey.shade500,
+                ),
+              if (hasDownloaded)
+                GestureDetector(
+                  onTap: () async {
+                    await ref
+                        .read(pdfDownloadServiceProvider)
+                        .deleteOfflinePdf(widget.courseId);
+                    _checkStatus();
+                  },
+                  child: const Icon(Icons.delete_outline, color: Colors.red),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EnrollButton extends ConsumerStatefulWidget {
+  final String courseId;
+
+  const _EnrollButton({required this.courseId});
+
+  @override
+  ConsumerState<_EnrollButton> createState() => _EnrollButtonState();
+}
+
+class _EnrollButtonState extends ConsumerState<_EnrollButton> {
+  bool _isEnrolling = false;
+
+  Future<void> _enroll() async {
+    setState(() => _isEnrolling = true);
+    try {
+      final repository = ref.read(coursesRepositoryProvider);
+      await repository.enrollCourse(widget.courseId);
+
+      if (mounted) {
+        ref.invalidate(coursesProvider);
+        ref.invalidate(courseDetailsProvider(widget.courseId));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Successfully enrolled!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception:', '').trim()),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isEnrolling = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isEnrolling ? null : _enroll,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: const Color(0xFF398FDE),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: _isEnrolling
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'Enroll Now',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+      ),
+    );
   }
 }

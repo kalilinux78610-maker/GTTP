@@ -1,0 +1,118 @@
+{
+  "dashboard": {
+    "message": "string",
+    "data": {
+      "total_schools": "number",
+      "total_students": "number",
+      "average_students": "number",
+      "total_classes": "number",
+      "total_notices": "number",
+      "total_certificates": "number",
+      "total_users": "number",
+      "total_principals": "number",
+      "total_faculties": "number",
+      "total_courses": "number"
+    }
+  },
+  "courses/1": {
+    "success": "boolean",
+    "message": "string",
+    "data": {
+      "id": "number",
+      "title": "string",
+      "description": "string",
+      "cover_image": "string",
+      "course_details_pdf": "string",
+      "start_date": "string",
+      "end_date": "string",
+      "enrollment_type": "string",
+      "status": "string",
+      "progress_percentage": "number",
+      "modules": "[ [object Object] ]"
+    }
+  },
+  "faculties": {
+    "success": "boolean",
+    "data": "[ [object Object] ]"
+  },
+  "notices": {
+    "message": "string",
+    "count": "number",
+    "data": "[ [object Object] ]"
+  },
+  "schools": {
+    "message": "string",
+    "data": "[ [object Object] ]"
+  },
+  "reports/progress": {
+    "success": "boolean",
+    "message": "string",
+    "data": {
+      "student": {
+        "id": "number",
+        "name": "string",
+        "image": "null",
+        "institute_type": "string",
+        "school_name": "string",
+        "roll_number": "null",
+        "admission_number": "null",
+        "class": "string",
+        "section": "string",
+        "program": "null",
+        "department": "null",
+        "semester": "null",
+        "academic_year": "string"
+      },
+      "courses": "[ [object Object] ]"
+    }
+  },
+  "events": {
+    "success": "boolean",
+    "data": "[ [object Object] ]"
+  },
+  "student/dashboard": {
+    "success": "boolean",
+    "data": {
+      "profile": {
+        "id": "number",
+        "name": "string",
+        "email": "string",
+        "phone": "null",
+        "avatar": "null",
+        "roll_number": "null",
+        "admission_number": "null",
+        "gender": "string",
+        "blood_group": "string",
+        "date_of_birth": "string",
+        "parent_name": "string",
+        "parent_mobile": "string",
+        "department": "null",
+        "semester": "null",
+        "program": "null",
+        "section": "string",
+        "institute_type": "string"
+      },
+      "school": {
+        "id": "number",
+        "name": "string",
+        "code": "string"
+      },
+      "class": {
+        "id": "number",
+        "name": "string",
+        "section": "string"
+      },
+      "faculties": "[]",
+      "courses": "[ [object Object] ]"
+    }
+  },
+  "certificates": {
+    "message": "string",
+    "total": "number",
+    "data": "[]"
+  },
+  "courses": {
+    "success": "boolean",
+    "data": "[ [object Object] ]"
+  }
+}

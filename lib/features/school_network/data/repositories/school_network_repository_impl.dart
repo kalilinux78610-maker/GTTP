@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/api_exception.dart';
@@ -22,133 +23,157 @@ final schoolNetworkRepositoryProvider = Provider<SchoolNetworkRepository>((
 class SchoolNetworkRepositoryImpl implements SchoolNetworkRepository {
   final SchoolNetworkRemoteDataSource _remoteDataSource;
 
+  /// In-memory cache so switching tabs or popping doesn't re-fetch.
+  List<SchoolModel>? _cachedSchools;
+  DateTime? _cacheTime;
+
+  /// Cache is valid for 5 minutes — avoids hammering the API.
+  static const _cacheDuration = Duration(minutes: 5);
+
   SchoolNetworkRepositoryImpl(this._remoteDataSource);
+
+  bool get _isCacheValid =>
+      _cachedSchools != null &&
+      _cacheTime != null &&
+      DateTime.now().difference(_cacheTime!) < _cacheDuration;
+
+  /// Force-clear the cache (used on pull-to-refresh).
+  void clearCache() {
+    _cachedSchools = null;
+    _cacheTime = null;
+  }
 
   @override
   Future<List<SchoolModel>> getSchools() async {
-    try {
-      // Fetch schools, students, and classes in parallel
-      final results = await Future.wait([
-        _remoteDataSource.getSchools(),
-        _tryReadSupplemental('students', _remoteDataSource.getStudents),
-        _tryReadSupplemental('classes', _remoteDataSource.getClasses),
-      ]);
-      final schoolsData = results[0];
-      final studentsData = results[1];
-      final classesData = results[2];
+    // Return cached data instantly if available
+    if (_isCacheValid) {
+      return _cachedSchools!;
+    }
+    // Backward compatibility: wait for the stream to emit its first item
+    return await watchSchools().first;
+  }
 
-      if (kDebugMode && schoolsData.isNotEmpty) {
-        debugPrint(
-          '[SchoolNetwork] First school keys: ${schoolsData.first.keys.toList()}',
-        );
-      }
-      if (kDebugMode && classesData.isNotEmpty) {
-        debugPrint(
-          '[SchoolNetwork] First class keys: ${classesData.first.keys.toList()}',
-        );
-      }
-
-      // Build student counts by school name
-      final studentCountsBySchoolName = <String, int>{};
-      for (final student in studentsData) {
-        final schoolName = _extractSchoolName(student);
-        if (schoolName.isEmpty) continue;
-        studentCountsBySchoolName[schoolName] =
-            (studentCountsBySchoolName[schoolName] ?? 0) + 1;
-      }
-
-      // Build course counts per school (by school id, name, or title)
-      // Classes typically have: school_id, school_name, or nested school object
-      final courseCountsBySchoolId = <String, int>{};
-      final courseCountsBySchoolName = <String, int>{};
-      for (final cls in classesData) {
-        // Try school_id first
-        final schoolId =
-            (cls['school_id'] ?? cls['schoolId'])?.toString().trim() ?? '';
-        if (schoolId.isNotEmpty) {
-          courseCountsBySchoolId[schoolId] =
-              (courseCountsBySchoolId[schoolId] ?? 0) + 1;
-        }
-        // Also index by school name from nested school object
-        final schoolObj = cls['school'];
-        if (schoolObj is Map) {
-          final sName =
-              (schoolObj['name'] ??
-                      schoolObj['title'] ??
-                      schoolObj['school_name'])
-                  ?.toString()
-                  .trim() ??
-              '';
-          if (sName.isNotEmpty) {
-            courseCountsBySchoolName[_normalized(sName)] =
-                (courseCountsBySchoolName[_normalized(sName)] ?? 0) + 1;
-          }
-        }
-        // Flat school name on class
-        final flatSchoolName =
-            (cls['school_name'] ?? cls['schoolName'])?.toString().trim() ?? '';
-        if (flatSchoolName.isNotEmpty) {
-          courseCountsBySchoolName[_normalized(flatSchoolName)] =
-              (courseCountsBySchoolName[_normalized(flatSchoolName)] ?? 0) + 1;
-        }
-      }
-
-      // Map schools with resolved student counts and course counts
-      final schools = schoolsData.map((json) {
-        final school = SchoolModel.fromJson(json);
-        final normalized = _normalized(school.title);
-
-        // Resolve student count
-        final resolvedStudentCount = studentCountsBySchoolName[normalized];
-
-        // Resolve active courses: prefer API field, then count from classes
-        int resolvedCourses = school.activeCourses;
-        if (resolvedCourses == 0) {
-          // Try by school id
-          final byId = courseCountsBySchoolId[school.id.trim()];
-          if (byId != null && byId > 0) {
-            resolvedCourses = byId;
-          } else {
-            // Try by school name
-            final byName = courseCountsBySchoolName[normalized];
-            if (byName != null && byName > 0) resolvedCourses = byName;
-          }
-        }
-
-        return SchoolModel(
-          id: school.id,
-          title: school.title,
-          location: school.location,
-          facultyCount: school.facultyCount,
-          studentCount: resolvedStudentCount ?? school.studentCount,
-          principalName: school.principalName,
-          coordinatorName: school.coordinatorName,
-          phone: school.phone,
-          email: school.email,
-          establishedYear: school.establishedYear,
-          activeCourses: resolvedCourses,
-        );
-      }).toList();
-
-      // Deduplicate and merge schools
-      final mergedByKey = <String, SchoolModel>{};
-      for (final school in schools) {
-        final dedupeKey = school.id.trim().isNotEmpty
-            ? school.id.trim()
-            : '${_normalized(school.title)}|${_normalized(school.location)}';
-        final existing = mergedByKey[dedupeKey];
-        if (existing == null) {
-          mergedByKey[dedupeKey] = school;
-          continue;
-        }
-        mergedByKey[dedupeKey] = _mergeSchools(existing, school);
-      }
-
+  @override
+  Stream<List<SchoolModel>> watchSchools() async* {
+    if (_isCacheValid) {
       if (kDebugMode) {
-        debugPrint('[SchoolNetwork] Resolved ${mergedByKey.length} schools');
+        debugPrint('[SchoolNetwork] Returning ${_cachedSchools!.length} cached schools from stream');
+      }
+      yield _cachedSchools!;
+      return;
+    }
+
+    try {
+      // Phase 1: Fetch schools first (fast, small payload)
+      final schoolsData = await _remoteDataSource.getSchools();
+      final basicSchools = schoolsData.map((json) => SchoolModel.fromJson(json)).toList();
+
+      // Yield basic schools IMMEDIATELY so the UI renders fast
+      yield basicSchools;
+
+      // Phase 2: Enrich with students and classes in background
+      try {
+        final supplementalResults = await Future.wait([
+          _tryReadSupplementalWithTimeout('students', _remoteDataSource.getStudents),
+          _tryReadSupplementalWithTimeout('classes', _remoteDataSource.getClasses),
+        ]);
+        final studentsData = supplementalResults[0];
+        final classesData = supplementalResults[1];
+
+        // Build student counts by school name
+        final studentCountsBySchoolName = <String, int>{};
+        for (final student in studentsData) {
+          final schoolName = _extractSchoolName(student);
+          if (schoolName.isEmpty) continue;
+          studentCountsBySchoolName[schoolName] =
+              (studentCountsBySchoolName[schoolName] ?? 0) + 1;
+        }
+
+        // Build course counts per school
+        final courseCountsBySchoolId = <String, int>{};
+        final courseCountsBySchoolName = <String, int>{};
+        for (final cls in classesData) {
+          final schoolId = (cls['school_id'] ?? cls['schoolId'])?.toString().trim() ?? '';
+          if (schoolId.isNotEmpty) {
+            courseCountsBySchoolId[schoolId] = (courseCountsBySchoolId[schoolId] ?? 0) + 1;
+          }
+          final schoolObj = cls['school'];
+          if (schoolObj is Map) {
+            final sName = (schoolObj['name'] ?? schoolObj['title'] ?? schoolObj['school_name'])?.toString().trim() ?? '';
+            if (sName.isNotEmpty) {
+              courseCountsBySchoolName[_normalized(sName)] = (courseCountsBySchoolName[_normalized(sName)] ?? 0) + 1;
+            }
+          }
+          final flatSchoolName = (cls['school_name'] ?? cls['schoolName'])?.toString().trim() ?? '';
+          if (flatSchoolName.isNotEmpty) {
+            courseCountsBySchoolName[_normalized(flatSchoolName)] = (courseCountsBySchoolName[_normalized(flatSchoolName)] ?? 0) + 1;
+          }
+        }
+
+        // Enrich schools with resolved student/course counts
+        bool hasChanges = false;
+        final enrichedSchools = List<SchoolModel>.from(basicSchools);
+
+        for (var i = 0; i < enrichedSchools.length; i++) {
+          final school = enrichedSchools[i];
+          final normalized = _normalized(school.title);
+
+          final resolvedStudentCount = studentCountsBySchoolName[normalized];
+
+          int resolvedCourses = school.activeCourses;
+          if (resolvedCourses == 0) {
+            final byId = courseCountsBySchoolId[school.id.trim()];
+            if (byId != null && byId > 0) {
+              resolvedCourses = byId;
+            } else {
+              final byName = courseCountsBySchoolName[normalized];
+              if (byName != null && byName > 0) resolvedCourses = byName;
+            }
+          }
+
+          if (resolvedStudentCount != null || resolvedCourses != school.activeCourses) {
+            enrichedSchools[i] = SchoolModel(
+              id: school.id,
+              title: school.title,
+              location: school.location,
+              facultyCount: school.facultyCount,
+              studentCount: resolvedStudentCount ?? school.studentCount,
+              principalName: school.principalName,
+              coordinatorName: school.coordinatorName,
+              phone: school.phone,
+              email: school.email,
+              establishedYear: school.establishedYear,
+              activeCourses: resolvedCourses,
+            );
+            hasChanges = true;
+          }
+        }
+
+        if (hasChanges) {
+          if (kDebugMode) {
+            debugPrint('[SchoolNetwork] Yielding enriched schools');
+          }
+          // Yield the enriched schools
+          yield enrichedSchools;
+          
+          // Update Cache
+          _cachedSchools = enrichedSchools;
+          _cacheTime = DateTime.now();
+        } else {
+          // If no changes, just cache the basic ones
+          _cachedSchools = basicSchools;
+          _cacheTime = DateTime.now();
+        }
+
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[SchoolNetwork] Supplemental enrichment failed (showing basic data): $e');
+        }
+        // Cache basic data if enrichment fails
+        _cachedSchools = basicSchools;
+        _cacheTime = DateTime.now();
       }
 
-      return mergedByKey.values.toList();
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -168,12 +193,22 @@ class SchoolNetworkRepositoryImpl implements SchoolNetworkRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _tryReadSupplemental(
+  /// Tries to load supplemental data with a generous timeout.
+  /// If it takes longer than 45 seconds, returns empty list instead of blocking.
+  Future<List<Map<String, dynamic>>> _tryReadSupplementalWithTimeout(
     String label,
     Future<List<Map<String, dynamic>>> Function() load,
   ) async {
     try {
-      return await load();
+      return await load().timeout(
+        const Duration(seconds: 45),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('[SchoolNetwork] $label timed out after 45s — skipping');
+          }
+          return const [];
+        },
+      );
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[SchoolNetwork] Supplemental $label unavailable: $e');
@@ -218,37 +253,5 @@ class SchoolNetworkRepositoryImpl implements SchoolNetworkRepository {
     }
 
     return '';
-  }
-
-  SchoolModel _mergeSchools(SchoolModel a, SchoolModel b) {
-    return SchoolModel(
-      id: a.id.isNotEmpty ? a.id : b.id,
-      title: a.title.isNotEmpty ? a.title : b.title,
-      location: a.location.isNotEmpty ? a.location : b.location,
-      facultyCount: a.facultyCount >= b.facultyCount
-          ? a.facultyCount
-          : b.facultyCount,
-      studentCount: a.studentCount >= b.studentCount
-          ? a.studentCount
-          : b.studentCount,
-      principalName: _pickBetterText(a.principalName, b.principalName),
-      coordinatorName: _pickBetterText(a.coordinatorName, b.coordinatorName),
-      phone: _pickBetterText(a.phone, b.phone),
-      email: _pickBetterText(a.email, b.email),
-      establishedYear: _pickBetterText(a.establishedYear, b.establishedYear),
-      activeCourses: a.activeCourses >= b.activeCourses
-          ? a.activeCourses
-          : b.activeCourses,
-    );
-  }
-
-  String _pickBetterText(String a, String b) {
-    final aa = a.trim();
-    final bb = b.trim();
-    final aEmpty = aa.isEmpty || aa == '-' || aa.toLowerCase() == 'null';
-    final bEmpty = bb.isEmpty || bb == '-' || bb.toLowerCase() == 'null';
-    if (!aEmpty) return aa;
-    if (!bEmpty) return bb;
-    return aa.isNotEmpty ? aa : bb;
   }
 }

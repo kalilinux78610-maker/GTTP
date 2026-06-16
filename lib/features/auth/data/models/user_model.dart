@@ -20,6 +20,10 @@ class UserModel extends User {
     super.schoolId,
     super.institute,
     super.role,
+    super.studentClass,
+    super.parentName,
+    super.parentMobile,
+    super.instituteType,
     super.roles = const [],
   });
 
@@ -28,24 +32,91 @@ class UserModel extends User {
       id: ApiJsonParser.asInt(json['id']),
       name: ApiJsonParser.asString(json['name']),
       email: ApiJsonParser.asString(json['email']),
-      emailVerifiedAt: json['email_verified_at'] as String?,
-      phone: json['phone'] as String?,
-      passportNumber: json['passport_number'] as String?,
-      passportExpiry: json['passport_expiry'] as String?,
+      emailVerifiedAt: ApiJsonParser.tryString(json['email_verified_at']),
+      phone: ApiJsonParser.tryString(json['phone']),
+      passportNumber: ApiJsonParser.tryString(json['passport_number']),
+      passportExpiry: ApiJsonParser.tryString(json['passport_expiry']),
       roleLevel: ApiJsonParser.asInt(json['role_level']),
       isAlumni: ApiJsonParser.asBool(json['is_alumni']),
-      avatar: json['avatar'] as String?,
+      avatar: ApiJsonParser.tryString(json['avatar']),
       isActive: ApiJsonParser.asBool(json['is_active']),
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-      deletedAt: json['deleted_at'] as String?,
+      createdAt: ApiJsonParser.tryString(json['created_at']),
+      updatedAt: ApiJsonParser.tryString(json['updated_at']),
+      deletedAt: ApiJsonParser.tryString(json['deleted_at']),
       schoolId: json['school_id'] != null ? ApiJsonParser.asInt(json['school_id']) : null,
-      institute: json['institute'] as String?,
-      role: json['role'] as String?,
-      roles: (json['roles'] as List<dynamic>?)
-              ?.map((e) => UserRoleModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      institute: ApiJsonParser.tryString(json['institute']),
+      role: ApiJsonParser.tryString(json['role']),
+      studentClass: ApiJsonParser.tryString(json['class']) ?? ApiJsonParser.tryString(json['class_name']) ?? ApiJsonParser.tryString(json['student_class']),
+      parentName: ApiJsonParser.tryString(json['parent_name']),
+      parentMobile: ApiJsonParser.tryString(json['parent_mobile']) ?? ApiJsonParser.tryString(json['parent_phone']),
+      instituteType: ApiJsonParser.tryString(json['institute_type']) ?? 
+                     ApiJsonParser.tryString(json['institution_type']) ?? 
+                     ApiJsonParser.tryString(json['school_type']) ??
+                     (json['school'] is Map ? (ApiJsonParser.tryString(json['school']['institute_type']) ?? ApiJsonParser.tryString(json['school']['institution_type']) ?? ApiJsonParser.tryString(json['school']['type'])) : null),
+      roles: () {
+        final rolesData = json['roles'];
+        if (rolesData is List) {
+          return rolesData.map((e) {
+            if (e is Map<String, dynamic>) {
+              return UserRoleModel.fromJson(e);
+            } else if (e is String) {
+              return UserRoleModel(id: 0, name: e);
+            }
+            return const UserRoleModel(id: 0, name: 'Unknown');
+          }).toList();
+        }
+        return const <UserRoleModel>[];
+      }(),
+    );
+  }
+
+  UserModel copyWith({
+    int? id,
+    String? name,
+    String? email,
+    String? emailVerifiedAt,
+    String? phone,
+    String? passportNumber,
+    String? passportExpiry,
+    int? roleLevel,
+    bool? isAlumni,
+    String? avatar,
+    bool? isActive,
+    String? createdAt,
+    String? updatedAt,
+    String? deletedAt,
+    int? schoolId,
+    String? institute,
+    String? role,
+    String? studentClass,
+    String? parentName,
+    String? parentMobile,
+    String? instituteType,
+    List<UserRole>? roles,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      emailVerifiedAt: emailVerifiedAt ?? this.emailVerifiedAt,
+      phone: phone ?? this.phone,
+      passportNumber: passportNumber ?? this.passportNumber,
+      passportExpiry: passportExpiry ?? this.passportExpiry,
+      roleLevel: roleLevel ?? this.roleLevel,
+      isAlumni: isAlumni ?? this.isAlumni,
+      avatar: avatar ?? this.avatar,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      schoolId: schoolId ?? this.schoolId,
+      institute: institute ?? this.institute,
+      role: role ?? this.role,
+      studentClass: studentClass ?? this.studentClass,
+      parentName: parentName ?? this.parentName,
+      parentMobile: parentMobile ?? this.parentMobile,
+      instituteType: instituteType ?? this.instituteType,
+      roles: roles ?? this.roles,
     );
   }
 
@@ -68,6 +139,10 @@ class UserModel extends User {
       'school_id': schoolId,
       'institute': institute,
       'role': role,
+      'class': studentClass,
+      'parent_name': parentName,
+      'parent_mobile': parentMobile,
+      'institute_type': instituteType,
       'roles': roles.map((e) => (e as UserRoleModel).toJson()).toList(),
     };
   }
@@ -86,9 +161,9 @@ class UserRoleModel extends UserRole {
     return UserRoleModel(
       id: ApiJsonParser.asInt(json['id']),
       name: ApiJsonParser.asString(json['name']),
-      guardName: json['guard_name'] as String?,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
+      guardName: ApiJsonParser.tryString(json['guard_name']),
+      createdAt: ApiJsonParser.tryString(json['created_at']),
+      updatedAt: ApiJsonParser.tryString(json['updated_at']),
     );
   }
 

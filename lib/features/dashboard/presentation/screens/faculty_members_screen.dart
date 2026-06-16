@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:gttp/core/utils/student_row_parser.dart';
 
 class FacultyMembersScreen extends ConsumerStatefulWidget {
   const FacultyMembersScreen({super.key});
@@ -128,13 +131,14 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                   return ListView.separated(
                     padding: const EdgeInsets.all(24),
                     itemCount: filteredList.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final faculty = filteredList[index];
                       final name = (faculty['name'] ?? faculty['faculty_name'] ?? 'Unknown').toString();
                       final email = (faculty['email'] ?? 'No email').toString();
                       final phone = (faculty['phone'] ?? faculty['mobile'] ?? 'No phone').toString();
                       final role = (faculty['role'] ?? faculty['designation'] ?? 'Faculty').toString();
+                      final avatarUrl = StudentRowParser.avatar(faculty);
 
                       return Container(
                         padding: const EdgeInsets.all(16),
@@ -151,18 +155,36 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              backgroundColor: const Color(0xFFE65C00).withValues(alpha: 0.1),
-                              radius: 24,
-                              child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : 'F',
-                                style: const TextStyle(
-                                  color: Color(0xFFE65C00),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
+                            if (avatarUrl != null)
+                              ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: avatarUrl,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (context, url, error) => CircleAvatar(
+                                    backgroundColor: const Color(0xFFE65C00).withValues(alpha: 0.1),
+                                    radius: 24,
+                                    child: Text(
+                                      name.isNotEmpty ? name[0].toUpperCase() : 'F',
+                                      style: const TextStyle(color: Color(0xFFE65C00), fontWeight: FontWeight.bold, fontSize: 20),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              CircleAvatar(
+                                backgroundColor: const Color(0xFFE65C00).withValues(alpha: 0.1),
+                                radius: 24,
+                                child: Text(
+                                  name.isNotEmpty ? name[0].toUpperCase() : 'F',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE65C00),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
                                 ),
                               ),
-                            ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
@@ -220,7 +242,48 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => Skeletonizer(
+                  enabled: true,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: 6,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              backgroundColor: Colors.grey,
+                              radius: 24,
+                              child: Text('XX', style: TextStyle(color: Colors.white)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(height: 16, width: 120, color: Colors.grey),
+                                  const SizedBox(height: 4),
+                                  Container(height: 14, width: 100, color: Colors.grey),
+                                  const SizedBox(height: 8),
+                                  Container(height: 12, width: 150, color: Colors.grey),
+                                  const SizedBox(height: 4),
+                                  Container(height: 12, width: 90, color: Colors.grey),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 error: (err, stack) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),

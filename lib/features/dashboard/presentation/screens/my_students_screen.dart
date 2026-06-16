@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/core/utils/student_row_parser.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MyStudentsScreen extends ConsumerStatefulWidget {
   const MyStudentsScreen({super.key});
@@ -14,18 +17,16 @@ class MyStudentsScreen extends ConsumerStatefulWidget {
 class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _debounce;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
-  Color _scoreColor(int score) {
-    if (score >= 85) return const Color(0xFF10B981);
-    if (score >= 70) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +88,12 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _searchController,
-                    onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                    onChanged: (v) {
+                      if (_debounce?.isActive ?? false) _debounce!.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 500), () {
+                        setState(() => _searchQuery = v.trim().toLowerCase());
+                      });
+                    },
                     decoration: InputDecoration(
                       hintText: 'Search by name or admission no...',
                       hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
@@ -106,7 +112,64 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
             ),
             Expanded(
               child: studentsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => Skeletonizer(
+                  enabled: true,
+                  child: ListView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      24, 24, 24,
+                      MediaQuery.of(context).padding.bottom + 120, // To clear floating nav bar
+                    ),
+                    itemCount: 5,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const CircleAvatar(
+                                radius: 28,
+                                backgroundColor: Colors.grey,
+                                child: Text('XX', style: TextStyle(color: Colors.white)),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(height: 16, width: double.infinity, color: Colors.grey),
+                                    const SizedBox(height: 4),
+                                    Container(height: 14, width: 150, color: Colors.grey),
+                                    const SizedBox(height: 6),
+                                    Container(height: 14, width: 100, color: Colors.grey),
+                                    const SizedBox(height: 8),
+                                    Container(height: 20, width: 60, color: Colors.grey),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: CircularProgressIndicator(
+                                  value: 0.5,
+                                  backgroundColor: Color(0xFFF3F4F6),
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 error: (e, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -159,16 +222,27 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
                       itemBuilder: (context, index) {
                         final student = filtered[index];
                         final name = StudentRowParser.name(student);
-                        final classLabel = StudentRowParser.classLabel(student);
-                        final score = StudentRowParser.scorePercent(student);
+                        
+                        final rawClass = student['class']?.toString() ?? StudentRowParser.classLabel(student);
+                        final classDisplay = rawClass.toLowerCase().startsWith('class') || rawClass.toLowerCase().startsWith('grade') || rawClass == '—'
+                            ? rawClass 
+                            : 'Class $rawClass';
+                            
+                        final email = student['email']?.toString() ?? 'No Email';
+                        final rollNo = student['roll_number']?.toString() ?? 'N/A';
+                        final type = student['institute_type']?.toString() ?? 'School';
+                        
+                        int score = StudentRowParser.scorePercent(student);
+                                                
                         final studentId = StudentRowParser.id(student);
-                        final color = _scoreColor(score);
                         final initials = name
                             .split(RegExp(r'\s+'))
                             .where((p) => p.isNotEmpty)
                             .map((e) => e[0])
                             .take(2)
                             .join();
+                            
+                        final avatarUrl = StudentRowParser.avatar(student);
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -192,19 +266,38 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: const Color(0xFFF3F4F6),
-                                    child: Text(
-                                      initials.isEmpty ? '?' : initials.toUpperCase(),
-                                      style: const TextStyle(
-                                        color: Color(0xFF0052CC), // Match blue theme
-                                        fontWeight: FontWeight.bold,
+                                  if (avatarUrl != null)
+                                    ClipOval(
+                                      child: CachedNetworkImage(
+                                        imageUrl: avatarUrl,
+                                        width: 56,
+                                        height: 56,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (context, url, error) => CircleAvatar(
+                                          radius: 28,
+                                          backgroundColor: const Color(0xFF8B5CF6),
+                                          child: Text(
+                                            initials.isEmpty ? '?' : initials.toUpperCase(),
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor: const Color(0xFF8B5CF6),
+                                      child: Text(
+                                        initials.isEmpty ? '?' : initials.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                        ),
                                       ),
                                     ),
-                                  ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
@@ -215,36 +308,109 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                            color: Color(0xFF2A3A4A),
+                                            color: Color(0xFF1F2937),
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          classLabel,
+                                          email,
                                           style: const TextStyle(
                                             fontSize: 13,
                                             color: Color(0xFF6B7280),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                'Roll No: $rollNo',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const Padding(
+                                              padding: EdgeInsets.symmetric(horizontal: 8.0),
+                                              child: Icon(Icons.circle, size: 4, color: Color(0xFF9CA3AF)),
+                                            ),
+                                            Flexible(
+                                              child: Text(
+                                                classDisplay,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFF6FF),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            type.isNotEmpty ? '${type[0].toUpperCase()}${type.substring(1)}' : 'School',
+                                            style: const TextStyle(
+                                              color: Color(0xFF3B82F6),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  if (score > 0)
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: color, width: 2),
-                                      ),
-                                      child: Text(
-                                        '$score%',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: color,
-                                          fontSize: 12,
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 48,
+                                        height: 48,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            CircularProgressIndicator(
+                                              value: score / 100,
+                                              backgroundColor: const Color(0xFFF3F4F6),
+                                              color: const Color(0xFF10B981),
+                                              strokeWidth: 4,
+                                              strokeCap: StrokeCap.round,
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '$score%',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF10B981),
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 8),
+                                      const Icon(
+                                        Icons.chevron_right,
+                                        color: Color(0xFF9CA3AF),
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),

@@ -120,9 +120,14 @@ class _CreateNoticeScreenState extends ConsumerState<CreateNoticeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16, 16, 16, 
+            MediaQuery.of(context).padding.bottom + 40,
+          ),
+          child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,7 +290,7 @@ class _CreateNoticeScreenState extends ConsumerState<CreateNoticeScreen> {
                     Switch(
                       value: _isPinned,
                       onChanged: (val) => setState(() => _isPinned = val),
-                      activeColor: const Color(0xFFE65C00),
+                      activeThumbColor: const Color(0xFFE65C00),
                     ),
                   ],
                 ),
@@ -326,6 +331,7 @@ class _CreateNoticeScreenState extends ConsumerState<CreateNoticeScreen> {
               const SizedBox(height: 40),
             ],
           ),
+        ),
         ),
       ),
     );

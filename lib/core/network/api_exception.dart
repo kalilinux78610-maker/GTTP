@@ -7,3 +7,7 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
+
+class OfflineSavedException extends ApiException {
+  OfflineSavedException([super.message = 'Saved offline']);
+}

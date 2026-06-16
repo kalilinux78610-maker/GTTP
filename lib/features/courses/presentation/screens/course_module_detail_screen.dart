@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dotted_border/dotted_border.dart';
 import '../../data/models/course_module_model.dart';
+import '../../data/models/course_session_model.dart';
 import '../providers/course_module_provider.dart';
 import '../utils/course_links.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
+import 'package:gttp/core/auth/user_role.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:gttp/features/courses/presentation/widgets/course_module_video_player.dart';
+import 'package:gttp/features/courses/data/datasources/courses_remote_datasource.dart';
 
 class CourseModuleDetailScreen extends ConsumerWidget {
   final String courseId;
@@ -20,24 +27,128 @@ class CourseModuleDetailScreen extends ConsumerWidget {
     final moduleAsync = ref.watch(
       courseModuleProvider((courseId: courseId, moduleId: moduleId)),
     );
+    final userAsync = ref.watch(userModelProvider);
+    final isStudent = userAsync.maybeWhen(
+      data: (user) =>
+          AppUserRole.fromApi(user?.effectiveRole) == AppUserRole.student,
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
       body: moduleAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF398FDE)),
+        loading: () => Skeletonizer(
+          enabled: true,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.arrow_back),
+                    const Spacer(),
+                    Container(height: 24, width: 80, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(6))),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(height: 28, width: 250, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFFE8ECF0), height: 1),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE8ECF0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(height: 20, width: 200, color: Colors.grey),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(height: 16, width: 120, color: Colors.grey),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(height: 16, width: 140, color: Colors.grey),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE8ECF0)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(height: 44, width: 44, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(10))),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(height: 16, width: 120, color: Colors.grey),
+                                const SizedBox(height: 4),
+                                Container(height: 14, width: 150, color: Colors.grey),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(height: 48, width: double.infinity, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(10))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(height: 24, width: 220, color: Colors.grey),
+                const SizedBox(height: 12),
+                ...List.generate(2, (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    height: 120,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE8ECF0)),
+                    ),
+                  ),
+                )),
+              ],
+            ),
           ),
         ),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Failed to load module', style: TextStyle(color: Colors.red.shade400)),
+              Text(
+                'Failed to load module',
+                style: TextStyle(color: Colors.red.shade400),
+              ),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(
-                  courseModuleProvider((courseId: courseId, moduleId: moduleId)),
+                  courseModuleProvider((
+                    courseId: courseId,
+                    moduleId: moduleId,
+                  )),
                 ),
                 child: const Text('Retry'),
               ),
@@ -48,26 +159,34 @@ class CourseModuleDetailScreen extends ConsumerWidget {
           if (module == null) {
             return const Center(child: Text('Module not found.'));
           }
-          return _ModuleBody(module: module);
+          return _ModuleBody(module: module, isStudent: isStudent);
         },
       ),
     );
   }
 }
 
-class _ModuleBody extends StatelessWidget {
-  const _ModuleBody({required this.module});
+class _ModuleBody extends ConsumerWidget {
+  const _ModuleBody({required this.module, required this.isStudent});
 
   final CourseModuleModel module;
+  final bool isStudent;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final m = module;
     final bottomPad = MediaQuery.of(context).padding.bottom + 100;
     final typeStyle = _typeBadgeStyle(m.typeLabel);
 
+    final displaySessions = m.sessions;
+
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, bottomPad),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        MediaQuery.of(context).padding.top + 8,
+        16,
+        bottomPad,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -82,7 +201,10 @@ class _ModuleBody extends StatelessWidget {
               const Spacer(),
               if (m.typeLabel.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: typeStyle.bg,
                     borderRadius: BorderRadius.circular(6),
@@ -121,9 +243,17 @@ class _ModuleBody extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 20),
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFFD97706),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.emoji_events_outlined, color: Color(0xFFD97706), size: 18),
+                  const Icon(
+                    Icons.emoji_events_outlined,
+                    color: Color(0xFFD97706),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -154,28 +284,54 @@ class _ModuleBody extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 if (m.durationHours != null)
-                  _metaRow(Icons.schedule, 'Duration: ${m.durationHours} hours'),
+                  _metaRow(
+                    Icons.schedule,
+                    'Duration: ${m.durationHours} hours',
+                  ),
                 if (m.dueDate != null) ...[
                   const SizedBox(height: 8),
-                  _metaRow(Icons.calendar_today_outlined, 'Deadline: ${m.dueDate}'),
+                  _metaRow(
+                    Icons.calendar_today_outlined,
+                    'Deadline: ${m.dueDate}',
+                  ),
                 ],
               ],
             ),
           ),
           if (m.externalUrl != null && m.externalUrl!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => openCourseUrl(context, m.externalUrl),
-                icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('Open External Link'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF398FDE),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+            if (m.externalUrl != null &&
+                (m.externalUrl!.contains('youtube.com') ||
+                 m.externalUrl!.contains('youtu.be') ||
+                 m.externalUrl!.endsWith('.mp4')))
+              CourseModuleVideoPlayer(
+                videoUrl: m.externalUrl!,
+                onVideoCompleted: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Video completed! Module marked as finished.'),
+                      backgroundColor: Color(0xFF1F9254),
+                    ),
+                  );
+                  // Silently mark module complete in background
+                  ref.read(coursesRemoteDataSourceProvider)
+                      .markModuleComplete(m.courseId, m.id)
+                      .catchError((_) {});
+                },
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => openCourseUrl(context, m.externalUrl),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: const Text('Open External Link'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF398FDE),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                 ),
               ),
-            ),
           ],
           const SizedBox(height: 16),
           _infoCard(
@@ -190,7 +346,10 @@ class _ModuleBody extends StatelessWidget {
                         color: const Color(0xFFE8F4FD),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.download_outlined, color: Color(0xFF398FDE)),
+                      child: const Icon(
+                        Icons.download_outlined,
+                        color: Color(0xFF398FDE),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -199,7 +358,11 @@ class _ModuleBody extends StatelessWidget {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.folder_outlined, size: 16, color: Color(0xFF6B7280)),
+                              Icon(
+                                Icons.folder_outlined,
+                                size: 16,
+                                color: Color(0xFF6B7280),
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Module Material',
@@ -213,7 +376,10 @@ class _ModuleBody extends StatelessWidget {
                           ),
                           Text(
                             m.materialLabel ?? 'Guidelines Document',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
+                            ),
                           ),
                         ],
                       ),
@@ -244,78 +410,195 @@ class _ModuleBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            '📋 Requirements Checklist (${m.requirements.length} items)',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF181C1F),
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (m.requirements.isEmpty)
-            _infoCard(
-              child: const Text(
-                'No requirements listed for this module.',
-                style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+
+          if (displaySessions.isNotEmpty) ...[
+            Text(
+              'Sessions / Classes (${displaySessions.length})',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181C1F),
               ),
-            )
-          else
-            ...m.requirements.map(
-              (r) => Padding(
+            ),
+            const SizedBox(height: 12),
+            ...displaySessions.map(
+              (s) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _RequirementCard(requirement: r),
+                child: _SessionCard(session: s, isStudent: isStudent),
               ),
             ),
+          ] else ...[
+            Text(
+              '📋 Requirements Checklist (${m.requirements.length} items)',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181C1F),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (m.requirements.isEmpty)
+              _infoCard(
+                child: const Text(
+                  'No requirements or sessions listed for this module.',
+                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+                ),
+              )
+            else
+              ...m.requirements.map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _RequirementCard(requirement: r, isStudent: isStudent),
+                ),
+              ),
+          ],
           const SizedBox(height: 24),
-          if (m.isCompleted)
+          if (isStudent) ...[
+            if (m.isCompleted)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFFAF1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF1F9254)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF1F9254),
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Module Completed',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF1F9254),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (m.mcqEnabled)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    final cId = GoRouterState.of(context).pathParameters['id'];
+                    final mId = GoRouterState.of(context).pathParameters['moduleId'];
+                    if (cId != null && mId != null) {
+                      context.push('/courses/$cId/modules/$mId/quiz');
+                    }
+                  },
+                  icon: const Icon(Icons.quiz_outlined, size: 18),
+                  label: const Text('Take MCQ Quiz'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED), // Purple for quiz
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+          ] else ...[
+            // Teacher / Admin specific Module Design
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFFAF1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF1F9254)),
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.check_circle, color: Color(0xFF1F9254), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Module Completed',
+                  const Text(
+                    'Module Submissions',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: Color(0xFF1F9254),
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildStatBadge(
+                        '12',
+                        'Completed',
+                        const Color(0xFF1F9254),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildStatBadge(
+                        '5',
+                        'Pending Review',
+                        const Color(0xFFD97706),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => context.push(
+                        '/dashboard/assignment-review/${m.courseId}/${m.id}',
+                      ),
+                      icon: const Icon(Icons.fact_check_outlined, size: 18),
+                      label: const Text('Review Pending Assignments'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF398FDE),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            )
-          else if (m.requirements.isEmpty)
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Module completion tracking will be connected to the API.'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.check_circle_outline, size: 18),
-                label: const Text('Mark as Complete'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F9254),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(String count, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
             ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -356,9 +639,10 @@ class _ModuleBody extends StatelessWidget {
 }
 
 class _RequirementCard extends StatelessWidget {
-  const _RequirementCard({required this.requirement});
+  const _RequirementCard({required this.requirement, required this.isStudent});
 
-  final CourseModuleRequirement requirement;
+  final CourseModuleRequirementModel requirement;
+  final bool isStudent;
 
   @override
   Widget build(BuildContext context) {
@@ -395,78 +679,93 @@ class _RequirementCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               requirement.description,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF6B7280),
-              ),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
             ),
           ],
-          const SizedBox(height: 16),
-          // Upload Box UI
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF398FDE).withValues(alpha: 0.3),
-                width: 2,
-              ),
-            ),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.cloud_upload_outlined,
-                  size: 32,
-                  color: Color(0xFF398FDE),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Accepted: PDF, DOC, DOCX | Max: 10MB',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('File upload will be integrated with API')),
-                    );
-                  },
-                  icon: const Icon(Icons.file_upload_outlined, size: 18),
-                  label: const Text('Choose File'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF398FDE),
-                    side: const BorderSide(color: Color(0xFF398FDE)),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           if (requirement.needsAdminApproval && pending) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E8),
+                color: const Color(0xFFFFF4ED),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
                 'Needs Admin Approval',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFFEA7A1A),
                 ),
               ),
             ),
+          ],
+          const SizedBox(height: 16),
+          // Upload Box UI (Only for students)
+          if (isStudent) ...[
+            InkWell(
+              onTap: () {
+                final cId = GoRouterState.of(context).pathParameters['id'];
+                final mId = GoRouterState.of(context).pathParameters['moduleId'];
+                if (cId != null && mId != null) {
+                  context.push('/courses/$cId/modules/$mId/submit-report');
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: DottedBorder(
+                options: const RoundedRectDottedBorderOptions(
+                  color: Color(0xFFCBD5E1),
+                  strokeWidth: 1.5,
+                  dashPattern: [6, 4],
+                  radius: Radius.circular(12),
+                  padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.file_upload_outlined,
+                        size: 32,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.attach_file, size: 16, color: Color(0xFF3B82F6)),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Choose File',
+                            style: TextStyle(
+                              color: Color(0xFF3B82F6),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Accepted: PDF, DOC, DOCX | Max: 10 MB',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+            ),
+            if (!pending && !approved) ...[
+              const SizedBox(height: 4),
+              const Center(
+                child: Text(
+                  'Submitted: Jun 18, 2026',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+              ),
+            ],
           ],
           if (requirement.studentName != null) ...[
             const SizedBox(height: 12),
@@ -485,7 +784,10 @@ class _RequirementCard extends StatelessWidget {
                     children: [
                       const Text(
                         'Student Submission:',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
                       ),
                       OutlinedButton.icon(
                         onPressed: requirement.fileUrl != null
@@ -496,7 +798,10 @@ class _RequirementCard extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF398FDE),
                           side: const BorderSide(color: Color(0xFF398FDE)),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           textStyle: const TextStyle(fontSize: 12),
                         ),
                       ),
@@ -511,13 +816,19 @@ class _RequirementCard extends StatelessWidget {
                       color: Color(0xFF181C1F),
                     ),
                   ),
-                  if (requirement.rollNo != null || requirement.className != null)
+                  if (requirement.rollNo != null ||
+                      requirement.className != null)
                     Text(
                       [
-                        if (requirement.rollNo != null) 'Roll No: ${requirement.rollNo}',
-                        if (requirement.className != null) 'Class: ${requirement.className}',
+                        if (requirement.rollNo != null)
+                          'Roll No: ${requirement.rollNo}',
+                        if (requirement.className != null)
+                          'Class: ${requirement.className}',
                       ].join(' | '),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
                     ),
                 ],
               ),
@@ -546,7 +857,7 @@ class _RequirementCard extends StatelessWidget {
                   Icon(Icons.check_circle, color: Color(0xFF1F9254), size: 18),
                   SizedBox(width: 8),
                   Text(
-                    'Approved by Admin',
+                    'Approved by Coordinator',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1F9254),
@@ -556,44 +867,30 @@ class _RequirementCard extends StatelessWidget {
               ),
             )
           else if (pending && requirement.studentName != null)
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Approve action will connect to API when available.'),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Approve'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F9254),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E6),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFF5C842)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'View only - Approval pending from coordinator',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFB45309),
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Reject action will connect to API when available.'),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Reject'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFDC2626),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
         ],
       ),
@@ -650,5 +947,176 @@ class _RequirementCard extends StatelessWidget {
       );
     }
     return const SizedBox.shrink();
+  }
+}
+
+class _SessionCard extends StatelessWidget {
+  const _SessionCard({required this.session, required this.isStudent});
+
+  final CourseSessionModel session;
+  final bool isStudent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8ECF0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  session.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Color(0xFF181C1F),
+                  ),
+                ),
+              ),
+              if (session.isCompleted)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFFAF1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, size: 14, color: Color(0xFF1F9254)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Completed',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F9254),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (session.contentType != null && session.contentType!.isNotEmpty)
+                _buildBadge(session.contentType!, Icons.category_outlined, const Color(0xFF398FDE), const Color(0xFFE8F4FD)),
+              if (session.deliveryMode != null && session.deliveryMode!.isNotEmpty)
+                _buildBadge(session.deliveryMode!, Icons.videocam_outlined, const Color(0xFFD97706), const Color(0xFFFFF8E6)),
+            ],
+          ),
+          if (session.description != null && session.description!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              session.description!,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (session.monthLabel != null || session.startDate != null)
+            Row(
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF9CA3AF)),
+                const SizedBox(width: 6),
+                Text(
+                  [
+                    if (session.monthLabel != null) session.monthLabel,
+                    if (session.startDate != null) 'From: ${session.startDate}',
+                    if (session.endDate != null) 'To: ${session.endDate}',
+                  ].join(' | '),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                ),
+              ],
+            ),
+          if (session.submissionDeadline != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.timer_outlined, size: 14, color: Color(0xFFEA7A1A)),
+                const SizedBox(width: 6),
+                Text(
+                  'Deadline: ${session.submissionDeadline}',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFFEA7A1A), fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (session.fileUrl != null && session.fileUrl!.isNotEmpty) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => openCourseUrl(context, session.fileUrl),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(
+                  session.contentType?.toLowerCase() == 'mcq test' ? 'Take Test' : 'Open Material',
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (isStudent)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  final cId = GoRouterState.of(context).pathParameters['id'];
+                  final mId = GoRouterState.of(context).pathParameters['moduleId'];
+                  if (cId != null && mId != null) {
+                    context.push('/courses/$cId/modules/$mId/submit-report?submoduleId=${session.id}');
+                  }
+                },
+                icon: const Icon(Icons.file_upload_outlined, size: 16),
+                label: const Text('Submit Report'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF398FDE),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, IconData icon, Color color, Color bgColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

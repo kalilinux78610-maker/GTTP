@@ -119,6 +119,10 @@ class SecureStorageService {
         schoolId: user.schoolId,
         institute: user.institute,
         role: user.role,
+        studentClass: user.studentClass,
+        parentName: user.parentName,
+        parentMobile: user.parentMobile,
+        instituteType: user.instituteType,
         roles: user.roles,
       );
       await saveUserModel(updatedUser);

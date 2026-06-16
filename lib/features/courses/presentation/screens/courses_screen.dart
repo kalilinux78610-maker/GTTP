@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/courses_provider.dart';
 import '../widgets/course_cover_image.dart';
 import '../../data/models/course_model.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 enum _CourseFilter { all, open, invite, batch }
 
@@ -90,9 +91,58 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
             ),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF398FDE)),
+        loading: () => Skeletonizer(
+          enabled: true,
+          child: ListView.builder(
+            padding: EdgeInsets.fromLTRB(16, 16 + 50, 16, bottomPad),
+            itemCount: 4,
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE8ECF0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 160, 
+                      width: double.infinity, 
+                      decoration: const BoxDecoration(
+                        color: Colors.grey,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Loading Course Title...', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          const Text('This is a short description for the skeleton loading state that takes up some space on the screen.', style: TextStyle(fontSize: 14)),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Container(height: 24, width: 60, color: Colors.grey, margin: const EdgeInsets.only(right: 8)),
+                              Container(height: 24, width: 80, color: Colors.grey),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            height: 48, 
+                            width: double.infinity, 
+                            decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         error: (error, stack) => Center(

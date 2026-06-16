@@ -139,7 +139,8 @@ class CacheService {
       if (decoded is! List) return null;
       
       return decoded
-          .whereType<Map<String, dynamic>>()
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
           .map(fromJson)
           .toList();
     } catch (e) {

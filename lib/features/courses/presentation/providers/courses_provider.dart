@@ -15,3 +15,4 @@ final coursesProvider = FutureProvider.autoDispose<List<CourseModel>>((ref) asyn
   final repository = ref.watch(coursesRepositoryProvider);
   return repository.getCourses();
 });
+

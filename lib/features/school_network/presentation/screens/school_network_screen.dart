@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/school_model.dart';
@@ -89,7 +90,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Future.microtask(_refreshAllData);
+    // Let the provider load naturally — cache kicks in on re-visits.
   }
 
   List<_SchoolRow> _mapSchools(List<SchoolModel> models) {
@@ -125,17 +126,21 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _refreshAllData();
+      // Soft refresh — cache handles dedup, won't re-fetch if <5 min old
+      ref.invalidate(schoolsProvider);
     }
   }
 
+  /// Pull-to-refresh: clears cache and forces a fresh API call.
   Future<void> _refreshAllData() async {
-    ref.invalidate(schoolsProvider);
+    forceRefreshSchools(ref);
     ref.invalidate(coursesApiProvider);
-    await Future.wait([
-      ref.read(schoolsProvider.future),
-      ref.read(coursesApiProvider.future),
-    ]);
+    try {
+      await ref.read(coursesApiProvider.future);
+      // We don't await schoolsProvider.future because it's a stream that
+      // yields basic data quickly and then does a heavy background load.
+      // Awaiting it would block the pull-to-refresh spinner until the heavy load finishes.
+    } catch (_) {}
   }
 
   void _clearSearch() {
@@ -215,7 +220,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
               ),
               const SizedBox(height: 16),
               const Text(
-                'School Network',
+                'Institutes Network',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -226,7 +231,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
               ),
               const SizedBox(height: 4),
               const Text(
-                'Manage branch schools & coordinators',
+                'Manage branch institutes & coordinators',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white70,
@@ -356,7 +361,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                 icon: Icons.business,
                 iconBg: const Color(0xFFF27121),
                 value: '$total',
-                label: 'Schools',
+                label: 'Institutes',
                 valueColor: const Color(0xFFF27121),
               ),
               _buildDivider(),
@@ -390,7 +395,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                     color: const Color(0xFF8B5CF6),
                     icon: Icons.trending_up,
                     value: avgStudents,
-                    label: 'Avg Students/School',
+                    label: 'Avg Students/Institute',
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -512,7 +517,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   ) {
     final subtitle = _searchQuery.trim().isEmpty
         ? null
-        : '${filtered.length} of $total schools';
+        : '${filtered.length} of $total institutes';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -529,7 +534,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                   children: [
                     Text(
                       _searchQuery.trim().isEmpty
-                          ? 'All Schools ($total)'
+                          ? 'All Institutes ($total)'
                           : 'Results (${filtered.length})',
                       style: const TextStyle(
                         fontSize: 18,
@@ -576,10 +581,24 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                 ).toList(),
               );
             },
-            loading: () => const Padding(
-              padding: EdgeInsets.all(48.0),
-              child: Center(
-                child: CircularProgressIndicator(),
+            loading: () => Skeletonizer(
+              enabled: true,
+              child: Column(
+                children: List.generate(
+                  3,
+                  (index) => const SchoolListCard(
+                    title: 'Loading School Name Here...',
+                    location: 'Loading City, State',
+                    facultyCount: '00',
+                    studentCount: '000',
+                    principalName: 'Loading Principal Name',
+                    coordinatorName: 'Loading Coordinator Name',
+                    phone: '+91-0000000000',
+                    email: 'loading@school.com',
+                    establishedYear: '01/01/2000',
+                    activeCourses: '0 Active Courses',
+                  ),
+                ),
               ),
             ),
             error: (error, _) => Padding(

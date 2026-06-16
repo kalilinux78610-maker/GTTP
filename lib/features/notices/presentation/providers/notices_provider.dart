@@ -1,9 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/cache/cache_service.dart';
 import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/notices/data/models/notice_model.dart';
 import 'package:gttp/features/notices/data/repositories/notices_repository_impl.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
+import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:gttp/features/school_network/presentation/providers/school_network_provider.dart';
+import 'package:gttp/core/auth/user_role.dart';
 
 const _noticesCacheKey = 'notices_list';
 const _cacheTTL = Duration(minutes: 15);
@@ -146,9 +151,24 @@ class NoticesNotifier extends AsyncNotifier<List<NoticeModel>> {
       // Can't mark as read when offline
       return;
     }
+
+    // Optimistic Update: immediately remove the NEW badge in the UI
+    if (state.hasValue && state.value != null) {
+      final notices = [...state.value!];
+      final index = notices.indexWhere((n) => n.id == id);
+      if (index != -1 && !notices[index].isRead) {
+        notices[index] = notices[index].copyWith(isRead: true);
+        state = AsyncData(notices);
+        CacheService.instance.putList(_noticesCacheKey, notices, ttl: _cacheTTL);
+      }
+    }
     
-    await ref.read(noticesRepositoryProvider).markAsRead(id);
-    await refresh();
+    // Send to backend in the background
+    try {
+      await ref.read(noticesRepositoryProvider).markAsRead(id);
+    } catch (_) {
+      // Ignore API errors for read receipts
+    }
   }
 
   Future<void> createNotice({
@@ -204,13 +224,140 @@ final noticeCategoryProvider = NotifierProvider<NoticeCategoryNotifier, String?>
   return NoticeCategoryNotifier();
 });
 
+/// Notices filtered only by user role and school, used for accurate badge counts
+final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref) {
+  final asyncNotices = ref.watch(noticesNotifierProvider);
+  final dashboardDataAsync = ref.watch(dashboardDataProvider);
+  final userDataAsync = ref.watch(userModelProvider);
+
+  if (!asyncNotices.hasValue || !dashboardDataAsync.hasValue || !userDataAsync.hasValue) {
+    if (asyncNotices.hasError || dashboardDataAsync.hasError || userDataAsync.hasError) {
+      return const AsyncData(<NoticeModel>[]);
+    }
+    return const AsyncLoading();
+  }
+
+  final dashboardData = dashboardDataAsync.value;
+  final userData = userDataAsync.value;
+
+  return asyncNotices.whenData((notices) {
+    var filtered = List<NoticeModel>.from(notices);
+    
+    // Strict security: if user context is missing, return nothing.
+    if (userData == null || dashboardData == null) {
+      return <NoticeModel>[];
+    }
+
+    final appRole = AppUserRole.fromApi(userData.role);
+      
+      // Filter for school/college level roles
+      if (appRole.isPrincipal || appRole.usesTeacherDashboard || appRole == AppUserRole.student) {
+        final dashboardSchool = dashboardData.schoolName?.toLowerCase() ?? '';
+        final userSchool = userData.institute?.toLowerCase() ?? '';
+        final userSchoolId = userData.schoolId?.toString() ?? '';
+        final schoolName = dashboardSchool.isNotEmpty ? dashboardSchool : userSchool;
+        
+        filtered = filtered.where((notice) {
+          if (notice.targetInstituteNames.isNotEmpty) {
+            bool targetsSchool = false;
+            
+            if (schoolName.isNotEmpty) {
+              targetsSchool = notice.targetInstituteNames.any((name) => 
+                 name.toLowerCase().contains(schoolName) || schoolName.contains(name.toLowerCase())
+              );
+            }
+            
+            if (!targetsSchool && notice.schoolId != null && userSchoolId.isNotEmpty) {
+              if (notice.schoolId == userSchoolId) targetsSchool = true;
+            }
+            
+            if (!targetsSchool) return false;
+          }
+          return true;
+        }).toList();
+      } 
+      // Filter for coordinator roles
+      else if (appRole.isCoordinator) {
+        final assignedSchools = ref.watch(schoolsProvider).value;
+        
+        filtered = filtered.where((notice) {
+          if (notice.targetInstituteNames.isNotEmpty) {
+            if (assignedSchools == null || assignedSchools.isEmpty) return false;
+            
+            bool targetsAssignedSchool = notice.targetInstituteNames.any((targetName) => 
+               assignedSchools.any((school) => 
+                 school.title.toLowerCase().contains(targetName.toLowerCase()) || 
+                 targetName.toLowerCase().contains(school.title.toLowerCase())
+               )
+            );
+            if (!targetsAssignedSchool) return false;
+          }
+          return true;
+        }).toList();
+      }
+
+      // 2. Global Target Audience Filter (applies to ALL roles)
+      filtered = filtered.where((notice) {
+        final target = notice.targetAudience?.toLowerCase() ?? '';
+        
+        if (target.isNotEmpty && target != 'all users' && target != 'all members' && target != 'all') {
+          
+          // Super Admins and Admins can see ALL notices to manage them
+          if (appRole == AppUserRole.superAdmin || appRole == AppUserRole.admin) {
+            return true;
+          }
+
+          // Strict checking for Students
+          if (target == 'students' || target.contains('student only') || target == 'students only') {
+            return appRole == AppUserRole.student;
+          }
+
+          // Strict checking for Faculty/Teachers
+          if (target == 'faculty' || target == 'teacher' || target == 'teachers' || target.contains('faculty only') || target.contains('teacher only')) {
+            return appRole == AppUserRole.faculty;
+          }
+
+          // Strict checking for Principals
+          if (target == 'principal' || target == 'principals' || target.contains('principal only')) {
+            return appRole.isPrincipal;
+          }
+
+          // Strict checking for Coordinators
+          if (target == 'coordinator' || target == 'coordinators' || target.contains('coordinator only') || target.contains('national coordinator')) {
+            return appRole.isCoordinator;
+          }
+
+          // If target is "staff", faculty, principals, and coordinators can see it (not students)
+          if (target == 'staff' || target.contains('staff only')) {
+            return appRole == AppUserRole.faculty || appRole.isPrincipal || appRole.isCoordinator;
+          }
+
+          // Catch-all: hide any other staff-oriented notices from students
+          if (appRole == AppUserRole.student) {
+            if (target.contains('faculty') || 
+                target.contains('teacher') || 
+                target.contains('staff') || 
+                target.contains('principal') || 
+                target.contains('coordinator')) {
+              return false;
+            }
+          }
+        }
+        
+        return true;
+      }).toList();
+      
+    return filtered;
+  });
+});
+
 /// Filtered notices based on search and category
 final filteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref) {
   final query = ref.watch(noticeSearchQueryProvider).toLowerCase().trim();
   final category = ref.watch(noticeCategoryProvider);
-  final asyncNotices = ref.watch(noticesNotifierProvider);
+  final roleFiltered = ref.watch(roleFilteredNoticesProvider);
 
-  return asyncNotices.whenData((notices) {
+  return roleFiltered.whenData((notices) {
     var filtered = List<NoticeModel>.from(notices);
     
     // Filter by category
@@ -240,3 +387,4 @@ final filteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref) {
     return filtered;
   });
 });
+

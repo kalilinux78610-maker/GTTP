@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/certificates/data/models/certificate_model.dart';
 import 'package:gttp/features/certificates/presentation/providers/certificates_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class CertificatesScreen extends ConsumerStatefulWidget {
   const CertificatesScreen({super.key});
@@ -27,10 +29,6 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
               padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 24),
               decoration: const BoxDecoration(
                 color: Color(0xFF209E5A),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,9 +119,64 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
                     ),
                   );
                 },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF209E5A)),
+                loading: () => Skeletonizer(
+                  enabled: true,
+                  child: ListView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      24, 24, 24,
+                      MediaQuery.of(context).padding.bottom + 24,
+                    ),
+                    itemCount: 3,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(height: 100, color: Colors.grey),
+                              Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(height: 20, width: 150, color: Colors.grey),
+                                        Container(height: 20, width: 60, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(12))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Container(height: 14, width: 100, color: Colors.grey),
+                                    const SizedBox(height: 16),
+                                    Container(height: 14, width: 200, color: Colors.grey),
+                                    const SizedBox(height: 6),
+                                    Container(height: 14, width: 250, color: Colors.grey),
+                                    const SizedBox(height: 6),
+                                    Container(height: 14, width: 120, color: Colors.grey),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      children: [
+                                        Expanded(child: Container(height: 40, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(12)))),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Container(height: 40, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(12)))),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 error: (error, stack) => Center(
@@ -162,118 +215,169 @@ class _CertificateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Orange Ribbon Icon
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF7ED),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.military_tech_outlined,
-              color: Color(0xFFE65C00),
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Title and Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  certificate.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2A3A4A),
-                  ),
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top Section with Ribbon
+            Container(
+              height: 100,
+              color: const Color(0xFFEFF2F6),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.military_tech_outlined,
+                color: Color(0xFFEA580C),
+                size: 40,
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Completed',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+            ),
+            
+            // Content Section
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title and Badge
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          certificate.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Completion',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // Details
-          _buildDetailRow('Course:', certificate.courseName),
-          const SizedBox(height: 6),
-          _buildDetailRow('Provider:', certificate.schoolName), // using schoolName as provider
-          const SizedBox(height: 6),
-          _buildDetailRow('Issued:', certificate.issuedDate),
-          const SizedBox(height: 20),
-          
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
-                  label: const Text('View'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF357AB6),
-                    side: const BorderSide(color: Color(0xFF357AB6)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 4),
+                  
+                  // Subtitle
+                  Text(
+                    certificate.schoolName,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.download_outlined, size: 18),
-                  label: const Text('Download'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: const Color(0xFF1E293B),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
+                  const SizedBox(height: 16),
+                  
+                  // Details
+                  _buildDetailRow('Course:', certificate.courseName),
+                  const SizedBox(height: 6),
+                  _buildDetailRow('Module:', certificate.description ?? 'Module 1: Introduction to Tourism'),
+                  const SizedBox(height: 6),
+                  _buildDetailRow('Issued:', certificate.issuedDate),
+                  const SizedBox(height: 20),
+                  
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            final url = certificate.certificateUrl;
+                            if (url != null && url.isNotEmpty) {
+                              _launchUrl(context, url);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('No certificate URL available')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
+                          label: const Text('View'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF3B82F6),
+                            side: const BorderSide(color: Color(0xFF3B82F6)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            final url = certificate.certificateUrl;
+                            if (url != null && url.isNotEmpty) {
+                              _launchUrl(context, url);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('No certificate URL available')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.download_outlined, size: 18),
+                          label: const Text('Download'),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0xFF0F172A),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
+  }
+  
+  Future<void> _launchUrl(BuildContext context, String urlString) async {
+    final uri = Uri.tryParse(urlString);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the certificate link')),
+        );
+      }
+    }
   }
 
   Widget _buildDetailRow(String label, String value) {

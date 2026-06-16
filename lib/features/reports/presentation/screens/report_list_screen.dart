@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
 import 'package:gttp/features/reports/presentation/providers/reports_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class ReportListScreen extends ConsumerWidget {
   const ReportListScreen({super.key});
@@ -12,6 +13,7 @@ class ReportListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reportsAsync = ref.watch(filteredReportsProvider);
+    final selectedStatus = ref.watch(selectedStatusProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -23,49 +25,60 @@ class ReportListScreen extends ConsumerWidget {
           child: Column(
             children: [
               _buildHeader(context),
+              _buildFilterSection(ref),
               Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEBF5FF),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.construction_outlined,
-                            color: Color(0xFF3286C9),
-                            size: 36,
+                child: selectedStatus == ReportStatus.flagged
+                    ? _buildFlaggedReportsList(context, ref)
+                    : reportsAsync.when(
+                        data: (reports) => _buildReportList(context, reports, ref),
+                        loading: () => Skeletonizer(
+                          enabled: true,
+                          child: ListView.builder(
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              16,
+                              16,
+                              MediaQuery.of(context).padding.bottom + 16,
+                            ),
+                            itemCount: 4,
+                            itemBuilder: (ctx, index) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(height: 24, width: 80, color: Colors.grey),
+                                          Container(height: 24, width: 80, color: Colors.grey),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Container(height: 16, width: double.infinity, color: Colors.grey),
+                                      const SizedBox(height: 12),
+                                      Container(height: 14, width: 150, color: Colors.grey),
+                                      const SizedBox(height: 4),
+                                      Container(height: 12, width: 100, color: Colors.grey),
+                                      const SizedBox(height: 16),
+                                      Container(height: 12, width: 200, color: Colors.grey),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Report Review & Approval',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A1C1E),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'This feature is coming soon. You will be able to review, flag, and approve student reports here.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                        error: (err, _) => _buildErrorState(ref, err.toString()),
+                      ),
               ),
             ],
           ),
@@ -83,7 +96,11 @@ class ReportListScreen extends ConsumerWidget {
           if (canPop)
             IconButton(
               onPressed: () => context.pop(),
-              icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2A3A4A)),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                size: 20,
+                color: Color(0xFF2A3A4A),
+              ),
             )
           else
             const SizedBox(width: 48),
@@ -122,31 +139,36 @@ class ReportListScreen extends ConsumerWidget {
                   label: 'All',
                   value: null,
                   selectedValue: selectedCategory,
-                  onSelected: (val) => ref.read(selectedCategoryProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedCategoryProvider.notifier).set(val),
                 ),
                 _FilterChip<ReportCategory?>(
                   label: 'Theory',
                   value: ReportCategory.theory,
                   selectedValue: selectedCategory,
-                  onSelected: (val) => ref.read(selectedCategoryProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedCategoryProvider.notifier).set(val),
                 ),
                 _FilterChip<ReportCategory?>(
                   label: 'Practical',
                   value: ReportCategory.practical,
                   selectedValue: selectedCategory,
-                  onSelected: (val) => ref.read(selectedCategoryProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedCategoryProvider.notifier).set(val),
                 ),
                 _FilterChip<ReportCategory?>(
                   label: 'Internship',
                   value: ReportCategory.internship,
                   selectedValue: selectedCategory,
-                  onSelected: (val) => ref.read(selectedCategoryProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedCategoryProvider.notifier).set(val),
                 ),
                 _FilterChip<ReportCategory?>(
                   label: 'Visits',
                   value: ReportCategory.visits,
                   selectedValue: selectedCategory,
-                  onSelected: (val) => ref.read(selectedCategoryProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedCategoryProvider.notifier).set(val),
                 ),
               ],
             ),
@@ -162,28 +184,32 @@ class ReportListScreen extends ConsumerWidget {
                   label: 'All',
                   value: null,
                   selectedValue: selectedStatus,
-                  onSelected: (val) => ref.read(selectedStatusProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedStatusProvider.notifier).set(val),
                   isSecondary: true,
                 ),
                 _FilterChip<ReportStatus?>(
                   label: 'Pending',
                   value: ReportStatus.pending,
                   selectedValue: selectedStatus,
-                  onSelected: (val) => ref.read(selectedStatusProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedStatusProvider.notifier).set(val),
                   isSecondary: true,
                 ),
                 _FilterChip<ReportStatus?>(
                   label: 'Flagged',
                   value: ReportStatus.flagged,
                   selectedValue: selectedStatus,
-                  onSelected: (val) => ref.read(selectedStatusProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedStatusProvider.notifier).set(val),
                   isSecondary: true,
                 ),
                 _FilterChip<ReportStatus?>(
                   label: 'Approved',
                   value: ReportStatus.approved,
                   selectedValue: selectedStatus,
-                  onSelected: (val) => ref.read(selectedStatusProvider.notifier).set(val),
+                  onSelected: (val) =>
+                      ref.read(selectedStatusProvider.notifier).set(val),
                   isSecondary: true,
                 ),
               ],
@@ -194,11 +220,12 @@ class ReportListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildReportList(BuildContext context, List<ReportModel> reports, WidgetRef ref) {
+  Widget _buildReportList(
+    BuildContext context,
+    List<ReportModel> reports,
+    WidgetRef ref,
+  ) {
     final selectedStatus = ref.watch(selectedStatusProvider);
-    if (selectedStatus == ReportStatus.flagged) {
-      return _buildFlaggedComingSoonState(ref);
-    }
 
     if (reports.isEmpty) {
       return Center(
@@ -226,7 +253,9 @@ class ReportListScreen extends ConsumerWidget {
 
     return ListView.builder(
       padding: EdgeInsets.fromLTRB(
-        16, 16, 16,
+        16,
+        16,
+        16,
         MediaQuery.of(context).padding.bottom + 16,
       ),
       itemCount: reports.length,
@@ -236,53 +265,57 @@ class ReportListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFlaggedComingSoonState(WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.outlined_flag,
-                color: Color(0xFFDC2626),
-                size: 36,
-              ),
+  Widget _buildFlaggedReportsList(BuildContext context, WidgetRef ref) {
+    final flaggedAsync = ref.watch(flaggedReportsProvider);
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+
+    return flaggedAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => _buildErrorState(ref, err.toString()),
+      data: (allFlagged) {
+        final reports = allFlagged.where((r) {
+          return selectedCategory == null || r.category == selectedCategory;
+        }).toList();
+
+        if (reports.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(Icons.check_circle_outline, color: Color(0xFF22C55E), size: 36),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'All Clear!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'No flagged reports at this time.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Flagged Reports Review',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coming soon. You will be able to review and take action on flagged reports here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF6B7280),
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => ref.read(selectedStatusProvider.notifier).set(null),
-              child: const Text('Back to all reports'),
-            ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => ref.read(flaggedReportsProvider.notifier).refresh(),
+          child: ListView.builder(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
+            itemCount: reports.length,
+            itemBuilder: (ctx, index) => _ReportCard(report: reports[index]),
+          ),
+        );
+      },
     );
   }
 
@@ -296,7 +329,8 @@ class ReportListScreen extends ConsumerWidget {
           Text('Error: $error'),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.read(flaggedReportsProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(flaggedReportsProvider.notifier).refresh(),
             child: const Text('Try Again'),
           ),
         ],
@@ -323,7 +357,9 @@ class _FilterChip<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = value == selectedValue;
-    final activeColor = isSecondary ? const Color(0xFF1F2937) : const Color(0xFF3286C9);
+    final activeColor = isSecondary
+        ? const Color(0xFF1F2937)
+        : const Color(0xFF3286C9);
 
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -380,10 +416,7 @@ class _ReportCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Left accent strip (Optional, based on status)
-              Container(
-                width: 4,
-                color: _getStatusColor(report.status),
-              ),
+              Container(width: 4, color: _getStatusColor(report.status)),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -394,7 +427,10 @@ class _ReportCard extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _CategoryBadge(category: report.category, groupCount: report.groupCount),
+                          _CategoryBadge(
+                            category: report.category,
+                            groupCount: report.groupCount,
+                          ),
                           _StatusBadge(status: report.status),
                         ],
                       ),
@@ -427,7 +463,7 @@ class _ReportCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Flagged Box (If applicable)
                       if (report.status == ReportStatus.flagged)
                         _buildFlaggedBox(),
@@ -443,7 +479,11 @@ class _ReportCard extends ConsumerWidget {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.access_time, size: 14, color: Color(0xFF6B7280)),
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Color(0xFF6B7280),
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Submitted: ${DateFormat('MMM d, yyyy').format(report.createdAt)}',
@@ -484,7 +524,11 @@ class _ReportCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.flag_outlined, size: 16, color: Color(0xFFDC2626)),
+              const Icon(
+                Icons.flag_outlined,
+                size: 16,
+                color: Color(0xFFDC2626),
+              ),
               const SizedBox(width: 8),
               Text(
                 'Flagged by ${report.flaggedBy ?? "System"}',
@@ -501,10 +545,7 @@ class _ReportCard extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 24),
             child: Text(
               report.flagReason,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF4B5563),
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
             ),
           ),
         ],
@@ -536,11 +577,15 @@ class _ReportCard extends ConsumerWidget {
       return _ActionButton(
         label: 'Approve',
         onPressed: () async {
-          final success = await ref.read(flaggedReportsProvider.notifier).resolveReport(report.id);
+          final success = await ref
+              .read(flaggedReportsProvider.notifier)
+              .resolveReport(report.id);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(success ? 'Report approved' : 'Failed to approve report'),
+                content: Text(
+                  success ? 'Report approved' : 'Failed to approve report',
+                ),
                 backgroundColor: success ? Colors.green : Colors.red,
               ),
             );
@@ -568,18 +613,25 @@ class _ReportCard extends ConsumerWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final success = await ref.read(flaggedReportsProvider.notifier).rejectReport(
-                reportId,
-                reason: controller.text.isNotEmpty ? controller.text : null,
-              );
+              final success = await ref
+                  .read(flaggedReportsProvider.notifier)
+                  .rejectReport(
+                    reportId,
+                    reason: controller.text.isNotEmpty ? controller.text : null,
+                  );
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? 'Report rejected' : 'Failed to reject report'),
+                    content: Text(
+                      success ? 'Report rejected' : 'Failed to reject report',
+                    ),
                     backgroundColor: success ? Colors.orange : Colors.red,
                   ),
                 );
@@ -593,7 +645,11 @@ class _ReportCard extends ConsumerWidget {
     );
   }
 
-  void _showOverrideDialog(BuildContext context, WidgetRef ref, String reportId) {
+  void _showOverrideDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String reportId,
+  ) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -608,19 +664,25 @@ class _ReportCard extends ConsumerWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (controller.text.isEmpty) return;
               Navigator.pop(ctx);
-              final success = await ref.read(flaggedReportsProvider.notifier).overrideReport(
-                reportId,
-                controller.text,
-              );
+              final success = await ref
+                  .read(flaggedReportsProvider.notifier)
+                  .overrideReport(reportId, controller.text);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? 'Report overridden and approved' : 'Failed to override report'),
+                    content: Text(
+                      success
+                          ? 'Report overridden and approved'
+                          : 'Failed to override report',
+                    ),
                     backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
@@ -635,21 +697,29 @@ class _ReportCard extends ConsumerWidget {
 
   Color _getStatusColor(ReportStatus status) {
     switch (status) {
-      case ReportStatus.flagged: return const Color(0xFFDC2626);
-      case ReportStatus.pending: return const Color(0xFFFBBF24);
+      case ReportStatus.flagged:
+        return const Color(0xFFDC2626);
+      case ReportStatus.pending:
+        return const Color(0xFFFBBF24);
       case ReportStatus.approved:
-      case ReportStatus.resolved: return const Color(0xFF10B981);
-      default: return Colors.transparent;
+      case ReportStatus.resolved:
+        return const Color(0xFF10B981);
+      default:
+        return Colors.transparent;
     }
   }
 
   String _getCategoryString(ReportCategory? category) {
     if (category == null) return 'General';
     switch (category) {
-      case ReportCategory.theory: return 'Tourism Management';
-      case ReportCategory.practical: return 'Heritage Studies';
-      case ReportCategory.internship: return 'Sustainable Tourism';
-      case ReportCategory.visits: return 'Event Management';
+      case ReportCategory.theory:
+        return 'Tourism Management';
+      case ReportCategory.practical:
+        return 'Heritage Studies';
+      case ReportCategory.internship:
+        return 'Sustainable Tourism';
+      case ReportCategory.visits:
+        return 'Event Management';
     }
   }
 }

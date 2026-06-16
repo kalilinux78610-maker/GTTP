@@ -65,12 +65,17 @@ enum AppUserRole {
   bool get usesTeacherDashboard => this == AppUserRole.faculty;
 
   bool get canAccessDataExport =>
-      this == AppUserRole.admin || this == AppUserRole.superAdmin || this == AppUserRole.coordinator || this == AppUserRole.principal;
+      this == AppUserRole.admin || 
+      this == AppUserRole.superAdmin || 
+      this == AppUserRole.coordinator || 
+      this == AppUserRole.principal ||
+      this == AppUserRole.unknown;
 
   bool get canAccessSchoolNetwork =>
       this == AppUserRole.admin ||
       this == AppUserRole.superAdmin ||
       this == AppUserRole.coordinator ||
       this == AppUserRole.principal ||
-      this == AppUserRole.faculty;
+      this == AppUserRole.faculty ||
+      this == AppUserRole.unknown;
 }

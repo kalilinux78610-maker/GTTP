@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gttp/core/widgets/full_screen_image_viewer.dart';
 import '../providers/events_provider.dart';
 import '../../data/models/event_model.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EventsScreen extends ConsumerWidget {
   const EventsScreen({super.key});
@@ -56,9 +59,60 @@ class EventsScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE65C00)),
+        loading: () => Skeletonizer(
+          enabled: true,
+          child: ListView.builder(
+            padding: EdgeInsets.fromLTRB(
+              16, 16, 16,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      child: Container(height: 20, width: 250, color: Colors.grey),
+                    ),
+                    Container(height: 160, width: double.infinity, color: Colors.grey),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(height: 24, width: 100, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(8))),
+                              Container(height: 24, width: 60, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(8))),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(height: 14, width: double.infinity, color: Colors.grey),
+                          const SizedBox(height: 4),
+                          Container(height: 14, width: 200, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Container(height: 16, width: 80, color: Colors.grey),
+                              const SizedBox(width: 16),
+                              Container(height: 16, width: 120, color: Colors.grey),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
         error: (error, stack) => Center(
@@ -112,6 +166,75 @@ class _EventCard extends StatelessWidget {
 
   const _EventCard({required this.event});
 
+  Widget _buildImageSection(BuildContext context) {
+    final allImages = <String>[];
+    if (event.images != null && event.images!.isNotEmpty) {
+      allImages.addAll(event.images!);
+    } else if (event.imageUrl != null) {
+      allImages.add(event.imageUrl!);
+    }
+
+    if (allImages.isEmpty) {
+      return _buildPlaceholderImage();
+    }
+
+    if (allImages.length == 1) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => FullScreenImageViewer(
+              images: allImages,
+              initialIndex: 0,
+            ),
+          ));
+        },
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          child: CachedNetworkImage(
+            imageUrl: allImages.first,
+            height: 160,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => _buildPlaceholderImage(),
+            errorWidget: (context, url, error) => _buildPlaceholderImage(),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: List.generate(allImages.length, (index) {
+        final isFirst = index == 0;
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => FullScreenImageViewer(
+                images: allImages,
+                initialIndex: index,
+              ),
+            ));
+          },
+          child: Padding(
+            padding: EdgeInsets.only(top: isFirst ? 0 : 2.0),
+            child: ClipRRect(
+              borderRadius: isFirst 
+                  ? const BorderRadius.vertical(top: Radius.circular(16)) 
+                  : BorderRadius.zero,
+              child: CachedNetworkImage(
+                imageUrl: allImages[index],
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => _buildPlaceholderImage(),
+                errorWidget: (context, url, error) => _buildPlaceholderImage(),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -137,19 +260,18 @@ class _EventCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (event.imageUrl != null)
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Image.network(
-                    event.imageUrl!,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Text(
+                  event.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2A3A4A),
                   ),
-                )
-              else
-                _buildPlaceholderImage(),
+                ),
+              ),
+              _buildImageSection(context),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -199,15 +321,6 @@ class _EventCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      event.title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2A3A4A),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Text(
                       event.description,
                       maxLines: 2,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gttp/features/reports/presentation/screens/student_progress_screen.dart';
 import '../../data/models/course_model.dart';
 import '../../data/models/course_module_model.dart';
 import '../providers/course_details_provider.dart';
@@ -80,7 +81,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  _buildEnrolledStudentsSection(course.id),
                   if (course.modules.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -312,34 +313,8 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Overall Progress',
-                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-              ),
-              Text(
-                '$progress% Complete',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF181C1F),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress / 100,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE8ECF0),
-              color: const Color(0xFF398FDE),
-            ),
-          ),
+          _PendingApprovalsWidget(courseId: course.id),
+
         ],
       ),
     );
@@ -395,13 +370,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
       elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: module.isLocked
-            ? () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Complete previous modules to unlock.')),
-                );
-              }
-            : () => context.push('/courses/${course.id}/modules/${module.id}'),
+        onTap: () => context.push('/courses/${course.id}/modules/${module.id}'),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -512,27 +481,9 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
   }
 
   Widget _moduleStatusIcon(CourseModuleModel module) {
-    if (module.isLocked) {
-      return const Icon(Icons.lock_outline, color: Color(0xFF9CA3AF), size: 22);
-    }
-    if (module.isCompleted) {
-      return Container(
-        padding: const EdgeInsets.all(2),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1F9254),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.check, color: Colors.white, size: 16),
-      );
-    }
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFFD1D5DB), width: 2),
-      ),
-    );
+    // Teachers and Principals don't have locked modules or personal completion status.
+    // They just preview the module content.
+    return const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF), size: 24);
   }
 
   Widget _tagChip(String tag) {
@@ -596,5 +547,294 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
         .where((w) => w.isNotEmpty)
         .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
         .join(' ');
+  }
+
+  Widget _buildEnrolledStudentsSection(String courseId) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final studentsAsync = ref.watch(courseEnrolledStudentsProvider(courseId));
+
+        return studentsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(color: Color(0xFF398FDE)),
+            ),
+          ),
+          error: (error, _) {
+            // Backend endpoint not yet available — show mock data
+            final mockStudents = [
+              {'name': 'Ananya Sharma', 'roll_no': '24', 'class': '10-A', 'progress_percent': 75},
+              {'name': 'Rohan Kumar', 'roll_no': '12', 'class': '10-A', 'progress_percent': 40},
+              {'name': 'Priya Singh', 'roll_no': '08', 'class': '10-A', 'progress_percent': 90},
+              {'name': 'Arjun Mehta', 'roll_no': '31', 'class': '10-A', 'progress_percent': 20},
+            ];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3CD),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFFD700)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: Color(0xFF856404)),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Showing sample data — backend endpoint pending',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF856404)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildStudentList(mockStudents),
+              ],
+            );
+          },
+          data: (students) {
+            if (students.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(
+                  child: Text(
+                    'No students enrolled yet.',
+                    style: TextStyle(color: Color(0xFF6B7280)),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Enrolled Students from Your Class (${students.length})',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181C1F),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildStudentList(students),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStudentList(List<Map<String, dynamic>> students) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: students.map((student) {
+          final progress = int.tryParse(student['progress_percent']?.toString() ?? '0') ?? 0;
+          Color progressColor;
+          if (progress >= 75) {
+            progressColor = const Color(0xFF10B981); // Green
+          } else if (progress >= 50) {
+            progressColor = const Color(0xFFF59E0B); // Orange
+          } else {
+            progressColor = const Color(0xFFEF4444); // Red
+          }
+
+          final rawName = student['name']?.toString() ?? 'Student';
+          final nameParts = rawName.trim().split(' ');
+          final initials = nameParts.length > 1
+              ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
+              : nameParts[0].isNotEmpty ? nameParts[0][0].toUpperCase() : 'S';
+
+          final roll = student['roll_no']?.toString() ?? 'N/A';
+          final className = student['class']?.toString() ?? 'N/A';
+
+          final isLast = student == students.last;
+
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                final studentId = student['id']?.toString() ?? student['student_id']?.toString();
+                if (studentId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudentProgressScreen(studentId: studentId),
+                    ),
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFF7C3AED),
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            rawName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Color(0xFF181C1F),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Roll: $roll | Class: $className',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$progress%',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: progressColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Progress',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF9CA3AF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _PendingApprovalsWidget extends ConsumerWidget {
+  final String courseId;
+
+  const _PendingApprovalsWidget({required this.courseId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(coursePendingSubmissionsProvider(courseId));
+
+    return pendingAsync.when(
+      data: (pendingItems) {
+        if (pendingItems.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7E6), // Light orange background
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFFCC80)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE0B2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.assignment_late_outlined,
+                  color: Color(0xFFF57C00),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${pendingItems.length} Items Pending Approval',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  context.push('/courses/$courseId/pending-submissions');
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFF57C00),
+                ),
+                child: const Text(
+                  'Review Now',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (error, stack) => const SizedBox.shrink(),
+    );
   }
 }

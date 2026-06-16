@@ -1,5 +1,6 @@
 import 'package:gttp/features/reports/data/datasources/reports_remote_datasource.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
+import 'package:gttp/features/reports/data/models/student_progress_model.dart';
 import 'package:gttp/features/reports/domain/repositories/reports_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,11 @@ class ReportsRepositoryImpl implements ReportsRepository {
   final ReportsRemoteDataSource _remoteDataSource;
 
   ReportsRepositoryImpl(this._remoteDataSource);
+
+  @override
+  Future<StudentProgressModel> getStudentProgress({String? studentId}) {
+    return _remoteDataSource.getStudentProgressReports(studentId: studentId);
+  }
 
   @override
   Future<List<ReportModel>> getProgressReports() {
@@ -38,7 +44,35 @@ class ReportsRepositoryImpl implements ReportsRepository {
   }
 
   @override
-  Future<void> rejectReport(String id, {String? reason}) {
-    return _remoteDataSource.rejectReport(id, reason: reason);
+  Future<void> approveReport(String submissionId) {
+    return _remoteDataSource.approveReport(submissionId);
+  }
+
+  @override
+  Future<void> rejectReport(String submissionId, {String? reason}) {
+    return _remoteDataSource.rejectReport(submissionId, reason: reason);
+  }
+
+  @override
+  Future<void> submitReport({
+    String? courseId,
+    String? moduleId,
+    String? submoduleId,
+    required String activityTitle,
+    required String description,
+    required ReportCategory category,
+    String? fileName,
+    List<int>? fileBytes,
+  }) {
+    return _remoteDataSource.submitReport(
+      courseId: courseId,
+      moduleId: moduleId,
+      submoduleId: submoduleId,
+      activityTitle: activityTitle,
+      description: description,
+      category: category,
+      fileName: fileName,
+      fileBytes: fileBytes,
+    );
   }
 }

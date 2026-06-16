@@ -4,16 +4,26 @@ import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/school_network/data/repositories/school_network_repository_impl.dart';
 import '../../data/models/school_model.dart';
 
-final schoolsProvider = FutureProvider<List<SchoolModel>>((ref) async {
-  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+final schoolsProvider = StreamProvider<List<SchoolModel>>((ref) {
+  // Auto-refresh every 5 minutes if online (repository cache handles dedup)
+  final timer = Timer.periodic(const Duration(minutes: 5), (_) {
     if (ref.read(isOnlineProvider)) {
       ref.invalidateSelf();
     }
   });
   ref.onDispose(timer.cancel);
 
-  return ref.read(schoolNetworkRepositoryProvider).getSchools();
+  return ref.read(schoolNetworkRepositoryProvider).watchSchools();
 });
+
+/// Call this to force a fresh load (clears cache + re-fetches).
+void forceRefreshSchools(WidgetRef ref) {
+  final repo = ref.read(schoolNetworkRepositoryProvider);
+  if (repo is SchoolNetworkRepositoryImpl) {
+    repo.clearCache();
+  }
+  ref.invalidate(schoolsProvider);
+}
 
 // Search query state
 class SchoolSearchQueryNotifier extends Notifier<String> {

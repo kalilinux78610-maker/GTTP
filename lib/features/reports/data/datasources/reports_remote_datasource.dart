@@ -3,7 +3,10 @@ import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/core/network/api_exception.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
+import 'package:gttp/features/reports/data/models/student_progress_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gttp/core/cache/sync_queue_service.dart';
+import 'package:dio/dio.dart';
 
 final reportsRemoteDataSourceProvider = Provider<ReportsRemoteDataSource>((
   ref,
@@ -147,6 +150,23 @@ class ReportsRemoteDataSource {
     }
   }
 
+  Future<StudentProgressModel> getStudentProgressReports({String? studentId}) async {
+    try {
+      final endpoint = studentId != null ? '/reports/progress?studentId=$studentId' : '/reports/progress';
+      final response = await _apiClient.get(endpoint, requiresAuth: true);
+      
+      final data = response['data'] ?? response;
+      if (data is Map<String, dynamic>) {
+        return StudentProgressModel.fromJson(data);
+      }
+      
+      throw ApiException('Invalid response format for student progress.');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Unable to fetch student progress reports: $e');
+    }
+  }
+
   Future<List<ReportModel>> getFlaggedReports() async {
     try {
       // Try multiple possible endpoints
@@ -254,10 +274,23 @@ class ReportsRemoteDataSource {
     }
   }
 
-  Future<void> rejectReport(String id, {String? reason}) async {
+  Future<void> approveReport(String submissionId) async {
     try {
       await _apiClient.post(
-        '/reports/$id/reject',
+        '/reports/approve/$submissionId',
+        requiresAuth: true,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to approve report: $e');
+    }
+  }
+
+  Future<void> rejectReport(String submissionId, {String? reason}) async {
+    try {
+      await _apiClient.post(
+        '/reports/reject/$submissionId',
         data: reason != null ? {'reason': reason} : null,
         requiresAuth: true,
       );
@@ -265,6 +298,66 @@ class ReportsRemoteDataSource {
       rethrow;
     } catch (e) {
       throw ApiException('Failed to reject report: $e');
+    }
+  }
+
+  Future<void> submitReport({
+    String? courseId,
+    String? moduleId,
+    String? submoduleId,
+    required String activityTitle,
+    required String description,
+    required ReportCategory category,
+    String? fileName,
+    List<int>? fileBytes,
+  }) async {
+    try {
+      final Map<String, dynamic> payloadData = {
+        'course_id': ?courseId,
+        'unit_id': ?moduleId,
+        'submodule_id': ?submoduleId,
+        'activity_title': activityTitle,
+        'description': description,
+        'category': category.toString().split('.').last,
+      };
+
+      Object payload;
+      if (fileBytes != null && fileName != null) {
+        payloadData['attachment'] = MultipartFile.fromBytes(
+          fileBytes,
+          filename: fileName,
+        );
+        payload = FormData.fromMap(payloadData);
+      } else {
+        payload = payloadData;
+      }
+
+      await _apiClient.post(
+        '/reports/submit',
+        data: payload,
+        requiresAuth: true,
+      );
+    } on ApiException catch (e) {
+      // Check if it's a network/offline error
+      if (e.statusCode == null || e.message.contains('timeout') || e.message.contains('connect')) {
+        final payload = {
+          'course_id': ?courseId,
+          'unit_id': ?moduleId,
+          'submodule_id': ?submoduleId,
+          'activity_title': activityTitle,
+          'description': description,
+          'category': category.toString().split('.').last,
+        };
+
+        await SyncQueueService.instance.enqueue(
+          '/reports/submit',
+          payload,
+        );
+        throw OfflineSavedException();
+      }
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to submit report: $e');
     }
   }
 }

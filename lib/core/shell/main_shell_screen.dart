@@ -12,7 +12,7 @@ class MainShellScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final noticesBadge = ref.watch(noticesNotifierProvider).maybeWhen(
+    final noticesBadge = ref.watch(roleFilteredNoticesProvider).maybeWhen(
           data: (notices) {
             final unread = notices.where((n) => !n.isRead).length;
             return unread == 0 ? null : unread.toString();
@@ -24,7 +24,10 @@ class MainShellScreen extends ConsumerWidget {
     // By injecting this as MediaQuery bottom padding, every screen's
     // SafeArea / ListView padding automatically accounts for the nav bar.
     final systemBottom = MediaQuery.of(context).padding.bottom;
-    final navBarClearance = 70.0 + 20.0 + systemBottom;
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    
+    // Only add clearance if the bottom nav is visible
+    final navBarClearance = isKeyboardOpen ? systemBottom : 70.0 + 20.0 + systemBottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA),
@@ -39,21 +42,22 @@ class MainShellScreen extends ConsumerWidget {
             ),
             child: navigationShell,
           ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: systemBottom + 20,
-            child: AppBottomNav(
-              activeIndex: navigationShell.currentIndex,
-              reportsBadge: noticesBadge,
-              onTabTap: (index) {
-                navigationShell.goBranch(
-                  index,
-                  initialLocation: index == navigationShell.currentIndex,
-                );
-              },
+          if (!isKeyboardOpen)
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: systemBottom + 20,
+              child: AppBottomNav(
+                activeIndex: navigationShell.currentIndex,
+                reportsBadge: noticesBadge,
+                onTabTap: (index) {
+                  navigationShell.goBranch(
+                    index,
+                    initialLocation: index == navigationShell.currentIndex,
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

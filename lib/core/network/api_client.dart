@@ -109,14 +109,21 @@ class ApiClient {
     SecureStorageService secureStorage,
   ) async {
     final refreshToken = await secureStorage.getRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) {
+    final accessToken = await secureStorage.getAccessToken();
+
+    // In Laravel JWT-Auth, the old access token is often used to get a new one.
+    final tokenToUse = (refreshToken != null && refreshToken.isNotEmpty)
+        ? refreshToken
+        : accessToken;
+
+    if (tokenToUse == null || tokenToUse.isEmpty) {
       await secureStorage.clearTokens();
       return null;
     }
 
     final refreshResponse = await dio.post<dynamic>(
       '/refresh',
-      options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
+      options: Options(headers: {'Authorization': 'Bearer $tokenToUse'}),
     );
 
     final body = refreshResponse.data;

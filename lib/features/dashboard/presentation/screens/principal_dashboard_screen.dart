@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class PrincipalDashboardScreen extends ConsumerStatefulWidget {
   final String displayName;
@@ -136,7 +138,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: 280,
+              height: 300,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE65C00),
@@ -146,7 +148,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 88),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -158,8 +160,8 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  blurRadius: 16,
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
                                   spreadRadius: 2,
                                 ),
                               ],
@@ -172,27 +174,56 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                                   const Icon(Icons.language, color: Color(0xFFE65C00), size: 32),
                             ),
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: CircleAvatar(
-                              backgroundColor: const Color(0xFFE65C00),
-                              radius: 22,
-                              child: Text(
-                                _initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final userAsync = ref.watch(userModelProvider);
+                              final avatarUrl = userAsync.value?.avatar;
+                              
+                              Widget placeholder = Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  color: const Color(0xFFE65C00),
                                 ),
-                              ),
-                            ),
+                                child: Center(
+                                  child: Text(
+                                    _initials,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              );
+
+                              if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                                return Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                  child: ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: avatarUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => placeholder,
+                                      errorWidget: (context, url, error) => placeholder,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return placeholder;
+                            },
                           ),
                         ],
                       ),
                       const Spacer(),
+                      const SizedBox(height: 16),
                       Text(
                         _headerGreeting(),
                         maxLines: 2,
@@ -207,17 +238,20 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                       ),
                       const SizedBox(height: 8),
                       userAsync.when(
-                        data: (user) => Text(
-                          user?.institute ?? 'School Overview',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        data: (user) {
+                          final schoolName = dashboardAsync.value?.schoolName ?? user?.institute ?? 'School Overview';
+                          return Text(
+                            schoolName,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          );
+                        },
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -228,7 +262,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
             Positioned(
               left: 20,
               right: 20,
-              top: 220,
+              top: 240,
               child: dashboardAsync.when(
                 data: (data) => _buildOldOverviewCard(
                   totalStudents: '${data.totalStudents}',
@@ -237,11 +271,14 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                       '${data.totalCourses > 0 ? data.totalCourses : data.totalClasses}',
                   isDark: isDark,
                 ),
-                loading: () => _buildOldOverviewCard(
-                  totalStudents: '—',
-                  facultyMembers: '—',
-                  activeCourses: '—',
-                  isDark: isDark,
+                loading: () => Skeletonizer(
+                  enabled: true,
+                  child: _buildOldOverviewCard(
+                    totalStudents: '000',
+                    facultyMembers: '000',
+                    activeCourses: '000',
+                    isDark: isDark,
+                  ),
                 ),
                 error: (_, _) => _buildOldOverviewCard(
                   totalStudents: '—',

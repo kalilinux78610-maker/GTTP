@@ -193,4 +193,19 @@ class SchoolModel {
       ]),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'location': location,
+      'facultyCount': facultyCount,
+      'studentCount': studentCount,
+      'principalName': principalName,
+      'coordinatorName': coordinatorName,
+      'phone': phone,
+      'email': email,
+      'activeCourses': activeCourses,
+    };
+  }
 }

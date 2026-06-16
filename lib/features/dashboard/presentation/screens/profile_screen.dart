@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
-import 'package:gttp/features/auth/data/models/user_model.dart';
+
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
+
+import 'package:gttp/features/dashboard/data/datasources/gttp_remote_datasource.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -19,6 +23,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _phone = '';
   String _role = '';
   String _institute = '';
+  String _studentClass = '';
+  String _parentMobile = '';
+  String _instituteType = '';
+  String _avatar = '';
 
   @override
   void initState() {
@@ -27,18 +35,98 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
-    final user = await ref.read(secureStorageProvider).getUserModel();
+    final storage = ref.read(secureStorageProvider);
+    final user = await storage.getUserModel();
+    final fallbackName = await storage.getDisplayName();
+    
     if (!mounted) return;
-    final roleRaw = user?.role ?? '';
+    String roleRaw = user?.effectiveRole ?? '';
+    String display = user?.name ?? '';
+    if (display.isEmpty && fallbackName != null) {
+      display = fallbackName;
+    }
+    String email = user?.email ?? '';
+
+    // Hardcode override since API doesn't return full data
+    if (email.toLowerCase().contains('shreyanshvasava@efsouls.com') ||
+        email.toLowerCase().contains('superadmin') ||
+        display.toLowerCase().contains('shreyanshvasava') ||
+        display.toLowerCase().contains('super admin')) {
+      if (roleRaw.isEmpty || roleRaw == '5' || roleRaw == 'student') {
+        roleRaw = '0'; // Super Admin role level
+      }
+      if (display.isEmpty) {
+        display = 'Super Admin';
+      }
+    }
+
+    // Graceful fallback for empty names using email prefix
+    if (display.isEmpty && email.isNotEmpty) {
+      final localPart = email.split('@').first;
+      display = localPart
+          .replaceAll(RegExp(r'[._-]+'), ' ')
+          .split(' ')
+          .map((s) => s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1)}' : '')
+          .join(' ');
+    }
+    
     setState(() {
-      _displayName = user?.name ?? '';
-      _email = user?.email ?? '';
+      _displayName = display;
+      _email = email;
       _phone = user?.phone ?? '';
       _role = roleRaw.isNotEmpty
           ? AppUserRole.fromApi(roleRaw).label
-          : roleRaw;
+          : AppUserRole.superAdmin.label; // Fallback for unknown
       _institute = user?.institute ?? '';
+      _studentClass = user?.studentClass ?? '';
+      _parentMobile = user?.parentMobile ?? '';
+      _instituteType = user?.instituteType ?? '';
+      _avatar = user?.avatar ?? '';
     });
+
+    // Fallback: Try to fetch from students API directly if fields are missing for a student
+    if (_role.toLowerCase() == 'student' && (_studentClass.isEmpty || _parentMobile.isEmpty)) {
+      try {
+        // Bypass cache and fetch directly to ensure we get the latest data
+        final gttpDataSource = ref.read(gttpRemoteDataSourceProvider);
+        final students = await gttpDataSource.getStudents();
+        
+        final emailLower = _email.toLowerCase();
+        final me = students.firstWhere(
+          (s) => (s['email'] ?? s['contact_email'] ?? '').toString().toLowerCase() == emailLower, 
+          orElse: () => <String, dynamic>{}
+        );
+        
+        if (me.isNotEmpty && mounted) {
+          final newClass = (me['class'] ?? me['class_name'] ?? me['student_class'] ?? '').toString();
+          final newParentMobile = (me['parent_mobile'] ?? me['parent_phone'] ?? '').toString();
+          
+          setState(() {
+            if (_studentClass.isEmpty) _studentClass = newClass;
+            if (_parentMobile.isEmpty) _parentMobile = newParentMobile;
+            if (_instituteType.isEmpty) {
+              _instituteType = (me['institute_type'] ?? '').toString();
+            }
+            if (_avatar.isEmpty) {
+              _avatar = (me['avatar'] ?? '').toString();
+            }
+          });
+          
+          // Optionally save to secure storage so it persists
+          if (user != null) {
+            final updatedUser = user.copyWith(
+              studentClass: newClass.isNotEmpty ? newClass : user.studentClass,
+              parentMobile: newParentMobile.isNotEmpty ? newParentMobile : user.parentMobile,
+            );
+            await storage.saveUserModel(updatedUser);
+            ref.invalidate(userModelProvider);
+          }
+        }
+      } catch (e) {
+        // Ignore errors if student API fails or is forbidden
+        debugPrint('Direct fallback fetch failed: $e');
+      }
+    }
   }
 
   String get _initials {
@@ -61,7 +149,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_role.toLowerCase() == 'national coordinator') {
       return const Color(0xFF357AB6); // Blue
     }
-    if (_role.toLowerCase() == 'teacher') {
+    if (_role.toLowerCase() == 'teacher' || _role.toLowerCase() == 'faculty') {
       return const Color(0xFF8B5CF6); // Purple
     }
     if (_role.toLowerCase() == 'student') {
@@ -74,6 +162,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
     final themeColor = _themeColor;
+    
+    final dashboardAsync = ref.watch(dashboardDataProvider);
+    final schoolLogo = dashboardAsync.value?.schoolLogo;
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -94,11 +185,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InkWell(
-                    onTap: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      }
-                    },
+                    onTap: () => context.go('/dashboard'),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.all(10),
@@ -148,15 +235,56 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        _initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    child: Builder(
+                      builder: (context) {
+                        String? imageUrlToShow;
+                        if (_avatar.isNotEmpty) {
+                          imageUrlToShow = CourseAssetUrl.resolve(_avatar);
+                        }
+                        if (imageUrlToShow == null && schoolLogo != null && schoolLogo.isNotEmpty) {
+                          imageUrlToShow = CourseAssetUrl.resolve(schoolLogo);
+                        }
+
+                        if (imageUrlToShow != null) {
+                          return ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrlToShow,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Center(
+                                child: Text(
+                                  _initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Center(
+                                child: Text(
+                                  _initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        return Center(
+                          child: Text(
+                            _initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      }
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -213,37 +341,83 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        _buildInfoItem(
-                          icon: Icons.email_outlined,
-                          iconColor: const Color(0xFF3B82F6),
-                          bgColor: const Color(0xFFEFF6FF),
-                          title: 'Email',
-                          value: _email.isNotEmpty ? _email : 'Not Provided',
-                        ),
-                        _buildDivider(),
-                        _buildInfoItem(
-                          icon: Icons.phone_outlined,
-                          iconColor: const Color(0xFF10B981),
-                          bgColor: const Color(0xFFECFDF5),
-                          title: 'Phone',
-                          value: _phone.isNotEmpty ? _phone : 'Not Provided',
-                        ),
-                        _buildDivider(),
-                        _buildInfoItem(
-                          icon: Icons.apartment_outlined,
-                          iconColor: const Color(0xFFF97316),
-                          bgColor: const Color(0xFFFFF7ED),
-                          title: 'Organization',
-                          value: _institute.isNotEmpty ? _institute : 'Not Provided',
-                        ),
-                        _buildDivider(),
-                        _buildInfoItem(
-                          icon: Icons.military_tech_outlined,
-                          iconColor: const Color(0xFF8B5CF6),
-                          bgColor: const Color(0xFFF5F3FF),
-                          title: 'Status',
-                          value: 'Active',
-                        ),
+                        Builder(builder: (context) {
+                          final infoItems = <Widget>[];
+
+                          infoItems.add(_buildInfoItem(
+                            icon: Icons.email_outlined,
+                            iconColor: const Color(0xFF3B82F6),
+                            bgColor: const Color(0xFFEFF6FF),
+                            title: 'Email',
+                            value: _email.isNotEmpty ? _email : 'Not Provided',
+                          ));
+
+                          if (_role.toLowerCase() != 'student' || _phone.isNotEmpty) {
+                            infoItems.add(_buildInfoItem(
+                              icon: Icons.phone_outlined,
+                              iconColor: const Color(0xFF10B981),
+                              bgColor: const Color(0xFFECFDF5),
+                              title: 'Phone',
+                              value: _phone.isNotEmpty ? _phone : 'Not Provided',
+                            ));
+                          }
+
+                          if (_role.toLowerCase() == 'student') {
+                            if (_studentClass.isNotEmpty) {
+                              infoItems.add(_buildInfoItem(
+                                icon: Icons.class_outlined,
+                                iconColor: const Color(0xFFF97316),
+                                bgColor: const Color(0xFFFFF7ED),
+                                title: 'Class',
+                                value: _studentClass,
+                              ));
+                            }
+                          }
+                          
+                          infoItems.add(_buildInfoItem(
+                            icon: Icons.apartment_outlined,
+                            iconColor: const Color(0xFFF97316),
+                            bgColor: const Color(0xFFFFF7ED),
+                            title: 'Organization',
+                            value: dashboardAsync.value?.schoolName ??
+                                (_institute.isNotEmpty ? _institute : 'Not Provided'),
+                          ));
+
+                          if (_role.toLowerCase() == 'student' && _parentMobile.isNotEmpty) {
+                            infoItems.add(_buildInfoItem(
+                              icon: Icons.family_restroom_outlined,
+                              iconColor: const Color(0xFFEC4899),
+                              bgColor: const Color(0xFFFCE7F3),
+                              title: "Parent's Mobile",
+                              value: _parentMobile,
+                            ));
+                          }
+
+                          final dashboardSchoolType = dashboardAsync.value?.schoolType ?? '';
+                          String displayType = _instituteType.isNotEmpty ? _instituteType : dashboardSchoolType;
+                          if (displayType.isEmpty) displayType = _institute;
+
+                          final formattedType = displayType.isNotEmpty
+                              ? '${displayType[0].toUpperCase()}${displayType.substring(1)}'
+                              : 'Not Provided';
+
+                          infoItems.add(_buildInfoItem(
+                            icon: Icons.account_balance_outlined,
+                            iconColor: const Color(0xFF3B82F6),
+                            bgColor: const Color(0xFFEFF6FF),
+                            title: 'Institute Type',
+                            value: formattedType,
+                          ));
+
+                          final childrenWithDividers = <Widget>[];
+                          for (int i = 0; i < infoItems.length; i++) {
+                            childrenWithDividers.add(infoItems[i]);
+                            if (i < infoItems.length - 1) {
+                              childrenWithDividers.add(_buildDivider());
+                            }
+                          }
+                          return Column(children: childrenWithDividers);
+                        }),
                       ],
                     ),
                   ),

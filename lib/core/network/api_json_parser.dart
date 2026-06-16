@@ -8,7 +8,16 @@ class ApiJsonParser {
     return null;
   }
 
-  static List<Map<String, dynamic>> extractList(Map<String, dynamic> response) {
+  static List<Map<String, dynamic>> extractList(dynamic response) {
+    if (response is List) {
+      return response
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    
+    if (response is! Map) return [];
+    final mapResponse = response as Map<String, dynamic>;
     const priorityKeys = [
       'data',
       'items',
@@ -16,13 +25,15 @@ class ApiJsonParser {
       'records',
       'notices',
       'courses',
+      'schools',
+      'events',
       'modules',
       'list',
       'rows',
     ];
 
     for (final key in priorityKeys) {
-      final val = response[key];
+      final val = mapResponse[key];
       if (val is List) {
         return val
             .whereType<Map>()
@@ -40,7 +51,7 @@ class ApiJsonParser {
       }
     }
 
-    for (final val in response.values) {
+    for (final val in mapResponse.values) {
       if (val is List && val.isNotEmpty) {
         return val
             .whereType<Map>()
@@ -63,6 +74,12 @@ class ApiJsonParser {
   static String asString(dynamic value) {
     if (value == null) return '';
     return value.toString().trim();
+  }
+
+  static String? tryString(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    return str.isEmpty ? null : str;
   }
 
   /// Throws when the API returns an error envelope (e.g. `{ "error": "...", "message": "..." }`).

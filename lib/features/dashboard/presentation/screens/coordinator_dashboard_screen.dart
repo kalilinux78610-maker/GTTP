@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class CoordinatorDashboardScreen extends ConsumerStatefulWidget {
   final String displayName;
@@ -81,10 +84,10 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                       title: 'Institute Records',
                       subtitle: 'View and manage institutional & college students',
                       trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalSchools} Schools',
-                        orElse: () => 'Schools',
+                        data: (data) => '${data.totalSchools} Schools & Colleges',
+                        orElse: () => 'Schools & Colleges',
                       ),
-                      onTap: () {},
+                      onTap: () => context.push('/dashboard/school-network'),
                       isDark: isDark,
                     ),
                     const SizedBox(height: 16),
@@ -119,7 +122,7 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: 280,
+              height: 300,
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -127,7 +130,7 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                      : [const Color(0xFF0052CC), const Color(0xFF003D99)],
+                      : [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
                 ),
               ),
               child: SafeArea(
@@ -135,81 +138,116 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 88),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                            ),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              height: 28,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.language, color: Colors.white, size: 28),
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
                                 ),
                               ],
                             ),
-                            child: CircleAvatar(
-                              backgroundColor: Colors.white.withValues(alpha: 0.15),
-                              radius: 20,
-                              child: Text(
-                                _initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              height: 32,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.language, color: Colors.blue, size: 32),
                             ),
+                          ),
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final userAsync = ref.watch(userModelProvider);
+                              final avatarUrl = userAsync.value?.avatar;
+                              
+                              Widget placeholder = Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  color: const Color(0xFFE65100),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _initials,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              );
+
+                              if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                                return Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: avatarUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => placeholder,
+                                      errorWidget: (context, url, error) => placeholder,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return placeholder;
+                            },
                           ),
                         ],
                       ),
                       const Spacer(),
+                      const SizedBox(height: 16),
                       Text(
                         _headerGreeting(),
                         maxLines: 2,
+                        textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          height: 1.1,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'NATIONAL COORDINATOR',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            letterSpacing: 1.0,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      const Text(
+                        'National Coordinator',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -221,7 +259,7 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
             Positioned(
               left: 20,
               right: 20,
-              top: 220,
+              top: 240,
               child: dashboardAsync.when(
                 data: (data) => _buildPremiumOverviewCard(
                   institutes: '${data.totalSchools}',
@@ -230,11 +268,14 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                   totalStudents: '${data.totalStudents}',
                   isDark: isDark,
                 ),
-                loading: () => _buildPremiumOverviewCard(
-                  institutes: '—',
-                  activeCourses: '—',
-                  totalStudents: '—',
-                  isDark: isDark,
+                loading: () => Skeletonizer(
+                  enabled: true,
+                  child: _buildPremiumOverviewCard(
+                    institutes: '000',
+                    activeCourses: '000',
+                    totalStudents: '000',
+                    isDark: isDark,
+                  ),
                 ),
                 error: (_, _) => _buildPremiumOverviewCard(
                   institutes: '—',
@@ -276,33 +317,20 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.public_outlined,
-                size: 20,
-                color: isDark ? Colors.white54 : Colors.black54,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'REGION OVERVIEW',
-                style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white54 : Colors.black54,
-                ),
-              ),
-            ],
+          Text(
+            'Region Overview',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildPremiumStatItem('Institutes', institutes, const Color(0xFF3B82F6), isDark),
-              Container(width: 1, height: 40, color: isDark ? Colors.white10 : Colors.black12),
               _buildPremiumStatItem('Active Courses', activeCourses, const Color(0xFFF97316), isDark),
-              Container(width: 1, height: 40, color: isDark ? Colors.white10 : Colors.black12),
               _buildPremiumStatItem('Total Students', totalStudents, const Color(0xFF22C55E), isDark),
             ],
           ),
@@ -317,20 +345,20 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
         Text(
           value,
           style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : const Color(0xFF1E293B),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
             height: 1.1,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           label.replaceAll(' ', '\n'),
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white60 : Colors.grey[600],
             height: 1.2,
           ),
         ),

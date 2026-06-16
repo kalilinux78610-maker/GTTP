@@ -2,7 +2,13 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
+import 'package:gttp/features/reports/data/models/student_progress_model.dart';
 import 'package:gttp/features/reports/data/repositories/reports_repository_impl.dart';
+
+/// Provider for the student progress
+final studentProgressProvider = FutureProvider.family<StudentProgressModel, String?>((ref, studentId) {
+  return ref.read(reportsRepositoryProvider).getStudentProgress(studentId: studentId);
+});
 
 /// Provider for the list of flagged reports
 final flaggedReportsProvider = AsyncNotifierProvider<FlaggedReportsNotifier, List<ReportModel>>(
@@ -65,9 +71,19 @@ class FlaggedReportsNotifier extends AsyncNotifier<List<ReportModel>> {
     }
   }
 
-  Future<bool> rejectReport(String id, {String? reason}) async {
+  Future<bool> approveReport(String submissionId) async {
     try {
-      await ref.read(reportsRepositoryProvider).rejectReport(id, reason: reason);
+      await ref.read(reportsRepositoryProvider).approveReport(submissionId);
+      await refresh();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> rejectReport(String submissionId, {String? reason}) async {
+    try {
+      await ref.read(reportsRepositoryProvider).rejectReport(submissionId, reason: reason);
       await refresh();
       return true;
     } catch (e) {

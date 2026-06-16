@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/data/models/dashboard_model.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/core/auth/user_role.dart';
+import 'package:gttp/features/courses/presentation/providers/courses_provider.dart';
+import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -114,17 +118,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
 
   Widget _buildHeaderAndOverview() {
     final dashboardAsync = ref.watch(dashboardDataProvider);
+    final userAsync = ref.watch(userModelProvider);
+    final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
+    
+    List<Color> gradientColors;
+    if (role == AppUserRole.faculty) {
+      gradientColors = const [Color(0xFF8B5CF6), Color(0xFF7C3AED)]; // Teacher/Faculty Purple
+    } else if (role == AppUserRole.principal) {
+      gradientColors = const [Color(0xFFE65C00), Color(0xFFCC5200)]; // Principal Orange
+    } else {
+      gradientColors = const [Color(0xFF3286C9), Color(0xFF1B639E)]; // Student/Coordinator Blue
+    }
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Blue Gradient Background
+        // Top Gradient Background
         Container(
-          height: 280,
+          height: 300,
           width: double.infinity,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF3286C9), Color(0xFF1B639E)],
+              colors: gradientColors,
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -133,56 +148,82 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Logo Box
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              spreadRadius: 2,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Logo Box
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Image.asset(
-                          'assets/images/logo.png', // Assuming exists
-                          width: 45,
-                          height: 35,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.travel_explore,
-                                  color: Color(0xFF3286C9), size: 35),
-                        ),
-                      ),
+                            child: Image.asset(
+                              'assets/images/logo.png', // Assuming exists
+                              height: 32,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.language,
+                                      color: Color(0xFF3286C9), size: 32),
+                            ),
+                          ),
                       // Profile Avatar
                       GestureDetector(
                         onTap: () => context.go('/profile'),
-                        child: Container(
-                          width: 45,
-                          height: 45,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE65C00),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        child: Consumer(
+                          builder: (context, ref, child) {
+                            final userAsync = ref.watch(userModelProvider);
+                            final avatarUrl = userAsync.value?.avatar;
+                            
+                            Widget placeholder = Container(
+                              width: 45,
+                              height: 45,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE65C00),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
                               ),
-                            ),
-                          ),
+                              child: Center(
+                                child: Text(
+                                  _initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            );
+
+                            if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                              return Container(
+                                width: 45,
+                                height: 45,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: ClipOval(
+                                  child: CachedNetworkImage(
+                                    imageUrl: avatarUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => placeholder,
+                                    errorWidget: (context, url, error) => placeholder,
+                                  ),
+                                ),
+                              );
+                            }
+                            return placeholder;
+                          },
                         ),
                       ),
                     ],
@@ -190,6 +231,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                   const SizedBox(height: 30),
                   Text(
                     _headerGreeting(),
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -202,9 +244,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                       final userAsync = ref.watch(userModelProvider);
                       return userAsync.when(
                         data: (user) {
-                          final role = AppUserRole.fromApi(user?.role);
+                          final role = AppUserRole.fromApi(user?.effectiveRole);
                           return Text(
                             role.label,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
@@ -225,7 +268,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
 
         // Overview Card (Overlapping)
         Positioned(
-          top: 210,
+          top: 240,
           left: 20,
           right: 20,
           child: Container(
@@ -254,30 +297,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                 ),
                 const SizedBox(height: 20),
                 dashboardAsync.when(
-                  data: (data) => Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildStatItem(
-                        '${data.totalCourses > 0 ? data.totalCourses : data.totalClasses}',
-                        'Total Courses',
-                        const Color(0xFF3286C9),
-                      ),
-                      _buildStatItem(
-                        '${data.totalSchedules}',
-                        'Schedules',
-                        const Color(0xFFE65C00),
-                      ),
-                      _buildStatItem(
-                        '${data.totalCertificates}',
-                        'Certificates',
-                        const Color(0xFF209E5A),
-                      ),
-                    ],
+                  data: (data) {
+                    // Fallback logic: if dashboard returns 0, try to count from the actual lists
+                    final coursesFallback = ref.watch(coursesProvider).value?.length ?? 0;
+                    final schedulesFallback = ref.watch(schedulesProvider).value?.length ?? 0;
+                    final certsFallback = ref.watch(certificatesProvider).value?.length ?? 0;
+
+                    final displayCourses = coursesFallback > 0 ? coursesFallback : (data.totalCourses > 0 ? data.totalCourses : data.totalClasses);
+                    final displaySchedules = data.totalSchedules > 0 ? data.totalSchedules : schedulesFallback;
+                    final displayCerts = data.totalCertificates > 0 ? data.totalCertificates : certsFallback;
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatItem(
+                          '$displayCourses',
+                          'Total Courses',
+                          const Color(0xFF3286C9),
+                        ),
+                        _buildStatItem(
+                          '$displaySchedules',
+                          'Schedules',
+                          const Color(0xFFE65C00),
+                        ),
+                        _buildStatItem(
+                          '$displayCerts',
+                          'Certificates',
+                          const Color(0xFF209E5A),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => Skeletonizer(
+                    enabled: true,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatItem('000', 'Total Courses', const Color(0xFF3286C9)),
+                        _buildStatItem('000', 'Schedules', const Color(0xFFE65C00)),
+                        _buildStatItem('000', 'Certificates', const Color(0xFF209E5A)),
+                      ],
+                    ),
                   ),
-                  loading: () => const Center(child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
-                  )),
                   error: (err, stack) => Center(
                     child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
                   ),
@@ -325,13 +386,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
 
   Widget _buildQuickAccessList() {
     final dashboardAsync = ref.watch(dashboardDataProvider);
+    final certsFallback = ref.watch(certificatesProvider).value?.length ?? 0;
+    
     final certCount = dashboardAsync.maybeWhen(
-      data: (d) => d.totalCertificates,
-      orElse: () => null,
+      data: (d) => d.totalCertificates > 0 ? d.totalCertificates : certsFallback,
+      orElse: () => certsFallback,
     );
-    final certTrailing = certCount == null
-        ? null
-        : '$certCount Earned';
+    
+    final certTrailing = '$certCount Earned';
 
     return Padding(
       padding: const EdgeInsets.only(top: 80, left: 24, right: 24),
@@ -347,6 +409,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             ),
           ),
           const SizedBox(height: 16),
+
           _buildQuickAccessCard(
             title: 'Certificates',
             subtitle: 'View all your earned certificates',

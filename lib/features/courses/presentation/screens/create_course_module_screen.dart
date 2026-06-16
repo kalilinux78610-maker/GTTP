@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:gttp/features/courses/presentation/widgets/file_upload_dropzone.dart';
+import 'package:gttp/features/courses/data/datasources/courses_remote_datasource.dart';
 
 class CreateCourseModuleScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -30,8 +31,8 @@ class _CreateCourseModuleScreenState extends ConsumerState<CreateCourseModuleScr
   bool _isLoading = false;
 
   final List<String> _moduleTypes = [
-    'Report Upload',
     'External Course',
+    'Report Upload',
     'Industry Visit',
     'Case Study',
     'Video',
@@ -81,15 +82,36 @@ class _CreateCourseModuleScreenState extends ConsumerState<CreateCourseModuleScr
 
     setState(() => _isLoading = true);
 
-    // Mock API delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Module created successfully')),
+    try {
+      await ref.read(coursesRemoteDataSourceProvider).createModule(
+        courseId: widget.courseId,
+        title: _titleController.text.trim(),
+        type: _selectedType!,
+        order: int.tryParse(_orderController.text.trim()),
+        durationHours: int.tryParse(_durationController.text.trim()),
+        reminderDays: int.tryParse(_reminderController.text.trim()),
       );
-      Navigator.of(context).pop();
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Module created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop(true); // pass true to trigger refresh
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create module: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -305,7 +327,7 @@ class _CreateCourseModuleScreenState extends ConsumerState<CreateCourseModuleScr
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedType,
+          initialValue: _selectedType,
           hint: const Text('Select an option'),
           dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           decoration: InputDecoration(

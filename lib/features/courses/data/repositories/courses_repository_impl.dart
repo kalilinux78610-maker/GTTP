@@ -33,4 +33,44 @@ class CoursesRepositoryImpl implements CoursesRepository {
       throw ApiException('Failed to fetch course details: $e');
     }
   }
+
+  @override
+  Future<void> enrollCourse(String id) async {
+    try {
+      await _remoteDataSource.enrollCourse(id);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to enroll in course: $e');
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getCourseEnrolledStudents(String id) async {
+    try {
+      return await _remoteDataSource.getCourseEnrolledStudents(id);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to get enrolled students: $e');
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPendingSubmissions(String courseId) async {
+    try {
+      return await _remoteDataSource.getPendingSubmissions(courseId);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to get pending submissions: $e');
+    }
+  }
+
+  @override
+  Future<void> submitQuiz(String courseId, String moduleId, int scorePercentage, bool passed) async {
+    try {
+      await _remoteDataSource.submitQuiz(courseId, moduleId, scorePercentage, passed);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to submit quiz: $e');
+    }
+  }
 }

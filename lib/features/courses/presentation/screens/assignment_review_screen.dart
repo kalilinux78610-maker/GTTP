@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../data/datasources/courses_remote_datasource.dart';
 
-class AssignmentReviewScreen extends StatefulWidget {
+class AssignmentReviewScreen extends ConsumerStatefulWidget {
   final String courseId;
-  final String moduleId;
+  final String submissionId;
+  final Map<String, dynamic>? submissionData;
 
   const AssignmentReviewScreen({
     super.key,
     required this.courseId,
-    required this.moduleId,
+    required this.submissionId,
+    this.submissionData,
   });
 
   @override
-  State<AssignmentReviewScreen> createState() => _AssignmentReviewScreenState();
+  ConsumerState<AssignmentReviewScreen> createState() => _AssignmentReviewScreenState();
 }
 
-class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
+class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen> {
   String status = 'Pending Review';
+  bool isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +35,9 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Tourism Industry Analysis Report',
-          style: TextStyle(
+        title: Text(
+          widget.submissionData?['module_name']?.toString() ?? 'Assignment Review',
+          style: const TextStyle(
             color: Color(0xFF1E293B),
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -116,36 +122,36 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tourism Industry Analysis Report',
-            style: TextStyle(
+            widget.submissionData?['module_name']?.toString() ?? 'Submission Details',
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1E293B),
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.person_outline, size: 16, color: Color(0xFF64748B)),
-              SizedBox(width: 8),
+              const Icon(Icons.person_outline, size: 16, color: Color(0xFF64748B)),
+              const SizedBox(width: 8),
               Text(
-                'Student: Amit Verma',
-                style: TextStyle(color: Color(0xFF64748B)),
+                'Student: ${widget.submissionData?['student_name']?.toString() ?? 'Unknown'}',
+                style: const TextStyle(color: Color(0xFF64748B)),
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF64748B)),
-              SizedBox(width: 8),
+              const Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF64748B)),
+              const SizedBox(width: 8),
               Text(
-                'Submitted: Oct 20, 2024',
-                style: TextStyle(color: Color(0xFF64748B)),
+                'Submitted: ${widget.submissionData?['submitted_at']?.toString() ?? 'N/A'}',
+                style: const TextStyle(color: Color(0xFF64748B)),
               ),
             ],
           ),
@@ -155,11 +161,14 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
   }
 
   Widget _buildMaterialSection() {
+    final fileUrl = widget.submissionData?['file_url']?.toString();
+    final hasFile = fileUrl != null && fileUrl.isNotEmpty;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Module Material',
+          'Student Submitted File',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -167,25 +176,51 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        ElevatedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Downloading course material...')),
-            );
-          },
-          icon: const Icon(Icons.download),
-          label: const Text('Download Material'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0F62FE),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(
+        if (!hasFile)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.attach_file_outlined, color: Color(0xFF94A3B8), size: 20),
+                SizedBox(width: 8),
+                Text('No file submitted', style: TextStyle(color: Color(0xFF94A3B8))),
+              ],
+            ),
+          )
+        else
+          ElevatedButton.icon(
+            onPressed: () => _openUrl(fileUrl),
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Open Submitted File'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F62FE),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
-        ),
       ],
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the file link')),
+        );
+      }
+    }
   }
 
   Widget _buildRequirementsChecklist() {
@@ -193,7 +228,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Requirements Checklist (2 items)',
+          'Requirements Checklist',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -202,8 +237,8 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
         ),
         const SizedBox(height: 12),
         _buildChecklistItem(
-          title: 'Submit your analysis report',
-          description: 'Minimum 500 words containing your tourism analysis.',
+          title: 'Review Submission Notes',
+          description: widget.submissionData?['notes']?.toString() ?? 'No notes provided.',
           currentStatus: status,
           statusColor: status == 'Approved' 
               ? Colors.green 
@@ -211,14 +246,6 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
                   ? Colors.red 
                   : Colors.orange,
           showActions: status == 'Pending Review',
-        ),
-        const SizedBox(height: 16),
-        _buildChecklistItem(
-          title: 'Research Data Sources',
-          description: 'Provide properly formatted citations.',
-          currentStatus: 'Approved',
-          statusColor: Colors.green,
-          showActions: false,
         ),
       ],
     );
@@ -305,9 +332,14 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
               ),
               OutlinedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Opening Student Pull Request/Document...')),
-                  );
+                  final fileUrl = widget.submissionData?['file_url']?.toString();
+                  if (fileUrl != null && fileUrl.isNotEmpty) {
+                    _openUrl(fileUrl);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No file attachment available')),
+                    );
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF0F62FE),
@@ -315,7 +347,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   minimumSize: const Size(0, 32),
                 ),
-                child: const Text('View PR', style: TextStyle(fontSize: 12)),
+                child: const Text('View File', style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
@@ -327,45 +359,25 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        status = 'Approved';
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Assignment Approved successfully!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    },
+                    onPressed: isSubmitting ? null : () => _submitReview('Approved', 'Assignment Approved successfully!'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                       elevation: 0,
                     ),
-                    child: const Text('Approve'),
+                    child: isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Approve'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        status = 'Rejected';
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Assignment Rejected. Student will be notified.'),
-                          backgroundColor: Colors.red.shade600,
-                        ),
-                      );
-                    },
+                    onPressed: isSubmitting ? null : () => _submitReview('Rejected', 'Assignment Rejected. Student will be notified.'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade50,
                       foregroundColor: Colors.red,
                       elevation: 0,
                     ),
-                    child: const Text('Reject'),
+                    child: isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red)) : const Text('Reject'),
                   ),
                 ),
               ],
@@ -374,5 +386,41 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _submitReview(String newStatus, String message) async {
+    setState(() {
+      isSubmitting = true;
+    });
+
+    try {
+      final remoteSource = ref.read(coursesRemoteDataSourceProvider);
+      await remoteSource.reviewSubmission(widget.submissionId, newStatus.toLowerCase(), 'Reviewed from UI');
+      
+      setState(() {
+        status = newStatus;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.red.shade600,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to review submission: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
+    }
   }
 }

@@ -22,7 +22,7 @@ class CourseDetailsProxyScreen extends ConsumerWidget {
       ),
       error: (_, _) => CourseDetailsScreen(courseId: courseId),
       data: (user) {
-        final role = AppUserRole.fromApi(user?.role);
+        final role = AppUserRole.fromApi(user?.effectiveRole);
         if (role.isCoordinator) {
           return CoordinatorCourseDetailsScreen(courseId: courseId);
         }

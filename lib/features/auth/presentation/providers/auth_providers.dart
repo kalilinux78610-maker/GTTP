@@ -39,5 +39,5 @@ final userModelProvider = FutureProvider<UserModel?>((ref) async {
 
 final currentUserRoleProvider = FutureProvider<AppUserRole>((ref) async {
   final user = await ref.watch(userModelProvider.future);
-  return AppUserRole.fromApi(user?.role);
+  return AppUserRole.fromApi(user?.effectiveRole);
 });

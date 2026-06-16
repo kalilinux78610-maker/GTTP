@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/api_client.dart';
+import 'package:gttp/core/network/api_exception.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 
 final gttpRemoteDataSourceProvider = Provider<GttpRemoteDataSource>((ref) {
@@ -44,42 +45,33 @@ class GttpRemoteDataSource {
 
   Future<List<Map<String, dynamic>>> getFaculty() async {
     try {
-      final response = await _apiClient.get('/faculty', requiresAuth: true);
-      return _extractList(response);
+      final response = await _apiClient.get('/faculties', requiresAuth: true);
+      final faculties = _extractList(response);
+      
+      // Filter out only obvious dummy accounts
+      return faculties.where((faculty) {
+        final name = (faculty['name'] ?? faculty['faculty_name'] ?? faculty['full_name'] ?? '').toString().toLowerCase();
+        final email = (faculty['email'] ?? '').toString().toLowerCase();
+        
+        return !(name == 'dummy' || name == 'mock' || name == 'test' || 
+                 email == 'dummy@dummy.com' || email == 'test@test.com');
+      }).toList();
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[GttpRemoteDataSource] Fallback mock data for getFaculty due to error: $e');
+        debugPrint('[GttpRemoteDataSource] Error fetching faculties: $e');
       }
-      return [
-        {
-          'id': 1,
-          'name': 'Dr. Rajesh Kumar',
-          'email': 'rajesh.k@dpsdwarka.edu.in',
-          'phone': '+91 9876543210',
-          'role': 'Senior Faculty',
-        },
-        {
-          'id': 2,
-          'name': 'Anita Sharma',
-          'email': 'anita.s@dpsdwarka.edu.in',
-          'phone': '+91 9876543211',
-          'role': 'Science Teacher',
-        },
-        {
-          'id': 3,
-          'name': 'Vikram Singh',
-          'email': 'vikram.s@dpsdwarka.edu.in',
-          'phone': '+91 9876543212',
-          'role': 'Mathematics Teacher',
-        },
-        {
-          'id': 4,
-          'name': 'Meera Reddy',
-          'email': 'meera.r@dpsdwarka.edu.in',
-          'phone': '+91 9876543213',
-          'role': 'English Teacher',
-        },
-      ];
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> getFacultyDetail(String id) async {
+    try {
+      final response = await _apiClient.get('/faculties/$id', requiresAuth: true);
+      return response;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch faculty detail: $e');
     }
   }
 
@@ -116,13 +108,22 @@ class GttpRemoteDataSource {
 
     final students = _extractList(response);
 
-    if (kDebugMode && students.isNotEmpty) {
+    // Filter out only obvious dummy accounts
+    final validStudents = students.where((student) {
+      final name = (student['name'] ?? student['full_name'] ?? student['first_name'] ?? '').toString().toLowerCase();
+      final email = (student['email'] ?? '').toString().toLowerCase();
+      
+      return !(name == 'dummy' || name == 'mock' || name == 'test' || name == 'test student' ||
+               email == 'dummy@dummy.com' || email == 'test@test.com');
+    }).toList();
+
+    if (kDebugMode && validStudents.isNotEmpty) {
       debugPrint(
-        '[GttpRemoteDataSource] Total students found: ${students.length}',
+        '[GttpRemoteDataSource] First student keys: ${validStudents.first.keys.toList()}',
       );
     }
 
-    return students;
+    return validStudents;
   }
 
   Future<List<Map<String, dynamic>>> getClasses() async {

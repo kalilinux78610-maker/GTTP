@@ -12,7 +12,9 @@ import 'package:gttp/features/certificates/presentation/screens/certificates_scr
 import 'package:gttp/features/courses/presentation/screens/assignment_review_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/course_details_proxy_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/course_module_detail_screen.dart';
+import 'package:gttp/features/courses/presentation/screens/course_quiz_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/courses_screen.dart';
+import 'package:gttp/features/courses/presentation/screens/pending_submissions_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/dashboard_proxy_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/faculty_members_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/my_students_screen.dart';
@@ -26,6 +28,8 @@ import 'package:gttp/features/notices/presentation/screens/create_notice_screen.
 import 'package:gttp/features/reports/presentation/screens/data_export_screen.dart';
 import 'package:gttp/features/reports/presentation/screens/report_detail_screen.dart';
 import 'package:gttp/features/reports/presentation/screens/report_list_screen.dart';
+import 'package:gttp/features/reports/presentation/screens/student_progress_screen.dart';
+import 'package:gttp/features/reports/presentation/screens/submit_report_screen.dart';
 import 'package:gttp/features/school_network/presentation/screens/school_network_screen.dart';
 import 'package:gttp/features/events/presentation/screens/events_screen.dart';
 
@@ -67,7 +71,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isAuthenticated && loc == '/dashboard/data-export') {
         final user = await storage.getUserModel();
-        final role = AppUserRole.fromApi(user?.role);
+        final role = AppUserRole.fromApi(user?.effectiveRole);
         if (!role.canAccessDataExport) return '/dashboard';
       }
 
@@ -158,6 +162,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => const EventsScreen(),
                   ),
                   GoRoute(
+                    path: 'student-progress',
+                    builder: (context, state) => const StudentProgressScreen(),
+                  ),
+                  GoRoute(
                     path: 'gallery',
                     builder: (context, state) => const GalleryScreen(),
                   ),
@@ -203,27 +211,68 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'modules/:moduleId',
                         builder: (context, state) {
                           final courseId = state.pathParameters['id'] ?? '';
-                          final moduleId = state.pathParameters['moduleId'] ?? '';
+                          final moduleId =
+                              state.pathParameters['moduleId'] ?? '';
                           return CourseModuleDetailScreen(
                             courseId: courseId,
                             moduleId: moduleId,
                           );
                         },
+                        routes: [
+                          GoRoute(
+                            path: 'submit-report',
+                            builder: (context, state) {
+                              final courseId = state.pathParameters['id'] ?? '';
+                              final moduleId =
+                                  state.pathParameters['moduleId'] ?? '';
+                              final submoduleId =
+                                  state.uri.queryParameters['submoduleId'];
+                              return SubmitReportScreen(
+                                courseId: courseId,
+                                moduleId: moduleId,
+                                submoduleId: submoduleId,
+                              );
+                            },
+                          ),
+                          GoRoute(
+                            path: 'quiz',
+                            builder: (context, state) {
+                              final courseId = state.pathParameters['id'] ?? '';
+                              final moduleId =
+                                  state.pathParameters['moduleId'] ?? '';
+                              return CourseQuizScreen(
+                                courseId: courseId,
+                                moduleId: moduleId,
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                  GoRoute(
+                    path: ':id/pending-submissions',
+                    builder: (context, state) {
+                      final courseId = state.pathParameters['id'] ?? '';
+                      return PendingSubmissionsScreen(courseId: courseId);
+                    },
+                  ),
+                  GoRoute(
+                    path: ':id/submissions/:submissionId',
+                    builder: (context, state) {
+                      final courseId = state.pathParameters['id'] ?? '';
+                      final submissionId =
+                          state.pathParameters['submissionId'] ?? '';
+                      final extra = state.extra as Map<String, dynamic>?;
+
+                      return AssignmentReviewScreen(
+                        courseId: courseId,
+                        submissionId: submissionId,
+                        submissionData: extra,
+                      );
+                    },
+                  ),
                 ],
-              ),
-              GoRoute(
-                path: '/dashboard/assignment-review/:courseId/:moduleId',
-                builder: (context, state) {
-                  final courseId = state.pathParameters['courseId'] ?? '';
-                  final moduleId = state.pathParameters['moduleId'] ?? '';
-                  return AssignmentReviewScreen(
-                    courseId: courseId,
-                    moduleId: moduleId,
-                  );
-                },
               ),
             ],
           ),

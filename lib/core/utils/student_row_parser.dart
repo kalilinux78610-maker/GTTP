@@ -94,4 +94,19 @@ class StudentRowParser {
     }
     return 0;
   }
+
+  static String? avatar(Map<String, dynamic> row) {
+    for (final key in [
+      'avatar',
+      'profile_picture',
+      'profilePicture',
+      'image_url',
+      'imageUrl',
+      'photo',
+    ]) {
+      final v = row[key]?.toString().trim();
+      if (v != null && v.isNotEmpty) return v;
+    }
+    return null;
+  }
 }

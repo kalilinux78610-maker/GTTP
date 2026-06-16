@@ -9,9 +9,25 @@ class DashboardModel {
   final int totalSchools;
   /// Published / catalog courses count when the dashboard API sends it.
   final int totalCourses;
+  /// Number of gallery items/photos
+  final int totalGallery;
 
   /// Logged-in user display name when the API includes it (e.g. under `user`).
   final String? currentUserDisplayName;
+  
+  /// The school logo URL when resolved from the /schools endpoint.
+  final String? schoolLogo;
+
+  /// The school name from the /schools endpoint.
+  final String? schoolName;
+
+  /// The school type (institute type) from the /schools endpoint.
+  final String? schoolType;
+
+  /// Student profile specific data
+  final Map<String, dynamic>? studentProfile;
+  final Map<String, dynamic>? studentClass;
+  final List<dynamic>? enrolledCourses;
 
   DashboardModel({
     required this.totalStudents,
@@ -23,7 +39,14 @@ class DashboardModel {
     required this.totalUsers,
     required this.totalSchools,
     this.totalCourses = 0,
+    this.totalGallery = 0,
     this.currentUserDisplayName,
+    this.schoolLogo,
+    this.schoolName,
+    this.schoolType,
+    this.studentProfile,
+    this.studentClass,
+    this.enrolledCourses,
   });
 
   /// Custom fromJson that handles both snake_case and camelCase keys
@@ -33,27 +56,125 @@ class DashboardModel {
   }) {
     int pick(String snake, String camel) {
       final v = json[snake] ?? json[camel];
+      if (v == null) return 0;
       if (v is int) return v;
       if (v is num) return v.toInt();
-      return int.tryParse('$v') ?? 0;
+      return int.tryParse(v.toString()) ?? 0;
     }
 
     var totalCourses = pick('total_courses', 'totalCourses');
     if (totalCourses == 0) {
       totalCourses = pick('courses_count', 'coursesCount');
     }
+    if (totalCourses == 0) {
+      totalCourses = pick('enrolled_courses', 'enrolledCourses');
+    }
+    if (totalCourses == 0) {
+      totalCourses = pick('my_courses', 'myCourses');
+    }
+    if (totalCourses == 0 && json['courses'] is List) {
+      totalCourses = (json['courses'] as List).length;
+    }
+
+    var totalSchedules = pick('total_schedules', 'totalSchedules');
+    if (totalSchedules == 0) {
+      totalSchedules = pick('schedules_count', 'schedulesCount');
+    }
+    if (totalSchedules == 0) {
+      totalSchedules = pick('my_schedules', 'mySchedules');
+    }
+
+    var totalCertificates = pick('total_certificates', 'totalCertificates');
+    if (totalCertificates == 0) {
+      totalCertificates = pick('certificates_count', 'certificatesCount');
+    }
+    if (totalCertificates == 0) {
+      totalCertificates = pick('my_certificates', 'myCertificates');
+    }
+    if (totalCertificates == 0) {
+      totalCertificates = pick('earned_certificates', 'earnedCertificates');
+    }
 
     return DashboardModel(
       totalStudents: pick('total_students', 'totalStudents'),
       totalClasses: pick('total_classes', 'totalClasses'),
       totalNotices: pick('total_notices', 'totalNotices'),
-      totalSchedules: pick('total_schedules', 'totalSchedules'),
+      totalSchedules: totalSchedules,
       totalSyllabi: pick('total_syllabi', 'totalSyllabi'),
-      totalCertificates: pick('total_certificates', 'totalCertificates'),
+      totalCertificates: totalCertificates,
       totalUsers: pick('total_users', 'totalUsers'),
       totalSchools: pick('total_schools', 'totalSchools'),
+      totalGallery: pick('total_gallery', 'totalGallery'),
       totalCourses: totalCourses,
       currentUserDisplayName: currentUserDisplayName,
+      schoolLogo: json['school_logo'] as String? ?? json['schoolLogo'] as String?,
+      schoolName: json['school_name'] as String? ?? json['schoolName'] as String? ?? (json['school'] is Map ? json['school']['name'] as String? : null),
+      schoolType: json['school_type'] as String? ?? json['schoolType'] as String? ?? json['institute_type'] as String? ?? json['type'] as String?,
+      studentProfile: json['profile'] as Map<String, dynamic>?,
+      studentClass: json['class'] as Map<String, dynamic>?,
+      enrolledCourses: json['courses'] as List<dynamic>?,
     );
+  }
+
+  DashboardModel copyWith({
+    int? totalStudents,
+    int? totalClasses,
+    int? totalNotices,
+    int? totalSchedules,
+    int? totalSyllabi,
+    int? totalCertificates,
+    int? totalUsers,
+    int? totalSchools,
+    int? totalCourses,
+    int? totalGallery,
+    String? currentUserDisplayName,
+    String? schoolLogo,
+    String? schoolName,
+    String? schoolType,
+    Map<String, dynamic>? studentProfile,
+    Map<String, dynamic>? studentClass,
+    List<dynamic>? enrolledCourses,
+  }) {
+    return DashboardModel(
+      totalStudents: totalStudents ?? this.totalStudents,
+      totalClasses: totalClasses ?? this.totalClasses,
+      totalNotices: totalNotices ?? this.totalNotices,
+      totalSchedules: totalSchedules ?? this.totalSchedules,
+      totalSyllabi: totalSyllabi ?? this.totalSyllabi,
+      totalCertificates: totalCertificates ?? this.totalCertificates,
+      totalUsers: totalUsers ?? this.totalUsers,
+      totalSchools: totalSchools ?? this.totalSchools,
+      totalCourses: totalCourses ?? this.totalCourses,
+      totalGallery: totalGallery ?? this.totalGallery,
+      currentUserDisplayName: currentUserDisplayName ?? this.currentUserDisplayName,
+      schoolLogo: schoolLogo ?? this.schoolLogo,
+      schoolName: schoolName ?? this.schoolName,
+      schoolType: schoolType ?? this.schoolType,
+      studentProfile: studentProfile ?? this.studentProfile,
+      studentClass: studentClass ?? this.studentClass,
+      enrolledCourses: enrolledCourses ?? this.enrolledCourses,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'total_students': totalStudents,
+      'total_classes': totalClasses,
+      'total_notices': totalNotices,
+      'total_schedules': totalSchedules,
+      'total_syllabi': totalSyllabi,
+      'total_certificates': totalCertificates,
+      'total_users': totalUsers,
+      'total_schools': totalSchools,
+      'total_courses': totalCourses,
+      'total_gallery': totalGallery,
+      'currentUserDisplayName': currentUserDisplayName,
+      'school_logo': schoolLogo,
+      'school_name': schoolName,
+      'school_type': schoolType,
+      'profile': studentProfile,
+      'class': studentClass,
+      'courses': enrolledCourses,
+    };
   }
 }

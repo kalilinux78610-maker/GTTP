@@ -156,8 +156,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ),
                   onPressed: () {
-                    // Pop all screens back to login
-                    context.go('/');
+                    // Go directly to login
+                    context.go('/login');
                   },
                   child: const Text(
                     'Back to Login',

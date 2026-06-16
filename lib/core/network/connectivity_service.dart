@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
+import 'package:gttp/core/cache/sync_queue_service.dart';
 
 /// Service for checking network connectivity
 class ConnectivityService {
@@ -84,7 +86,18 @@ class ConnectivityNotifier extends Notifier<bool> {
     ) {
       final isOnline =
           !results.contains(ConnectivityResult.none) && results.isNotEmpty;
+      
+      final wasOffline = !state;
       state = isOnline;
+      
+      if (isOnline && wasOffline) {
+        if (kDebugMode) {
+          debugPrint('[Connectivity] Connection restored, processing sync queue...');
+        }
+        // Need to import apiClientProvider and SyncQueueService
+        SyncQueueService.instance.processQueue(ref.read(apiClientProvider));
+      }
+
       if (kDebugMode) {
         debugPrint('[Connectivity] Status changed: $results');
       }

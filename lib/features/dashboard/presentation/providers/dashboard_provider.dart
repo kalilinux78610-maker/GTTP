@@ -5,7 +5,7 @@ import 'package:gttp/features/dashboard/data/models/dashboard_model.dart';
 import 'package:gttp/features/dashboard/data/repositories/dashboard_repository_impl.dart';
 
 final dashboardDataProvider = FutureProvider<DashboardModel>((ref) async {
-  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+  final timer = Timer.periodic(const Duration(minutes: 5), (_) {
     if (ref.read(isOnlineProvider)) {
       ref.invalidateSelf();
     }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gttp/core/widgets/full_screen_image_viewer.dart';
 import 'package:gttp/features/courses/presentation/widgets/course_cover_image.dart';
 import 'package:gttp/features/events/data/models/event_model.dart';
 import 'package:gttp/features/events/presentation/providers/events_provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class GalleryScreen extends ConsumerWidget {
   const GalleryScreen({super.key});
@@ -64,9 +66,54 @@ class GalleryScreen extends ConsumerWidget {
                   ),
                 );
               },
-              loading: () => const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+              loading: () => Skeletonizer(
+                enabled: true,
+                child: CustomScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(height: 14, width: 80, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(4))),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Material(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Container(height: 200, color: Colors.grey),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(height: 16, width: 250, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(4))),
+                                        const SizedBox(height: 8),
+                                        Container(height: 16, width: 120, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(4))),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          childCount: 3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               error: (error, _) => _ErrorState(
@@ -161,6 +208,7 @@ class GalleryScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _EventDetailSheet(event: event),
     );
@@ -189,12 +237,7 @@ class _GalleryEventTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CourseCoverImage(
-              imageUrl: event.imageUrl,
-              height: 200,
-              fit: BoxFit.cover,
-              placeholderColor: const Color(0xFF3B82F6),
-            ),
+            _buildCollage(event),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Text(
@@ -213,6 +256,94 @@ class _GalleryEventTile extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildCollage(EventModel event) {
+    final allImages = <String>[];
+    if (event.images != null && event.images!.isNotEmpty) {
+      allImages.addAll(event.images!);
+    } else if (event.imageUrl != null) {
+      allImages.add(event.imageUrl!);
+    }
+
+    if (allImages.isEmpty) {
+      return CourseCoverImage(
+        imageUrl: null,
+        height: 200,
+        fit: BoxFit.cover,
+        placeholderColor: const Color(0xFF3B82F6),
+      );
+    }
+
+    if (allImages.length == 1) {
+      return CourseCoverImage(
+        imageUrl: allImages.first,
+        height: 200,
+        fit: BoxFit.cover,
+        placeholderColor: const Color(0xFF3B82F6),
+      );
+    }
+
+    if (allImages.length == 2) {
+      return SizedBox(
+        height: 200,
+        child: Row(
+          children: [
+            Expanded(child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover)),
+            const SizedBox(width: 2),
+            Expanded(child: CourseCoverImage(imageUrl: allImages[1], height: 200, fit: BoxFit.cover)),
+          ],
+        ),
+      );
+    }
+
+    // 3 or more images: 1 large on left, 2 smaller stacked on right
+    final hasMore = allImages.length > 3;
+    final extraCount = allImages.length - 3;
+
+    return SizedBox(
+      height: 200,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover),
+          ),
+          const SizedBox(width: 2),
+          Expanded(
+            flex: 1,
+            child: Column(
+              children: [
+                Expanded(child: CourseCoverImage(imageUrl: allImages[1], height: 100, fit: BoxFit.cover)),
+                const SizedBox(height: 2),
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CourseCoverImage(imageUrl: allImages[2], height: 100, fit: BoxFit.cover),
+                      if (hasMore)
+                        Container(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          child: Center(
+                            child: Text(
+                              '+$extraCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _EventDetailSheet extends StatelessWidget {
@@ -220,49 +351,143 @@ class _EventDetailSheet extends StatelessWidget {
 
   final EventModel event;
 
+  Widget _buildImagesCarousel(BuildContext context) {
+    final allImages = <String>[];
+    if (event.images != null && event.images!.isNotEmpty) {
+      allImages.addAll(event.images!);
+    } else if (event.imageUrl != null) {
+      allImages.add(event.imageUrl!);
+    }
+
+    if (allImages.isEmpty) {
+      return CourseCoverImage(
+        imageUrl: null,
+        height: 200,
+        borderRadius: BorderRadius.circular(16),
+        fit: BoxFit.cover,
+        placeholderColor: const Color(0xFF3B82F6),
+      );
+    }
+
+    if (allImages.length == 1) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => FullScreenImageViewer(
+              images: allImages,
+              initialIndex: 0,
+            ),
+          ));
+        },
+        child: CourseCoverImage(
+          imageUrl: allImages.first,
+          height: 200,
+          borderRadius: BorderRadius.circular(16),
+          fit: BoxFit.cover,
+          placeholderColor: const Color(0xFF3B82F6),
+        ),
+      );
+    }
+
+    return Column(
+      children: List.generate(allImages.length, (index) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: index == allImages.length - 1 ? 0 : 12.0),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => FullScreenImageViewer(
+                  images: allImages,
+                  initialIndex: index,
+                ),
+              ));
+            },
+            child: CourseCoverImage(
+              imageUrl: allImages[index],
+              height: 240,
+              width: double.infinity,
+              borderRadius: BorderRadius.circular(16),
+              fit: BoxFit.cover,
+              placeholderColor: const Color(0xFF3B82F6),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.72,
-      minChildSize: 0.45,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pop(),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.72,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) {
+          return GestureDetector(
+            onTap: () {}, // Prevent tap from bubbling to the outer detector
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            event.title,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Color(0xFF475569), size: 20),
+                            onPressed: () => Navigator.of(context).pop(),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              CourseCoverImage(
-                imageUrl: event.imageUrl,
-                height: 200,
-                borderRadius: BorderRadius.circular(16),
-                fit: BoxFit.cover,
-                placeholderColor: const Color(0xFF3B82F6),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                event.title,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  children: [
+                    _buildImagesCarousel(context),
               const SizedBox(height: 12),
               if (event.eventDate != null || event.eventTime != null || event.location != null)
                 Wrap(
@@ -288,11 +513,16 @@ class _EventDetailSheet extends StatelessWidget {
                   ),
                 ),
               ],
+                  ],
+                ),
+              ),
             ],
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  ),
+);
   }
 }
 

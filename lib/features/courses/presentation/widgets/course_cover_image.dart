@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 
 /// Course list / hero cover image with resolved storage URLs and web-friendly loading.
@@ -24,14 +24,6 @@ class CourseCoverImage extends StatelessWidget {
     this.placeholderColor = const Color(0xFF398FDE),
   });
 
-  Map<String, String>? get _httpHeaders {
-    final origin = CourseAssetUrl.assetOrigin;
-    return {
-      'Accept': 'image/*',
-      if (origin.isNotEmpty) 'Referer': origin,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final resolved = CourseAssetUrl.resolve(imageUrl);
@@ -42,7 +34,6 @@ class CourseCoverImage extends StatelessWidget {
     } else {
       child = CachedNetworkImage(
         imageUrl: resolved,
-        httpHeaders: kIsWeb ? null : _httpHeaders,
         height: height,
         width: width,
         fit: fit,
