@@ -24,6 +24,36 @@ workflows:
       - build/ios/iphonesimulator/Runner.app
       - build/ios/iphonesimulator/*.app
 
+  # Workflow 1.5: Unsigned iOS IPA Build (For Sideloading)
+  # Use this to generate an unsigned .ipa file that can be sideloaded onto a physical iPhone
+  # using tools like Sideloadly or AltStore with a free Apple ID.
+  ios-unsigned-ipa-workflow:
+    name: iOS Unsigned IPA Build (For Sideloading on Real iPhone)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Create .env file
+        script: |
+          echo "API_BASE_URL=https://gttp.efsouls.com/api" > .env
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Build unsigned iOS App
+        script: |
+          flutter build ios --release --no-codesign
+      - name: Package unsigned IPA
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          mv Runner.app Payload/
+          zip -r -q gttp_unsigned.ipa Payload
+    artifacts:
+      - build/ios/iphoneos/*.ipa
+
   # Workflow 2: TestFlight / App Store Build
   # Use this when you have an Apple Developer account ($99/yr) and want to deploy to TestFlight.
   ios-testflight-workflow:
