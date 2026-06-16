@@ -121,6 +121,15 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
         Stack(
           clipBehavior: Clip.none,
           children: [
+            Positioned(
+              top: -1000,
+              left: 0,
+              right: 0,
+              height: 1000,
+              child: Container(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFF3B82F6),
+              ),
+            ),
             Container(
               height: 300,
               width: double.infinity,

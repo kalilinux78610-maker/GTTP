@@ -80,6 +80,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     return _displayName.substring(0, 1).toUpperCase();
   }
 
+  List<Color> _getGradientColors() {
+    final userAsync = ref.watch(userModelProvider);
+    final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
+    
+    if (role == AppUserRole.faculty) {
+      return const [Color(0xFF8B5CF6), Color(0xFF7C3AED)]; // Teacher/Faculty Purple
+    } else if (role == AppUserRole.principal) {
+      return const [Color(0xFFE65C00), Color(0xFFCC5200)]; // Principal Orange
+    } else {
+      return const [Color(0xFF3286C9), Color(0xFF1B639E)]; // Student/Coordinator Blue
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<DashboardModel>>(dashboardDataProvider, (previous, next) {
@@ -92,43 +105,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
       });
     });
 
+    final gradientColors = _getGradientColors();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA),
-      body: _buildDashboardBody(),
+      body: _buildDashboardBody(gradientColors),
     );
   }
 
-  Widget _buildDashboardBody() {
+  Widget _buildDashboardBody(List<Color> gradientColors) {
     return RefreshIndicator(
       onRefresh: () async {
         return ref.refresh(dashboardDataProvider);
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            _buildHeaderAndOverview(),
-            _buildQuickAccessList(),
-            const SizedBox(height: 140), // padding for shell bottom nav
+            Positioned(
+              top: -1000,
+              left: 0,
+              right: 0,
+              height: 1000,
+              child: Container(color: gradientColors.first),
+            ),
+            Column(
+              children: [
+                _buildHeaderAndOverview(gradientColors),
+                _buildQuickAccessList(),
+                const SizedBox(height: 140), // padding for shell bottom nav
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderAndOverview() {
+  Widget _buildHeaderAndOverview(List<Color> gradientColors) {
     final dashboardAsync = ref.watch(dashboardDataProvider);
-    final userAsync = ref.watch(userModelProvider);
-    final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
-    
-    List<Color> gradientColors;
-    if (role == AppUserRole.faculty) {
-      gradientColors = const [Color(0xFF8B5CF6), Color(0xFF7C3AED)]; // Teacher/Faculty Purple
-    } else if (role == AppUserRole.principal) {
-      gradientColors = const [Color(0xFFE65C00), Color(0xFFCC5200)]; // Principal Orange
-    } else {
-      gradientColors = const [Color(0xFF3286C9), Color(0xFF1B639E)]; // Student/Coordinator Blue
-    }
 
     return Stack(
       clipBehavior: Clip.none,

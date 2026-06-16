@@ -129,6 +129,15 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         Stack(
           clipBehavior: Clip.none,
           children: [
+            Positioned(
+              top: -1000,
+              left: 0,
+              right: 0,
+              height: 1000,
+              child: Container(
+                color: isDark ? const Color(0xFF4C1D95) : const Color(0xFF8B5CF6),
+              ),
+            ),
             Container(
               height: 300,
               width: double.infinity,

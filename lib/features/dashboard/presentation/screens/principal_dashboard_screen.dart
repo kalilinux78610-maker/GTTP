@@ -137,6 +137,15 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
         Stack(
           clipBehavior: Clip.none,
           children: [
+            Positioned(
+              top: -1000,
+              left: 0,
+              right: 0,
+              height: 1000,
+              child: Container(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE65C00),
+              ),
+            ),
             Container(
               height: 300,
               width: double.infinity,
