@@ -208,20 +208,19 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             return const Center(child: Text('Course not found.'));
           }
 
-          final bottomPad = MediaQuery.of(context).padding.bottom + 100;
           final progress = (course.progressPercent ?? 0).clamp(0, 100);
           final hasDates =
               (course.startDate?.isNotEmpty ?? false) ||
               (course.endDate?.isNotEmpty ?? false);
 
           return SafeArea(
-            bottom: false,
+            bottom: true,
             child: RefreshIndicator(
               onRefresh: () async =>
                   ref.invalidate(courseDetailsProvider(widget.courseId)),
               child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(bottom: bottomPad),
+              padding: const EdgeInsets.only(bottom: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
