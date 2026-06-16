@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:gttp/features/downloads/domain/services/pdf_download_service.dart';
+import '../../../../core/router/navigation_utils.dart';
 import 'offline_pdf_viewer_screen.dart';
 import '../../data/models/course_model.dart';
 import '../../data/models/course_module_model.dart';
@@ -291,13 +293,21 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             left: 16,
             child: _overlayIconButton(
               icon: Icons.arrow_back,
-              onTap: () => context.pop(),
+              onTap: () => NavigationUtils.safePop(context),
             ),
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 16,
-            child: _overlayIconButton(icon: Icons.share_outlined, onTap: () {}),
+            child: _overlayIconButton(
+              icon: Icons.share_outlined,
+              onTap: () {
+                SharePlus.instance.share(ShareParams(
+                  text: 'Check out this course: ${course.title}\n\nDownload the GTTP app to learn more!',
+                  subject: course.title,
+                ));
+              },
+            ),
           ),
         ],
       ),

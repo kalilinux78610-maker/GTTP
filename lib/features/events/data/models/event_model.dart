@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 
@@ -47,7 +48,7 @@ class EventModel {
     if (rawImages is String && rawImages.trim().startsWith('[') && rawImages.trim().endsWith(']')) {
       try {
         processImages = jsonDecode(rawImages);
-      } catch (_) {}
+      } catch (e) { if (kDebugMode) debugPrint('Exception: $e'); }
     }
 
     if (processImages is List) {
@@ -116,3 +117,5 @@ class EventModel {
     };
   }
 }
+
+

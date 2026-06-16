@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/auth/user_profile_sync.dart';
 import 'package:gttp/core/security/secure_storage_service.dart';
@@ -27,7 +28,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
       final raw = await _remoteDataSource.fetchDashboardResponse();
       try {
         await UserProfileSync.mergeFromApiResponse(_storage, raw);
-      } catch (_) {}
+      } catch (e) { if (kDebugMode) debugPrint('Exception: $e'); }
       final data = await _remoteDataSource.getDashboardData(preloadedResponse: raw);
       await CacheService.instance.put(cacheKey, data.toJson());
       return data;
@@ -41,3 +42,5 @@ class DashboardRepositoryImpl implements DashboardRepository {
     }
   }
 }
+
+

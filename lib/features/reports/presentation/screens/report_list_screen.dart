@@ -6,6 +6,7 @@ import 'package:gttp/features/reports/data/models/report_model.dart';
 import 'package:gttp/features/reports/presentation/providers/reports_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/router/navigation_utils.dart';
 
 class ReportListScreen extends ConsumerWidget {
   const ReportListScreen({super.key});
@@ -15,8 +16,15 @@ class ReportListScreen extends ConsumerWidget {
     final reportsAsync = ref.watch(filteredReportsProvider);
     final selectedStatus = ref.watch(selectedStatusProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/dashboard');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
@@ -84,7 +92,7 @@ class ReportListScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -95,7 +103,7 @@ class ReportListScreen extends ConsumerWidget {
         children: [
           if (canPop)
             IconButton(
-              onPressed: () => context.pop(),
+              onPressed: () => NavigationUtils.safePop(context),
               icon: const Icon(
                 Icons.arrow_back_ios,
                 size: 20,
@@ -642,7 +650,7 @@ class _ReportCard extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _showOverrideDialog(
@@ -692,7 +700,7 @@ class _ReportCard extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   Color _getStatusColor(ReportStatus status) {

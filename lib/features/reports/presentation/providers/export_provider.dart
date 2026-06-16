@@ -59,16 +59,28 @@ final exportStudentsProvider = FutureProvider<List<StudentModel>>((ref) async {
     classes,
     nameKeys: ['name', 'title', 'class_name', 'course_name', 'school_class'],
   );
+  return await compute(_parseStudents, {
+    'rawStudents': rawStudents,
+    'schoolNameById': schoolNameById,
+    'classNameById': classNameById,
+  });
+});
+
+List<StudentModel> _parseStudents(Map<String, dynamic> payload) {
+  final rawStudents = payload['rawStudents'] as List<dynamic>;
+  final schoolNameById = payload['schoolNameById'] as Map<String, String>;
+  final classNameById = payload['classNameById'] as Map<String, String>;
+
   return rawStudents
       .map(
         (row) => _studentFromApi(
-          row,
+          row as Map<String, dynamic>,
           schoolNameById: schoolNameById,
           classNameById: classNameById,
         ),
       )
       .toList();
-});
+}
 
 final filteredExportStudentsProvider =
     FutureProvider.family<List<StudentModel>, StudentFilterParams>((

@@ -5,12 +5,14 @@ import 'package:dotted_border/dotted_border.dart';
 import '../../data/models/course_module_model.dart';
 import '../../data/models/course_session_model.dart';
 import '../providers/course_module_provider.dart';
+import '../providers/course_details_provider.dart';
 import '../utils/course_links.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:gttp/features/courses/presentation/widgets/course_module_video_player.dart';
 import 'package:gttp/features/courses/data/datasources/courses_remote_datasource.dart';
+import 'package:gttp/features/courses/presentation/screens/material_viewer_screen.dart';
 
 class CourseModuleDetailScreen extends ConsumerWidget {
   final String courseId;
@@ -313,10 +315,13 @@ class _ModuleBody extends ConsumerWidget {
                       backgroundColor: Color(0xFF1F9254),
                     ),
                   );
-                  // Silently mark module complete in background
+                  // Silently mark module complete in background and refresh course details
                   ref.read(coursesRemoteDataSourceProvider)
                       .markModuleComplete(m.courseId, m.id)
-                      .catchError((_) {});
+                      .then((data) {
+                    ref.invalidate(courseDetailsProvider(m.courseId));
+                    ref.invalidate(courseModuleProvider((courseId: m.courseId, moduleId: m.id)));
+                  }).catchError((_) {});
                 },
               )
             else
@@ -390,11 +395,20 @@ class _ModuleBody extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () => openCourseUrl(
-                      context,
-                      m.materialUrl,
-                      errorMessage: 'Module material not available.',
-                    ),
+                    onPressed: () {
+                      if (m.materialUrl != null && m.materialUrl!.isNotEmpty) {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => MaterialViewerScreen(
+                            url: m.materialUrl!,
+                            title: m.materialLabel ?? 'Module Material',
+                          ),
+                        ));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Module material not available.')),
+                        );
+                      }
+                    },
                     icon: const Icon(Icons.download_outlined, size: 18),
                     label: const Text('Download Material'),
                     style: FilledButton.styleFrom(

@@ -1,0 +1,57 @@
+workflows:
+  # Workflow 1: iOS Simulator Build
+  # Use this if you don't have an Apple Developer account yet, but want to test the UI.
+  # It generates a `.app` file that can be dragged into an iOS Simulator on a Mac or uploaded to Appetize.io
+  ios-simulator-workflow:
+    name: iOS Simulator Build (No Apple Account Needed)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Build iOS for Simulator
+        script: |
+          flutter build ios --simulator --debug
+    artifacts:
+      - build/ios/iphonesimulator/Runner.app
+      - build/ios/iphonesimulator/*.app
+
+  # Workflow 2: TestFlight / App Store Build
+  # Use this when you have an Apple Developer account ($99/yr) and want to deploy to TestFlight.
+  ios-testflight-workflow:
+    name: iOS TestFlight Build (Requires Apple Developer Account)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        # NOTE: You need to set up a group named "app_store_credentials" in Codemagic UI
+        # containing your App Store Connect API Key, Issuer ID, and Key ID.
+        - app_store_credentials
+    scripts:
+      - name: Set up iOS code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "com.efsouls.gttp" --type IOS_APP_STORE --create
+          keychain add-certificates
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Build iOS App (IPA)
+        script: |
+          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers

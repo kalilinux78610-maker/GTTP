@@ -57,8 +57,7 @@ enum AppUserRole {
   /// Trust / school admin style dashboard (current default UI).
   bool get usesAdminDashboard =>
       this == AppUserRole.admin ||
-      this == AppUserRole.superAdmin ||
-      this == AppUserRole.unknown;
+      this == AppUserRole.superAdmin;
 
   bool get usesCoordinatorDashboard => isCoordinator;
   bool get usesPrincipalDashboard => isPrincipal;
@@ -68,14 +67,12 @@ enum AppUserRole {
       this == AppUserRole.admin || 
       this == AppUserRole.superAdmin || 
       this == AppUserRole.coordinator || 
-      this == AppUserRole.principal ||
-      this == AppUserRole.unknown;
+      this == AppUserRole.principal;
 
   bool get canAccessSchoolNetwork =>
       this == AppUserRole.admin ||
       this == AppUserRole.superAdmin ||
       this == AppUserRole.coordinator ||
       this == AppUserRole.principal ||
-      this == AppUserRole.faculty ||
-      this == AppUserRole.unknown;
+      this == AppUserRole.faculty;
 }

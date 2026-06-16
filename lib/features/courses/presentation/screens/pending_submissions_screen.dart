@@ -61,7 +61,7 @@ class PendingSubmissionsScreen extends ConsumerWidget {
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final sub = submissions[index];
-              final submissionId = sub['submission_id']?.toString() ?? '';
+              final submissionId = sub['id']?.toString() ?? sub['submission_id']?.toString() ?? '';
               final studentName = sub['student_name']?.toString() ?? 'Unknown Student';
               final moduleName = sub['module_name']?.toString() ?? 'Unknown Module';
               final submittedAt = sub['submitted_at']?.toString() ?? '';

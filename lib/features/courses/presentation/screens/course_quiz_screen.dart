@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/courses/presentation/providers/course_module_provider.dart';
 import '../../data/repositories/courses_repository_impl.dart';
-import '../../data/models/course_module_model.dart';
+
 
 class CourseQuizScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -105,38 +105,8 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
           }
           var questions = module.mcqQuestions;
           
-          // GRACEFUL FALLBACK: If the API returns an empty list, use dummy questions.
-          // This allows the UI to be fully testable while backend development catches up.
-          // Once the backend returns real questions, this block will be ignored.
           if (questions.isEmpty) {
-            questions = [
-              CourseModuleMcqQuestionModel(
-                id: 'dummy_q1',
-                moduleId: module.id,
-                questionText: 'What is the primary purpose of a design system?',
-                explanation: 'A design system ensures visual consistency and speeds up the development process.',
-                points: 10,
-                options: [
-                  CourseModuleMcqOptionModel(id: 'o1', questionId: 'dummy_q1', optionText: 'To write backend logic', isCorrect: false),
-                  CourseModuleMcqOptionModel(id: 'o2', questionId: 'dummy_q1', optionText: 'To ensure visual consistency across products', isCorrect: true),
-                  CourseModuleMcqOptionModel(id: 'o3', questionId: 'dummy_q1', optionText: 'To replace developers', isCorrect: false),
-                  CourseModuleMcqOptionModel(id: 'o4', questionId: 'dummy_q1', optionText: 'To manage database connections', isCorrect: false),
-                ],
-              ),
-              CourseModuleMcqQuestionModel(
-                id: 'dummy_q2',
-                moduleId: module.id,
-                questionText: 'Which of the following is a core principle of Clean Architecture?',
-                explanation: 'Clean Architecture enforces dependency rules pointing inwards toward the domain layer.',
-                points: 10,
-                options: [
-                  CourseModuleMcqOptionModel(id: 'o1', questionId: 'dummy_q2', optionText: 'Tight coupling of UI and DB', isCorrect: false),
-                  CourseModuleMcqOptionModel(id: 'o2', questionId: 'dummy_q2', optionText: 'Separation of concerns', isCorrect: true),
-                  CourseModuleMcqOptionModel(id: 'o3', questionId: 'dummy_q2', optionText: 'Using global state for everything', isCorrect: false),
-                  CourseModuleMcqOptionModel(id: 'o4', questionId: 'dummy_q2', optionText: 'Depending on external frameworks in the domain', isCorrect: false),
-                ],
-              ),
-            ];
+            return const Center(child: Text('No quiz questions available.'));
           }
 
           if (_isSubmitted) {

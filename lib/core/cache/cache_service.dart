@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:gttp/core/security/secure_storage_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 /// Service for caching API responses locally using Hive
@@ -23,12 +24,30 @@ class CacheService {
     if (_initialized) return;
     
     await Hive.initFlutter();
-    await Hive.openBox<String>(_cacheBoxName);
-    await Hive.openBox<Map>(_metadataBoxName);
+
+    final secureStorage = SecureStorageService.create();
+    final encryptionKey = await secureStorage.getOrCreateHiveKey();
+    final cipher = HiveAesCipher(encryptionKey);
+
+    try {
+      await Hive.openBox<String>(_cacheBoxName, encryptionCipher: cipher);
+      await Hive.openBox<Map>(_metadataBoxName, encryptionCipher: cipher);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Cache] Error opening box (possibly unencrypted migration): $e');
+      }
+      // Delete corrupted or unencrypted boxes
+      await Hive.deleteBoxFromDisk(_cacheBoxName);
+      await Hive.deleteBoxFromDisk(_metadataBoxName);
+      // Try again
+      await Hive.openBox<String>(_cacheBoxName, encryptionCipher: cipher);
+      await Hive.openBox<Map>(_metadataBoxName, encryptionCipher: cipher);
+    }
+
     _initialized = true;
     
     if (kDebugMode) {
-      debugPrint('[Cache] Initialized successfully');
+      debugPrint('[Cache] Initialized successfully with encryption');
     }
   }
 

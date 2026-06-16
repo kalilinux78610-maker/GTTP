@@ -371,7 +371,7 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: isSubmitting ? null : () => _submitReview('Rejected', 'Assignment Rejected. Student will be notified.'),
+                    onPressed: isSubmitting ? null : () => _showRejectDialog(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade50,
                       foregroundColor: Colors.red,
@@ -388,14 +388,50 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
     );
   }
 
-  Future<void> _submitReview(String newStatus, String message) async {
+  void _showRejectDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject Submission'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Enter reason for rejection...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isEmpty) return;
+              Navigator.pop(ctx);
+              _submitReview('Rejected', 'Assignment Rejected.', note: controller.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm Reject'),
+          ),
+        ],
+      ),
+    ).then((_) => controller.dispose());
+  }
+
+  Future<void> _submitReview(String newStatus, String message, {String note = 'Reviewed from UI'}) async {
     setState(() {
       isSubmitting = true;
     });
 
     try {
       final remoteSource = ref.read(coursesRemoteDataSourceProvider);
-      await remoteSource.reviewSubmission(widget.submissionId, newStatus.toLowerCase(), 'Reviewed from UI');
+      await remoteSource.reviewSubmission(widget.submissionId, newStatus.toLowerCase(), note);
       
       setState(() {
         status = newStatus;

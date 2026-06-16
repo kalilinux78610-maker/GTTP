@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:gttp/features/courses/presentation/widgets/course_cover_image.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
@@ -41,6 +42,20 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              final currentUrl = widget.images[_currentIndex];
+              if (currentUrl.isNotEmpty) {
+                SharePlus.instance.share(ShareParams(
+                  uri: Uri.parse(currentUrl),
+                  subject: 'Shared from GTTP',
+                ));
+              }
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [

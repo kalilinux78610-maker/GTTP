@@ -73,4 +73,14 @@ class CoursesRepositoryImpl implements CoursesRepository {
       throw ApiException('Failed to submit quiz: $e');
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> markModuleComplete(String courseId, String moduleId) async {
+    try {
+      return await _remoteDataSource.markModuleComplete(courseId, moduleId);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to mark module as complete: $e');
+    }
+  }
 }

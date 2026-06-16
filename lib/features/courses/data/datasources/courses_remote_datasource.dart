@@ -63,11 +63,15 @@ class CoursesRemoteDataSource {
     );
   }
 
-  Future<void> markModuleComplete(String courseId, String moduleId) async {
-    await _apiClient.post(
+  Future<Map<String, dynamic>> markModuleComplete(String courseId, String moduleId) async {
+    final response = await _apiClient.post(
       '/courses/$courseId/modules/$moduleId/complete',
       requiresAuth: true,
     );
+    if (response['data'] != null) {
+      return Map<String, dynamic>.from(response['data']);
+    }
+    return response;
   }
 
   Future<void> createModule({

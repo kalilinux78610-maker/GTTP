@@ -561,45 +561,15 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
               child: CircularProgressIndicator(color: Color(0xFF398FDE)),
             ),
           ),
-          error: (error, _) {
-            // Backend endpoint not yet available — show mock data
-            final mockStudents = [
-              {'name': 'Ananya Sharma', 'roll_no': '24', 'class': '10-A', 'progress_percent': 75},
-              {'name': 'Rohan Kumar', 'roll_no': '12', 'class': '10-A', 'progress_percent': 40},
-              {'name': 'Priya Singh', 'roll_no': '08', 'class': '10-A', 'progress_percent': 90},
-              {'name': 'Arjun Mehta', 'roll_no': '31', 'class': '10-A', 'progress_percent': 20},
-            ];
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3CD),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFFFD700)),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 14, color: Color(0xFF856404)),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Showing sample data — backend endpoint pending',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF856404)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildStudentList(mockStudents),
-              ],
-            );
-          },
+          error: (error, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Failed to load students: $error',
+                style: const TextStyle(color: Color(0xFFEF4444)),
+              ),
+            ),
+          ),
           data: (students) {
             if (students.isEmpty) {
               return const Padding(

@@ -346,6 +346,6 @@ class ReportDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 }

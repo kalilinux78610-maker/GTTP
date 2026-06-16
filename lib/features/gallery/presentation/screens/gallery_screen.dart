@@ -6,6 +6,7 @@ import 'package:gttp/features/courses/presentation/widgets/course_cover_image.da
 import 'package:gttp/features/events/data/models/event_model.dart';
 import 'package:gttp/features/events/presentation/providers/events_provider.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/router/navigation_utils.dart';
 
 class GalleryScreen extends ConsumerWidget {
   const GalleryScreen({super.key});
@@ -14,8 +15,15 @@ class GalleryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(eventsProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/dashboard');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F8FA),
       body: Column(
         children: [
           _buildHeaderStack(context, ref),
@@ -124,7 +132,7 @@ class GalleryScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildHeaderStack(BuildContext context, WidgetRef ref) {
@@ -153,9 +161,7 @@ class GalleryScreen extends ConsumerWidget {
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                       onPressed: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        }
+                        NavigationUtils.safePop(context);
                       },
                     ),
                   ),
@@ -237,7 +243,7 @@ class _GalleryEventTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildCollage(event),
+            _buildCollage(event, context),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Text(
@@ -257,7 +263,7 @@ class _GalleryEventTile extends StatelessWidget {
     );
   }
 
-  Widget _buildCollage(EventModel event) {
+  Widget _buildCollage(EventModel event, BuildContext context) {
     final allImages = <String>[];
     if (event.images != null && event.images!.isNotEmpty) {
       allImages.addAll(event.images!);
@@ -275,11 +281,21 @@ class _GalleryEventTile extends StatelessWidget {
     }
 
     if (allImages.length == 1) {
-      return CourseCoverImage(
-        imageUrl: allImages.first,
-        height: 200,
-        fit: BoxFit.cover,
-        placeholderColor: const Color(0xFF3B82F6),
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => FullScreenImageViewer(
+              images: allImages,
+              initialIndex: 0,
+            ),
+          ));
+        },
+        child: CourseCoverImage(
+          imageUrl: allImages.first,
+          height: 200,
+          fit: BoxFit.cover,
+          placeholderColor: const Color(0xFF3B82F6),
+        ),
       );
     }
 
@@ -288,9 +304,15 @@ class _GalleryEventTile extends StatelessWidget {
         height: 200,
         child: Row(
           children: [
-            Expanded(child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover)),
+            Expanded(child: GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 0))),
+              child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover),
+            )),
             const SizedBox(width: 2),
-            Expanded(child: CourseCoverImage(imageUrl: allImages[1], height: 200, fit: BoxFit.cover)),
+            Expanded(child: GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 1))),
+              child: CourseCoverImage(imageUrl: allImages[1], height: 200, fit: BoxFit.cover),
+            )),
           ],
         ),
       );
@@ -306,35 +328,44 @@ class _GalleryEventTile extends StatelessWidget {
         children: [
           Expanded(
             flex: 2,
-            child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 0))),
+              child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover),
+            ),
           ),
           const SizedBox(width: 2),
           Expanded(
             flex: 1,
             child: Column(
               children: [
-                Expanded(child: CourseCoverImage(imageUrl: allImages[1], height: 100, fit: BoxFit.cover)),
+                Expanded(child: GestureDetector(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 1))),
+                  child: CourseCoverImage(imageUrl: allImages[1], height: 100, fit: BoxFit.cover),
+                )),
                 const SizedBox(height: 2),
                 Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CourseCoverImage(imageUrl: allImages[2], height: 100, fit: BoxFit.cover),
-                      if (hasMore)
-                        Container(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          child: Center(
-                            child: Text(
-                              '+$extraCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 2))),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CourseCoverImage(imageUrl: allImages[2], height: 100, fit: BoxFit.cover),
+                        if (hasMore)
+                          Container(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            child: Center(
+                              child: Text(
+                                '+$extraCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],

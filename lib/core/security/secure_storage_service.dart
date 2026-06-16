@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:gttp/features/auth/data/models/user_model.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class SecureStorageService {
   SecureStorageService(this._storage);
@@ -133,5 +134,16 @@ class SecureStorageService {
 
   Future<void> clearDisplayName() {
     return _storage.delete(key: _displayNameKey);
+  }
+
+  Future<List<int>> getOrCreateHiveKey() async {
+    const String hiveKey = 'hive_encryption_key';
+    String? existingKey = await _storage.read(key: hiveKey);
+    if (existingKey == null) {
+      final key = Hive.generateSecureKey();
+      await _storage.write(key: hiveKey, value: base64UrlEncode(key));
+      return key;
+    }
+    return base64Url.decode(existingKey);
   }
 }

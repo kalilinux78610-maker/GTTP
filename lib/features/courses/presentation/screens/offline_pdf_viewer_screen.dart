@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../../core/router/navigation_utils.dart';
 
 class OfflinePdfViewerScreen extends StatefulWidget {
   final String title;
@@ -32,7 +33,7 @@ class _OfflinePdfViewerScreenState extends State<OfflinePdfViewerScreen> {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
+          onPressed: () => NavigationUtils.safePop(context),
         ),
         actions: [
           if (_isReady && _totalPages != null && _totalPages! > 0)
@@ -45,6 +46,15 @@ class _OfflinePdfViewerScreenState extends State<OfflinePdfViewerScreen> {
                 ),
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              SharePlus.instance.share(ShareParams(
+                files: [XFile(widget.localPath)],
+                text: 'Sharing material: ${widget.title}',
+              ));
+            },
+          ),
         ],
       ),
       body: Stack(

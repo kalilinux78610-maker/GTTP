@@ -8,6 +8,7 @@ import 'package:gttp/features/dashboard/presentation/providers/gttp_api_provider
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/features/reports/presentation/providers/export_provider.dart';
 import 'package:gttp/features/school_network/presentation/providers/school_network_provider.dart';
+import '../../../../core/router/navigation_utils.dart';
 
 /// Resolves a display title from `/courses` (or similar) API maps.
 String _titleFromCourseApiMap(Map<String, dynamic> c) {
@@ -237,8 +238,15 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
       }
     });
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/dashboard');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -248,7 +256,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
             color: Colors.black,
             size: 20,
           ),
-          onPressed: () => context.pop(),
+          onPressed: () => NavigationUtils.safePop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +428,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
             ),
         ],
       ),
-    );
+    ));
   }
 
   // Tappable filter tile that opens a bottom sheet picker

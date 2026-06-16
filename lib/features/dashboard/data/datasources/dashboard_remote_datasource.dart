@@ -129,9 +129,6 @@ class DashboardRemoteDataSource {
               schoolType: schoolType,
               totalSchools: 1, // Single school context
             );
-          } else if (data.isNotEmpty) {
-            // Coordinator / Admin with multiple schools
-            model = model.copyWith(totalSchools: data.length);
           }
         }
       } catch (e) {

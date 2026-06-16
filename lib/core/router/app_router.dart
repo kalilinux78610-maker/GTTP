@@ -69,10 +69,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = accessToken != null && accessToken.isNotEmpty;
       if (!isAuthenticated && !isAuthRoute) return '/login';
 
-      if (isAuthenticated && loc == '/dashboard/data-export') {
-        final user = await storage.getUserModel();
-        final role = AppUserRole.fromApi(user?.effectiveRole);
-        if (!role.canAccessDataExport) return '/dashboard';
+      if (isAuthenticated) {
+        if (loc == '/dashboard/data-export' || loc == '/dashboard/school-network') {
+          final user = await storage.getUserModel();
+          final role = AppUserRole.fromApi(user?.effectiveRole);
+          if (loc == '/dashboard/data-export' && !role.canAccessDataExport) return '/dashboard';
+          if (loc == '/dashboard/school-network' && !role.canAccessSchoolNetwork) return '/dashboard';
+        }
       }
 
       return null;

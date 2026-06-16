@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/router/navigation_utils.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/school_model.dart';
@@ -140,7 +141,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
       // We don't await schoolsProvider.future because it's a stream that
       // yields basic data quickly and then does a heavy background load.
       // Awaiting it would block the pull-to-refresh spinner until the heavy load finishes.
-    } catch (_) {}
+    } catch (e) { if (kDebugMode) debugPrint('Exception: $e'); }
   }
 
   void _clearSearch() {
@@ -211,9 +212,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                     onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      }
+                      NavigationUtils.safePop(context);
                     },
                   ),
                 ),
@@ -661,3 +660,5 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   }
 
 }
+
+
