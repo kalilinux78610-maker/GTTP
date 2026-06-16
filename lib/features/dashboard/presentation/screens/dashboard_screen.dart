@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,43 +105,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
       });
     });
 
-    final gradientColors = _getGradientColors();
-
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF6F8FA),
-        body: _buildDashboardBody(gradientColors),
-      ),
-    );
-  }
-
-  Widget _buildDashboardBody(List<Color> gradientColors) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        return ref.refresh(dashboardDataProvider);
-      },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: -1000,
-              left: 0,
-              right: 0,
-              height: 1000,
-              child: Container(color: gradientColors.first),
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      body: Stack(
+        children: [
+          // Background filler for top overscroll
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 300, // Enough to cover overscroll
+            child: Container(
+              color: _getGradientColors(isDark)[0],
             ),
-            Column(
-              children: [
-                _buildHeaderAndOverview(gradientColors),
-                _buildQuickAccessList(),
-                const SizedBox(height: 140), // padding for shell bottom nav
+          ),
+          RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(dashboardDataProvider);
+              await ref.read(dashboardDataProvider.future);
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _buildHeaderAndOverview(_getGradientColors(isDark)),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildQuickAccessList(),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).padding.bottom + 32,
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

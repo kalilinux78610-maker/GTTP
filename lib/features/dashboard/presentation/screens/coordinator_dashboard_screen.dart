@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,21 +48,31 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(dashboardDataProvider);
-          await ref.read(dashboardDataProvider.future);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: _buildHeaderWithOverview(dashboardAsync, isDark),
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      body: Stack(
+        children: [
+          // Background filler for top overscroll
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 300, // Enough to cover overscroll
+            child: Container(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFF3B82F6),
             ),
+          ),
+          RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(dashboardDataProvider);
+              await ref.read(dashboardDataProvider.future);
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _buildHeaderWithOverview(dashboardAsync, isDark),
+                ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -115,7 +124,9 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
           ],
         ),
       ),
-    ));
+    ]
+      ),
+    );
   }
 
   Widget _buildHeaderWithOverview(AsyncValue dashboardAsync, bool isDark) {
@@ -124,15 +135,6 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
         Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned(
-              top: -1000,
-              left: 0,
-              right: 0,
-              height: 1000,
-              child: Container(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFF3B82F6),
-              ),
-            ),
             Container(
               height: 300,
               width: double.infinity,
