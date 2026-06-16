@@ -397,7 +397,7 @@ class _ModuleBody extends ConsumerWidget {
                   child: FilledButton.icon(
                     onPressed: () {
                       if (m.materialUrl != null && m.materialUrl!.isNotEmpty) {
-                        Navigator.of(context).push(MaterialPageRoute(
+                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
                           builder: (_) => MaterialViewerScreen(
                             url: m.materialUrl!,
                             title: m.materialLabel ?? 'Module Material',
