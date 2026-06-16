@@ -205,12 +205,14 @@ class _NoticeDetailBody extends StatelessWidget {
                       children: [
                         const Icon(Icons.group, color: Colors.white, size: 14),
                         const SizedBox(width: 6),
-                        Text(
-                          'Target: ${notice.targetAudience}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            'Target: ${notice.targetAudience}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
@@ -231,9 +233,12 @@ class _NoticeDetailBody extends StatelessWidget {
                       const Text('•', style: TextStyle(color: Colors.white, fontSize: 14)),
                       const SizedBox(width: 16),
                     ],
-                    Text(
-                      'By ${notice.authorName}',
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    Expanded(
+                      child: Text(
+                        'By ${notice.authorName}',
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
