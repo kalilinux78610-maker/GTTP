@@ -50,29 +50,17 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          // Background filler for top overscroll
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 300, // Enough to cover overscroll
-            child: Container(
-              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE65C00),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(dashboardDataProvider);
+          await ref.read(dashboardDataProvider.future);
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildHeaderWithOverview(dashboardAsync, isDark),
             ),
-          ),
-          RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(dashboardDataProvider);
-              await ref.read(dashboardDataProvider.future);
-            },
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _buildHeaderWithOverview(dashboardAsync, isDark),
-                ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -138,8 +126,6 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
           ],
         ),
       ),
-    ]
-      ),
     );
   }
 
@@ -151,6 +137,15 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
         Stack(
           clipBehavior: Clip.none,
           children: [
+            Positioned(
+              top: -1000,
+              left: 0,
+              right: 0,
+              height: 1000,
+              child: Container(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE65C00),
+              ),
+            ),
             Container(
               height: 300,
               width: double.infinity,
