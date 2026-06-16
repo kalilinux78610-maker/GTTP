@@ -11,6 +11,9 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
+      - name: Create .env file
+        script: |
+          echo "API_BASE_URL=https://gttp.efsouls.com/api" > .env
       - name: Get Flutter packages
         script: |
           flutter pub get
@@ -36,6 +39,9 @@ workflows:
         # containing your App Store Connect API Key, Issuer ID, and Key ID.
         - app_store_credentials
     scripts:
+      - name: Create .env file
+        script: |
+          echo "API_BASE_URL=https://gttp.efsouls.com/api" > .env
       - name: Set up iOS code signing
         script: |
           keychain initialize
