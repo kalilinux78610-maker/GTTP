@@ -287,125 +287,135 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
       ),
       body: Stack(
         children: [
-          RefreshIndicator(
-            onRefresh: () async {
-              await _refreshExportData();
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatTile(
-                          'Total Students',
-                          displayedTotalStudents,
-                          const Color(0xFF3B82F6),
-                          Icons.people_outline,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildStatTile(
-                          'Expiring Soon',
-                          '$expiring',
-                          const Color(0xFFF59E0B),
-                          Icons.warning_amber_rounded,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSectionCard(
-                    title: 'Academic Year',
-                    icon: Icons.calendar_today_outlined,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: ['2026', '2025', '2024', '2023'].map((year) {
-                        final isSelected = _selectedYear == year;
-                        return InkWell(
-                          onTap: () => setState(() => _selectedYear = year),
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF3B82F6)
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              year,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF64748B),
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 13,
+          Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    await _refreshExportData();
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStatTile(
+                                'Total Students',
+                                displayedTotalStudents,
+                                const Color(0xFF3B82F6),
+                                Icons.people_outline,
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildStatTile(
+                                'Expiring Soon',
+                                '$expiring',
+                                const Color(0xFFF59E0B),
+                                Icons.warning_amber_rounded,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        _buildSectionCard(
+                          title: 'Academic Year',
+                          icon: Icons.calendar_today_outlined,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: ['2026', '2025', '2024', '2023'].map((year) {
+                              final isSelected = _selectedYear == year;
+                              return InkWell(
+                                onTap: () => setState(() => _selectedYear = year),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFF3B82F6)
+                                        : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    year,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : const Color(0xFF64748B),
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSectionCard(
+                          title: 'Filter by School',
+                          icon: Icons.filter_alt_outlined,
+                          iconColor: const Color(0xFF3B82F6),
+                          child: _buildFilterTile(
+                            value: _selectedSchool,
+                            choices: schoolChoices,
+                            hint: 'Select School',
+                            onSelected: (v) => setState(() => _selectedSchool = v),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSectionCard(
+                          title: 'Filter by Course',
+                          icon: Icons.filter_alt_outlined,
+                          iconColor: const Color(0xFF3B82F6),
+                          child: _buildFilterTile(
+                            value: _selectedCourse,
+                            choices: courseChoices,
+                            hint: 'Select Course',
+                            onSelected: (v) => setState(() => _selectedCourse = v),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDataFieldsSection(),
+                        const SizedBox(height: 16),
+                        _buildFormatSection(),
+                        const SizedBox(height: 20),
+                        _buildPreviewButton(previewCount),
+                        const SizedBox(height: 20),
+                        if (_showPreview)
+                          ..._buildDataPreviewSection(
+                            previewRows,
+                          ),
+                        if (_showPreview) const SizedBox(height: 20),
+                        _buildSummarySection(totalStudents, rowEst, estimatedSize),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                    title: 'Filter by School',
-                    icon: Icons.filter_alt_outlined,
-                    iconColor: const Color(0xFF3B82F6),
-                    child: _buildFilterTile(
-                      value: _selectedSchool,
-                      choices: schoolChoices,
-                      hint: 'Select School',
-                      onSelected: (v) => setState(() => _selectedSchool = v),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                    title: 'Filter by Course',
-                    icon: Icons.filter_alt_outlined,
-                    iconColor: const Color(0xFF3B82F6),
-                    child: _buildFilterTile(
-                      value: _selectedCourse,
-                      choices: courseChoices,
-                      hint: 'Select Course',
-                      onSelected: (v) => setState(() => _selectedCourse = v),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDataFieldsSection(),
-                  const SizedBox(height: 16),
-                  _buildFormatSection(),
-                  const SizedBox(height: 20),
-                  _buildPreviewButton(previewCount),
-                  const SizedBox(height: 20),
-                  if (_showPreview)
-                    ..._buildDataPreviewSection(
-                      previewRows,
-                    ),
-                  if (_showPreview) const SizedBox(height: 20),
-                  _buildSummarySection(totalStudents, rowEst, estimatedSize),
-                  const SizedBox(height: 24),
-                  _buildExportButton(
+                ),
+              ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 10),
+                  child: _buildExportButton(
                     totalStudents,
                     apiTotal,
                     rowEst,
                     filteredStudents,
                   ),
-                  const SizedBox(height: 100),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           if (ref.watch(exportProvider).isLoading)
             Container(
