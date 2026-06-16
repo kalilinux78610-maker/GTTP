@@ -168,9 +168,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        child: Stack(
-          children: [
+      body: Stack(
+        children: [
+          // Background filler for top overscroll
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 300, // Enough to cover overscroll
+            child: Container(
+              color: themeColor,
+            ),
+          ),
+          SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Stack(
+              children: [
             // Top Dynamic Header
             Container(
               height: 200 + topPadding,
@@ -492,6 +505,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
+      ),
+        ],
       ),
     );
   }
