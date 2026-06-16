@@ -166,23 +166,40 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
-      body: RefreshIndicator(
-        onRefresh: _refreshAllData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              _buildHeaderStack(context),
-              _buildStatsSection(
-                allSchools,
-                dashboardTotalCourses: dashboardTotalCourses,
-                coursesApiCount: coursesApiCount,
-              ),
-              _buildSchoolListSection(schoolsAsync, filteredSchools, allSchools.length),
-              const SizedBox(height: 140),
-            ],
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 240, // Match the exact height of the header's orange background
+            child: Container(
+              color: const Color(0xFFF27121),
+            ),
           ),
-        ),
+          RefreshIndicator(
+            onRefresh: _refreshAllData,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      _buildHeaderStack(context),
+                      _buildStatsSection(
+                        allSchools,
+                        dashboardTotalCourses: dashboardTotalCourses,
+                        coursesApiCount: coursesApiCount,
+                      ),
+                      _buildSchoolListSection(schoolsAsync, filteredSchools, allSchools.length),
+                      const SizedBox(height: 140),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
