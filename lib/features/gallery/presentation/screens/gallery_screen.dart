@@ -232,38 +232,6 @@ class _GalleryEventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      shadowColor: Colors.black.withValues(alpha: 0.06),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildCollage(event, context),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Text(
-                event.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCollage(EventModel event, BuildContext context) {
     final allImages = <String>[];
     if (event.images != null && event.images!.isNotEmpty) {
       allImages.addAll(event.images!);
@@ -271,107 +239,72 @@ class _GalleryEventTile extends StatelessWidget {
       allImages.add(event.imageUrl!);
     }
 
-    if (allImages.isEmpty) {
-      return CourseCoverImage(
-        imageUrl: null,
-        height: 200,
-        fit: BoxFit.cover,
-        placeholderColor: const Color(0xFF3B82F6),
-      );
-    }
+    final String? coverImage = allImages.isNotEmpty ? allImages.first : null;
 
-    if (allImages.length == 1) {
-      return GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => FullScreenImageViewer(
-              images: allImages,
-              initialIndex: 0,
-            ),
-          ));
-        },
-        child: CourseCoverImage(
-          imageUrl: allImages.first,
-          height: 200,
-          fit: BoxFit.cover,
-          placeholderColor: const Color(0xFF3B82F6),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 240,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
         ),
-      );
-    }
-
-    if (allImages.length == 2) {
-      return SizedBox(
-        height: 200,
-        child: Row(
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Expanded(child: GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 0))),
-              child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover),
-            )),
-            const SizedBox(width: 2),
-            Expanded(child: GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 1))),
-              child: CourseCoverImage(imageUrl: allImages[1], height: 200, fit: BoxFit.cover),
-            )),
-          ],
-        ),
-      );
-    }
-
-    // 3 or more images: 1 large on left, 2 smaller stacked on right
-    final hasMore = allImages.length > 3;
-    final extraCount = allImages.length - 3;
-
-    return SizedBox(
-      height: 200,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 0))),
-              child: CourseCoverImage(imageUrl: allImages[0], height: 200, fit: BoxFit.cover),
+            if (coverImage != null)
+              CourseCoverImage(
+                imageUrl: coverImage,
+                fit: BoxFit.cover,
+                placeholderColor: const Color(0xFF3B82F6),
+              )
+            else
+              Container(color: const Color(0xFF3B82F6)),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 2),
-          Expanded(
-            flex: 1,
-            child: Column(
-              children: [
-                Expanded(child: GestureDetector(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 1))),
-                  child: CourseCoverImage(imageUrl: allImages[1], height: 100, fit: BoxFit.cover),
-                )),
-                const SizedBox(height: 2),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullScreenImageViewer(images: allImages, initialIndex: 2))),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CourseCoverImage(imageUrl: allImages[2], height: 100, fit: BoxFit.cover),
-                        if (hasMore)
-                          Container(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            child: Center(
-                              child: Text(
-                                '+$extraCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    event.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                ),
-              ],
+                  if (event.eventDate != null && event.eventDate!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      event.eventDate!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
