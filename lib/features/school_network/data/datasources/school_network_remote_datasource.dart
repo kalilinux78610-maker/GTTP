@@ -10,7 +10,11 @@ class SchoolNetworkRemoteDataSource {
 
   Future<List<Map<String, dynamic>>> getSchools() async {
     try {
-      final response = await _apiClient.get('/schools', requiresAuth: true);
+      final response = await _apiClient.get(
+        '/schools',
+        requiresAuth: true,
+        queryParameters: {'limit': 1000, 'per_page': 1000},
+      );
       return ApiJsonParser.extractList(response);
     } on ApiException {
       rethrow;
