@@ -44,8 +44,8 @@ class ReportsRepositoryImpl implements ReportsRepository {
   }
 
   @override
-  Future<void> approveReport(String submissionId) {
-    return _remoteDataSource.approveReport(submissionId);
+  Future<void> approveReport(String submissionId, String nextStatus) {
+    return _remoteDataSource.approveReport(submissionId, nextStatus);
   }
 
   @override

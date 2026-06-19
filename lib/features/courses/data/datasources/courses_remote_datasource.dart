@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/core/network/api_json_parser.dart';
+import 'package:dio/dio.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import '../models/course_model.dart';
 
@@ -53,11 +54,13 @@ class CoursesRemoteDataSource {
   }
 
   Future<void> reviewSubmission(String submissionId, String status, String feedback) async {
+    final isApproved = status.toLowerCase() == 'completed' || status.toLowerCase() == 'approved';
+    final endpoint = isApproved ? '/reports/approve/$submissionId' : '/reports/reject/$submissionId';
+    
     await _apiClient.post(
-      '/admin/submissions/$submissionId/review',
+      endpoint,
       requiresAuth: true,
       data: {
-        'status': status,
         'feedback': feedback,
       },
     );
@@ -73,6 +76,35 @@ class CoursesRemoteDataSource {
     }
     return response;
   }
+
+  Future<Map<String, dynamic>> markSubmoduleComplete(String courseId, String moduleId, String submoduleId) async {
+    final response = await _apiClient.post(
+      '/courses/$courseId/modules/$moduleId/submodules/$submoduleId/complete',
+      requiresAuth: true,
+    );
+    if (response['data'] != null) {
+      return Map<String, dynamic>.from(response['data']);
+    }
+    return response;
+  }
+
+  Future<void> submitSessionProof(String courseId, String sessionId, String fileName, List<int> fileBytes) async {
+    final payload = FormData.fromMap({
+      'course_id': courseId,
+      'session_id': sessionId,
+      'file': MultipartFile.fromBytes(
+        fileBytes,
+        filename: fileName,
+      ),
+    });
+
+    await _apiClient.post(
+      '/student/session-proof',
+      requiresAuth: true,
+      data: payload,
+    );
+  }
+
 
   Future<void> createModule({
     required String courseId,

@@ -68,7 +68,7 @@ void main() {
 
       verify(() => mockSecureStorage.clearTokens()).called(1);
       verify(() => mockSecureStorage.clearPendingUserId()).called(1);
-      verify(() => mockSecureStorage.clearDisplayName()).called(1);
+      verify(() => mockSecureStorage.clearUserProfile()).called(1);
     });
   });
 }

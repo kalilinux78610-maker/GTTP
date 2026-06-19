@@ -193,6 +193,18 @@ class SchoolNetworkRepositoryImpl implements SchoolNetworkRepository {
     }
   }
 
+  @override
+  Future<Map<String, dynamic>> getFacultyDetail(String id) async {
+    try {
+      final response = await _remoteDataSource.getFacultyDetail(id);
+      return response;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to get faculty detail: $e');
+    }
+  }
+
   /// Tries to load supplemental data with a generous timeout.
   /// If it takes longer than 45 seconds, returns empty list instead of blocking.
   Future<List<Map<String, dynamic>>> _tryReadSupplementalWithTimeout(

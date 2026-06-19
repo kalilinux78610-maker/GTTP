@@ -450,6 +450,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                 ),
             ],
           ),
+          _buildCourseMetaGrid(course),
           if (hasDates) ...[
             const SizedBox(height: 16),
             Row(
@@ -525,6 +526,85 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCourseMetaGrid(CourseModel course) {
+    final List<Widget> items = [];
+
+    if (course.instructor != null && course.instructor!.isNotEmpty) {
+      items.add(_metaItem(Icons.person_outline, 'Instructor', course.instructor!));
+    }
+    if (course.level != null && course.level!.isNotEmpty) {
+      items.add(_metaItem(Icons.bar_chart_outlined, 'Level', course.level!));
+    }
+    if (course.duration != null && course.duration!.isNotEmpty) {
+      items.add(_metaItem(Icons.schedule, 'Duration', course.duration!));
+    }
+    if (course.passPercentage != null && course.passPercentage!.isNotEmpty) {
+      final val = course.passPercentage!.endsWith('%') ? course.passPercentage! : '${course.passPercentage}%';
+      items.add(_metaItem(Icons.verified_outlined, 'Pass Criteria', val));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        const Divider(color: Color(0xFFF3F4F6), height: 1),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 3,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          padding: EdgeInsets.zero,
+          children: items,
+        ),
+      ],
+    );
+  }
+
+  Widget _metaItem(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: const Color(0xFF4B5563)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],

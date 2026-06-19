@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gttp/core/theme/app_theme.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/core/network/api_exception.dart';
+import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -38,6 +39,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   Future<void> _checkAuthStatus() async {
+    // Jailbreak/Root Detection
+    bool jailbroken = false;
+    try {
+      jailbroken = await FlutterJailbreakDetection.jailbroken;
+    } catch (_) {}
+
+    if (jailbroken) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          title: Text('Security Risk Detected', style: TextStyle(color: Colors.red)),
+          content: Text('This app cannot run on a jailbroken or rooted device for security reasons. Please use a secure device.'),
+        ),
+      );
+      return;
+    }
+
     final storage = ref.read(secureStorageProvider);
     final accessToken = await storage.getAccessToken();
 

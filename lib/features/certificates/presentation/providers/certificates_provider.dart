@@ -160,3 +160,7 @@ final filteredCertificatesProvider = Provider<AsyncValue<List<CertificateModel>>
     }).toList();
   });
 });
+
+final certificateBuilderProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  return ref.read(certificatesRepositoryProvider).getCertificateBuilder();
+});

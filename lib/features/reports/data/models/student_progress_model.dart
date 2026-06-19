@@ -1,4 +1,5 @@
 import 'package:gttp/core/network/api_json_parser.dart';
+import 'package:gttp/features/courses/data/models/course_module_model.dart';
 
 class StudentProgressModel {
   final StudentDetailsModel student;
@@ -47,6 +48,9 @@ class StudentDetailsModel {
   final String? department;
   final String? semester;
   final String? academicYear;
+  final String? dateOfBirth;
+  final String? gender;
+  final String? bloodGroup;
 
   const StudentDetailsModel({
     required this.id,
@@ -62,6 +66,9 @@ class StudentDetailsModel {
     this.department,
     this.semester,
     this.academicYear,
+    this.dateOfBirth,
+    this.gender,
+    this.bloodGroup,
   });
 
   factory StudentDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -79,6 +86,9 @@ class StudentDetailsModel {
       department: ApiJsonParser.tryString(json['department']),
       semester: ApiJsonParser.tryString(json['semester']),
       academicYear: ApiJsonParser.tryString(json['academic_year']),
+      dateOfBirth: ApiJsonParser.tryString(json['date_of_birth']),
+      gender: ApiJsonParser.tryString(json['gender']),
+      bloodGroup: ApiJsonParser.tryString(json['blood_group']),
     );
   }
 
@@ -97,6 +107,9 @@ class StudentDetailsModel {
       'department': department,
       'semester': semester,
       'academic_year': academicYear,
+      'date_of_birth': dateOfBirth,
+      'gender': gender,
+      'blood_group': bloodGroup,
     };
   }
 }
@@ -156,9 +169,11 @@ class StudentModuleModel {
   final String? deadlineDate;
   final String? reminderDaysBefore;
   final bool isCompleted;
-  final List<dynamic> submodules; // Can be typed later if needed
+  final List<StudentModuleModel> submodules;
   final String type;
   final String typeLabel;
+  final String? deliveryMode;
+  final String? deliveryModeLabel;
   final String? overview;
   final String? externalUrl;
   final String? filePath;
@@ -170,6 +185,12 @@ class StudentModuleModel {
   final bool mcqShuffle;
   final String? mcqTimeLimitMinutes;
   final String? mcqShowAnswers;
+  final String status;
+  final String? submissionId;
+  final String? proofUrl;
+  final String? submittedAt;
+  final List<CourseModuleMcqQuestionModel> mcqQuestions;
+  final List<CourseModuleRequirementModel> criterias;
 
   const StudentModuleModel({
     required this.id,
@@ -188,6 +209,8 @@ class StudentModuleModel {
     required this.submodules,
     required this.type,
     required this.typeLabel,
+    this.deliveryMode,
+    this.deliveryModeLabel,
     this.overview,
     this.externalUrl,
     this.filePath,
@@ -199,12 +222,18 @@ class StudentModuleModel {
     required this.mcqShuffle,
     this.mcqTimeLimitMinutes,
     this.mcqShowAnswers,
+    this.status = 'pending',
+    this.submissionId,
+    this.proofUrl,
+    this.submittedAt,
+    this.mcqQuestions = const [],
+    this.criterias = const [],
   });
 
   factory StudentModuleModel.fromJson(Map<String, dynamic> json) {
     return StudentModuleModel(
       id: ApiJsonParser.asInt(json['id']),
-      courseId: ApiJsonParser.asString(json['course_id']),
+      courseId: ApiJsonParser.asString(json['course_id'] ?? json['module_id']),
       title: ApiJsonParser.asString(json['title']),
       order: ApiJsonParser.asString(json['order']),
       useSubmodules: ApiJsonParser.asBool(json['use_submodules']),
@@ -216,9 +245,20 @@ class StudentModuleModel {
       deadlineDate: ApiJsonParser.tryString(json['deadline_date']),
       reminderDaysBefore: ApiJsonParser.tryString(json['reminder_days_before']),
       isCompleted: ApiJsonParser.asBool(json['is_completed']),
-      submodules: json['submodules'] as List<dynamic>? ?? const [],
+      submodules: () {
+        final data = json['submodules'];
+        if (data is List) {
+          return data
+              .whereType<Map>()
+              .map((e) => StudentModuleModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+        return const <StudentModuleModel>[];
+      }(),
       type: ApiJsonParser.asString(json['type']),
       typeLabel: ApiJsonParser.asString(json['type_label']),
+      deliveryMode: ApiJsonParser.tryString(json['delivery_mode']),
+      deliveryModeLabel: ApiJsonParser.tryString(json['delivery_mode_label']),
       overview: ApiJsonParser.tryString(json['overview']),
       externalUrl: ApiJsonParser.tryString(json['external_url']),
       filePath: ApiJsonParser.tryString(json['file_path']),
@@ -230,6 +270,24 @@ class StudentModuleModel {
       mcqShuffle: ApiJsonParser.asBool(json['mcq_shuffle']),
       mcqTimeLimitMinutes: ApiJsonParser.tryString(json['mcq_time_limit_minutes']),
       mcqShowAnswers: ApiJsonParser.tryString(json['mcq_show_answers']),
+      status: ApiJsonParser.asString(json['status']).isEmpty ? 'pending' : ApiJsonParser.asString(json['status']),
+      submissionId: ApiJsonParser.tryString(json['submission_id']),
+      proofUrl: ApiJsonParser.tryString(json['proof_url']),
+      submittedAt: ApiJsonParser.tryString(json['submitted_at']),
+      mcqQuestions: () {
+        final raw = json['mcq_questions'];
+        if (raw is List) {
+          return raw.whereType<Map>().map((e) => CourseModuleMcqQuestionModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        }
+        return const <CourseModuleMcqQuestionModel>[];
+      }(),
+      criterias: () {
+        final raw = json['criterias'];
+        if (raw is List) {
+          return raw.whereType<Map>().map((e) => CourseModuleRequirementModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        }
+        return const <CourseModuleRequirementModel>[];
+      }(),
     );
   }
 
@@ -248,9 +306,11 @@ class StudentModuleModel {
       'deadline_date': deadlineDate,
       'reminder_days_before': reminderDaysBefore,
       'is_completed': isCompleted,
-      'submodules': submodules,
+      'submodules': submodules.map((e) => e.toJson()).toList(),
       'type': type,
       'type_label': typeLabel,
+      'delivery_mode': deliveryMode,
+      'delivery_mode_label': deliveryModeLabel,
       'overview': overview,
       'external_url': externalUrl,
       'file_path': filePath,
@@ -262,6 +322,12 @@ class StudentModuleModel {
       'mcq_shuffle': mcqShuffle,
       'mcq_time_limit_minutes': mcqTimeLimitMinutes,
       'mcq_show_answers': mcqShowAnswers,
+      'status': status,
+      'submission_id': submissionId,
+      'proof_url': proofUrl,
+      'submitted_at': submittedAt,
+      'mcq_questions': mcqQuestions.map((e) => e.toJson()).toList(),
+      'criterias': criterias.map((e) => e.toJson()).toList(),
     };
   }
 }

@@ -11,6 +11,7 @@ class CourseModuleRequirement {
   final String? className;
   final String? submittedAt;
   final String? fileUrl;
+  final String? submissionId;
 
   const CourseModuleRequirement({
     required this.id,
@@ -23,6 +24,7 @@ class CourseModuleRequirement {
     this.className,
     this.submittedAt,
     this.fileUrl,
+    this.submissionId,
   });
 
   bool get isApproved {
@@ -54,6 +56,9 @@ class CourseModule {
   final List<CourseModuleRequirement> requirements;
   final List<CourseSession> sessions;
   final int order;
+  
+  final int completedSubmissionsCount;
+  final int pendingSubmissionsCount;
 
   final bool mcqEnabled;
   final List<CourseModuleMcqQuestion> mcqQuestions;
@@ -76,6 +81,8 @@ class CourseModule {
     this.requirements = const [],
     this.sessions = const [],
     this.order = 0,
+    this.completedSubmissionsCount = 0,
+    this.pendingSubmissionsCount = 0,
     this.mcqEnabled = false,
     this.mcqQuestions = const [],
   });
@@ -106,6 +113,8 @@ class CourseModule {
     List<CourseModuleRequirement>? requirements,
     List<CourseSession>? sessions,
     int? order,
+    int? completedSubmissionsCount,
+    int? pendingSubmissionsCount,
     bool? mcqEnabled,
     List<CourseModuleMcqQuestion>? mcqQuestions,
   }) {
@@ -127,6 +136,8 @@ class CourseModule {
       requirements: requirements ?? this.requirements,
       sessions: sessions ?? this.sessions,
       order: order ?? this.order,
+      completedSubmissionsCount: completedSubmissionsCount ?? this.completedSubmissionsCount,
+      pendingSubmissionsCount: pendingSubmissionsCount ?? this.pendingSubmissionsCount,
       mcqEnabled: mcqEnabled ?? this.mcqEnabled,
       mcqQuestions: mcqQuestions ?? this.mcqQuestions,
     );

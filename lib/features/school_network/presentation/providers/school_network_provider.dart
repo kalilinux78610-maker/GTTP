@@ -39,17 +39,28 @@ final schoolSearchQueryProvider = NotifierProvider<SchoolSearchQueryNotifier, St
   return SchoolSearchQueryNotifier();
 });
 
+/// Filters schools by title or location (case-insensitive).
+List<SchoolModel> filterSchoolsByQuery(
+  List<SchoolModel> schools,
+  String query,
+) {
+  final q = query.toLowerCase().trim();
+  if (q.isEmpty) return schools;
+  return schools.where((school) {
+    final nameMatches = school.title.toLowerCase().contains(q);
+    final locationMatches = school.location.toLowerCase().contains(q);
+    return nameMatches || locationMatches;
+  }).toList();
+}
+
 // Filtered schools based on search
 final filteredSchoolsProvider = Provider<AsyncValue<List<SchoolModel>>>((ref) {
-  final query = ref.watch(schoolSearchQueryProvider).toLowerCase().trim();
+  final query = ref.watch(schoolSearchQueryProvider);
   final asyncSchools = ref.watch(schoolsProvider);
 
-  return asyncSchools.whenData((schools) {
-    if (query.isEmpty) return schools;
-    return schools.where((school) {
-      final nameMatches = school.title.toLowerCase().contains(query);
-      final locationMatches = school.location.toLowerCase().contains(query);
-      return nameMatches || locationMatches;
-    }).toList();
-  });
+  return asyncSchools.whenData((schools) => filterSchoolsByQuery(schools, query));
+});
+
+final facultyDetailProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) {
+  return ref.read(schoolNetworkRepositoryProvider).getFacultyDetail(id);
 });

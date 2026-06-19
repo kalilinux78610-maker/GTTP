@@ -16,3 +16,7 @@ final coursesProvider = FutureProvider.autoDispose<List<CourseModel>>((ref) asyn
   return repository.getCourses();
 });
 
+final courseEnrolledStudentsProvider = FutureProvider.family.autoDispose<List<Map<String, dynamic>>, String>((ref, courseId) async {
+  final repository = ref.watch(coursesRepositoryProvider);
+  return repository.getCourseEnrolledStudents(courseId);
+});

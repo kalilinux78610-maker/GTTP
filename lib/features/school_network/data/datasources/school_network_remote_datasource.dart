@@ -13,7 +13,13 @@ class SchoolNetworkRemoteDataSource {
       final response = await _apiClient.get(
         '/schools',
         requiresAuth: true,
-        queryParameters: {'limit': 1000, 'per_page': 1000},
+        queryParameters: {
+          'limit': 1000, 
+          'per_page': 1000,
+          'paginate': 0,
+          'pagination': false,
+          'all': true,
+        },
       );
       return ApiJsonParser.extractList(response);
     } on ApiException {
@@ -53,6 +59,17 @@ class SchoolNetworkRemoteDataSource {
       rethrow;
     } catch (e) {
       throw ApiException('Failed to fetch classes: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getFacultyDetail(String id) async {
+    try {
+      final response = await _apiClient.get('/faculties/$id', requiresAuth: true);
+      return response;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch faculty detail: $e');
     }
   }
 

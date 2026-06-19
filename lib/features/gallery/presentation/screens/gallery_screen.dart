@@ -136,14 +136,17 @@ class GalleryScreen extends ConsumerWidget {
   }
 
   Widget _buildHeaderStack(BuildContext context, WidgetRef ref) {
+    final topInset = MediaQuery.of(context).padding.top;
+    final headerHeight = 240 - 56 + topInset;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 240,
+          height: headerHeight,
           width: double.infinity,
           color: const Color(0xFF3B82F6),
-          padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
+          padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -272,29 +275,32 @@ class _GalleryEventTile extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     event.title,
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.left,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
                   if (event.eventDate != null && event.eventDate!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       event.eventDate!,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.white70,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

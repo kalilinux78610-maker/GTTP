@@ -213,8 +213,8 @@ class ReportListScreen extends ConsumerWidget {
                   isSecondary: true,
                 ),
                 _FilterChip<ReportStatus?>(
-                  label: 'Approved',
-                  value: ReportStatus.approved,
+                  label: 'Completed',
+                  value: ReportStatus.completed,
                   selectedValue: selectedStatus,
                   onSelected: (val) =>
                       ref.read(selectedStatusProvider.notifier).set(val),
@@ -709,7 +709,7 @@ class _ReportCard extends ConsumerWidget {
         return const Color(0xFFDC2626);
       case ReportStatus.pending:
         return const Color(0xFFFBBF24);
-      case ReportStatus.approved:
+      case ReportStatus.completed:
       case ReportStatus.resolved:
         return const Color(0xFF10B981);
       default:
@@ -852,12 +852,12 @@ class _StatusBadge extends StatelessWidget {
         icon = Icons.outlined_flag;
         label = 'Flagged';
         break;
-      case ReportStatus.approved:
+      case ReportStatus.completed:
       case ReportStatus.resolved:
         bgColor = const Color(0xFFECFDF5);
         textColor = const Color(0xFF10B981);
         icon = Icons.check_circle_outline;
-        label = 'Approved';
+        label = 'Completed';
         break;
       default:
         return const SizedBox.shrink();

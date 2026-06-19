@@ -10,6 +10,11 @@ class CourseSession {
   final String? submissionDeadline;
   final bool isCompleted;
   final String? fileUrl;
+  final bool requiresProofUpload;
+  final String? instructions;
+  final String? referenceMaterialUrl;
+  final String? videoUrl;
+  final String? linkVisibleFrom;
 
   const CourseSession({
     required this.id,
@@ -23,6 +28,11 @@ class CourseSession {
     this.submissionDeadline,
     this.isCompleted = false,
     this.fileUrl,
+    this.requiresProofUpload = true,
+    this.instructions,
+    this.referenceMaterialUrl,
+    this.videoUrl,
+    this.linkVisibleFrom,
   });
 
   CourseSession copyWith({
@@ -37,6 +47,11 @@ class CourseSession {
     String? submissionDeadline,
     bool? isCompleted,
     String? fileUrl,
+    bool? requiresProofUpload,
+    String? instructions,
+    String? referenceMaterialUrl,
+    String? videoUrl,
+    String? linkVisibleFrom,
   }) {
     return CourseSession(
       id: id ?? this.id,
@@ -50,6 +65,11 @@ class CourseSession {
       submissionDeadline: submissionDeadline ?? this.submissionDeadline,
       isCompleted: isCompleted ?? this.isCompleted,
       fileUrl: fileUrl ?? this.fileUrl,
+      requiresProofUpload: requiresProofUpload ?? this.requiresProofUpload,
+      instructions: instructions ?? this.instructions,
+      referenceMaterialUrl: referenceMaterialUrl ?? this.referenceMaterialUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
+      linkVisibleFrom: linkVisibleFrom ?? this.linkVisibleFrom,
     );
   }
 }

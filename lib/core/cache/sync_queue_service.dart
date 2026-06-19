@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:gttp/core/network/api_client.dart';
+import 'package:gttp/core/security/secure_storage_service.dart';
 
 class SyncQueueService {
   static const String _boxName = 'gttp_sync_queue';
@@ -19,10 +20,24 @@ class SyncQueueService {
   static Future<void> initialize() async {
     if (_initialized) return;
     await Hive.initFlutter();
-    await Hive.openBox<String>(_boxName);
+    
+    final secureStorage = SecureStorageService.create();
+    final encryptionKey = await secureStorage.getOrCreateHiveKey();
+    final cipher = HiveAesCipher(encryptionKey);
+    
+    try {
+      await Hive.openBox<String>(_boxName, encryptionCipher: cipher);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SyncQueue] Error opening box (possibly unencrypted migration): $e');
+      }
+      await Hive.deleteBoxFromDisk(_boxName);
+      await Hive.openBox<String>(_boxName, encryptionCipher: cipher);
+    }
+
     _initialized = true;
     if (kDebugMode) {
-      debugPrint('[SyncQueue] Initialized successfully');
+      debugPrint('[SyncQueue] Initialized successfully with encryption');
     }
   }
 

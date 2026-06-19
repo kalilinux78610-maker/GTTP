@@ -392,32 +392,29 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
                         const SizedBox(height: 20),
                         _buildPreviewButton(previewCount),
                         const SizedBox(height: 20),
-                        if (_showPreview)
+                        if (_showPreview) ...[
                           ..._buildDataPreviewSection(
                             previewRows,
                           ),
-                        if (_showPreview) const SizedBox(height: 20),
+                          const SizedBox(height: 20),
+                        ],
                         _buildSummarySection(totalStudents, rowEst, estimatedSize),
+                        const SizedBox(height: 24),
+                        _buildExportButton(
+                          totalStudents,
+                          apiTotal,
+                          rowEst,
+                          filteredStudents,
+                        ),
+                        const SizedBox(height: 100), // Extra padding to scroll past the bottom navigation bar
                       ],
                     ),
                   ),
                 ),
               ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 10),
-                  child: _buildExportButton(
-                    totalStudents,
-                    apiTotal,
-                    rowEst,
-                    filteredStudents,
-                  ),
-                ),
-              ),
             ],
           ),
-          if (ref.watch(exportProvider).isLoading)
+          if (ref.watch(exportProvider).isLoading) ...[
             Container(
               color: Colors.black26,
               child: const Center(
@@ -436,6 +433,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
                 ),
               ),
             ),
+          ],
         ],
       ),
     ));

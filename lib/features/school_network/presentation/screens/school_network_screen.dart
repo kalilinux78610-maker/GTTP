@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
@@ -157,6 +158,18 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
       data: (d) => d.totalCourses,
       orElse: () => null,
     );
+    final dashboardTotalSchools = dashboardAsync.maybeWhen(
+      data: (d) => d.totalSchools,
+      orElse: () => null,
+    );
+    final dashboardTotalFaculties = dashboardAsync.maybeWhen(
+      data: (d) => d.totalFaculties,
+      orElse: () => null,
+    );
+    final dashboardTotalStudents = dashboardAsync.maybeWhen(
+      data: (d) => d.totalStudents,
+      orElse: () => null,
+    );
     final coursesApiCount = ref.watch(coursesApiProvider).maybeWhen(
       data: (list) => list.length,
       orElse: () => null,
@@ -176,9 +189,12 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
               _buildStatsSection(
                 allSchools,
                 dashboardTotalCourses: dashboardTotalCourses,
+                dashboardTotalSchools: dashboardTotalSchools,
+                dashboardTotalFaculties: dashboardTotalFaculties,
+                dashboardTotalStudents: dashboardTotalStudents,
                 coursesApiCount: coursesApiCount,
               ),
-              _buildSchoolListSection(schoolsAsync, filteredSchools, allSchools.length),
+              _buildSchoolListSection(schoolsAsync, filteredSchools, dashboardTotalSchools ?? allSchools.length),
               const SizedBox(height: 140),
             ],
           ),
@@ -188,34 +204,54 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   }
 
   Widget _buildHeaderStack(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
+    final headerHeight = 240 - 56 + topInset;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 240,
+          height: headerHeight,
           width: double.infinity,
           color: const Color(0xFFF27121),
-          padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
+          padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                      onPressed: () {
+                        NavigationUtils.safePop(context);
+                      },
+                    ),
                   ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                    onPressed: () {
-                      NavigationUtils.safePop(context);
-                    },
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.download_rounded, color: Colors.white, size: 22),
+                      onPressed: () {
+                        context.push('/data-export');
+                      },
+                    ),
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 16),
               const Text(
@@ -241,12 +277,12 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
             ],
           ),
         ),
-        const SizedBox(
+        SizedBox(
           width: double.infinity,
-          height: 276,
+          height: headerHeight + 36,
         ),
         Positioned(
-          top: 204,
+          top: headerHeight - 36,
           left: 20,
           right: 20,
           child: Container(
@@ -313,17 +349,24 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
   Widget _buildStatsSection(
     List<_SchoolRow> allSchools, {
     int? dashboardTotalCourses,
+    int? dashboardTotalSchools,
+    int? dashboardTotalFaculties,
+    int? dashboardTotalStudents,
     int? coursesApiCount,
   }) {
     final total = allSchools.length;
-    final totalFaculty = allSchools.fold<int>(
-      0,
-      (sum, school) => sum + (int.tryParse(school.facultyCount) ?? 0),
-    );
-    final totalStudents = allSchools.fold<int>(
-      0,
-      (sum, school) => sum + (int.tryParse(school.studentCount) ?? 0),
-    );
+    final totalFaculty = (dashboardTotalFaculties != null && dashboardTotalFaculties > 0)
+        ? dashboardTotalFaculties
+        : allSchools.fold<int>(
+            0,
+            (sum, school) => sum + (int.tryParse(school.facultyCount) ?? 0),
+          );
+    final totalStudents = (dashboardTotalStudents != null && dashboardTotalStudents > 0)
+        ? dashboardTotalStudents
+        : allSchools.fold<int>(
+            0,
+            (sum, school) => sum + (int.tryParse(school.studentCount) ?? 0),
+          );
     final avgRaw = total == 0 ? 0.0 : totalStudents / total;
     final avgStudents = avgRaw == avgRaw.roundToDouble()
         ? '${avgRaw.round()}'
@@ -359,7 +402,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
               _buildStatCol(
                 icon: Icons.business,
                 iconBg: const Color(0xFFF27121),
-                value: '$total',
+                value: '${dashboardTotalSchools ?? total}',
                 label: 'Institutes',
                 valueColor: const Color(0xFFF27121),
               ),

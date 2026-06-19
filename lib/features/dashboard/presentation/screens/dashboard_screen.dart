@@ -8,6 +8,8 @@ import 'package:gttp/features/dashboard/presentation/providers/dashboard_provide
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/courses/presentation/providers/courses_provider.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
+import 'package:gttp/features/courses/data/models/course_asset_url.dart';
+import 'package:gttp/features/dashboard/presentation/widgets/dashboard_role_widgets.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -198,7 +200,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                         child: Consumer(
                           builder: (context, ref, child) {
                             final userAsync = ref.watch(userModelProvider);
-                            final avatarUrl = userAsync.value?.avatar;
+                            final avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
                             
                             Widget placeholder = Container(
                               width: 45,
@@ -319,29 +321,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                     final schedulesFallback = ref.watch(schedulesProvider).value?.length ?? 0;
                     final certsFallback = ref.watch(certificatesProvider).value?.length ?? 0;
 
-                    final displayCourses = coursesFallback > 0 ? coursesFallback : (data.totalCourses > 0 ? data.totalCourses : data.totalClasses);
-                    final displaySchedules = data.totalSchedules > 0 ? data.totalSchedules : schedulesFallback;
-                    final displayCerts = data.totalCertificates > 0 ? data.totalCertificates : certsFallback;
+                    final userAsync = ref.watch(userModelProvider);
+                    final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
 
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildStatItem(
-                          '$displayCourses',
-                          'Total Courses',
-                          const Color(0xFF3286C9),
-                        ),
-                        _buildStatItem(
-                          '$displaySchedules',
-                          'Schedules',
-                          const Color(0xFFE65C00),
-                        ),
-                        _buildStatItem(
-                          '$displayCerts',
-                          'Certificates',
-                          const Color(0xFF209E5A),
-                        ),
-                      ],
+                    return DashboardRoleWidgets.buildOverviewCard(
+                      role: role,
+                      data: data,
+                      buildStatItem: _buildStatItem,
+                      coursesFallback: coursesFallback,
+                      schedulesFallback: schedulesFallback,
+                      certsFallback: certsFallback,
                     );
                   },
                   loading: () => Skeletonizer(
@@ -403,47 +392,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
   Widget _buildQuickAccessList() {
     final dashboardAsync = ref.watch(dashboardDataProvider);
     final certsFallback = ref.watch(certificatesProvider).value?.length ?? 0;
-    
-    final certCount = dashboardAsync.maybeWhen(
-      data: (d) => d.totalCertificates > 0 ? d.totalCertificates : certsFallback,
-      orElse: () => certsFallback,
-    );
-    
-    final certTrailing = '$certCount Earned';
 
     return Padding(
       padding: const EdgeInsets.only(top: 80, left: 24, right: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Quick Access',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2A3A4A),
-            ),
-          ),
-          const SizedBox(height: 16),
+      child: dashboardAsync.when(
+        data: (data) {
+          final userAsync = ref.watch(userModelProvider);
+          final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
 
-          _buildQuickAccessCard(
-            title: 'Certificates',
-            subtitle: 'View all your earned certificates',
-            trailing: certTrailing,
-            icon: Icons.workspace_premium_outlined,
-            iconColor: Colors.white,
-            iconBg: const Color(0xFF209E5A),
-            onTap: () => context.go('/dashboard/certificates'),
+          return DashboardRoleWidgets.buildQuickAccessList(
+            role: role,
+            data: data,
+            buildQuickAccessCard: _buildQuickAccessCard,
+            certsFallback: certsFallback,
+            onNavigateCertificates: () => context.go('/dashboard/certificates'),
+            onNavigateGallery: () => context.go('/dashboard/gallery'),
+          );
+        },
+        loading: () => const Skeletonizer(
+          enabled: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Quick Access', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 16),
+              SizedBox(height: 80, width: double.infinity),
+            ],
           ),
-          _buildQuickAccessCard(
-            title: 'Gallery',
-            subtitle: 'View school events & competitions',
-            icon: Icons.photo_library_outlined,
-            iconColor: Colors.white,
-            iconBg: const Color(0xFFEA3A3D),
-            onTap: () => context.go('/dashboard/gallery'),
-          ),
-        ],
+        ),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }

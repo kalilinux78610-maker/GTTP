@@ -10,7 +10,7 @@ class CertificatesRemoteDataSource {
   Future<List<Map<String, dynamic>>> getCertificates() async {
     try {
       final response = await _apiClient.get(
-        '/certificates',
+        '/v1/certificates',
         requiresAuth: true,
       );
       return _extractList(response);
@@ -24,7 +24,7 @@ class CertificatesRemoteDataSource {
   Future<Map<String, dynamic>> getCertificateDetail(String id) async {
     try {
       final response = await _apiClient.get(
-        '/certificates/$id',
+        '/v1/certificates/$id',
         requiresAuth: true,
       );
       return response;
@@ -32,6 +32,20 @@ class CertificatesRemoteDataSource {
       rethrow;
     } catch (e) {
       throw ApiException('Failed to fetch certificate detail: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCertificateBuilder() async {
+    try {
+      final response = await _apiClient.get(
+        '/v1/certificatebuilder',
+        requiresAuth: true,
+      );
+      return response;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch certificate builder: $e');
     }
   }
 

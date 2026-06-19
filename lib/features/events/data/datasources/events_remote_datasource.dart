@@ -24,6 +24,16 @@ class EventsRemoteDataSource {
         .toList();
   }
 
+  Future<EventModel> getEventDetail(String id) async {
+    final response = await _apiClient.get('/events/$id', requiresAuth: true);
+
+    final data = response['data'] ?? response;
+    if (data is Map<String, dynamic>) {
+      return EventModel.fromJson(data);
+    }
+    throw Exception('Invalid event detail format from API.');
+  }
+
   List<Map<String, dynamic>> _normalizeEventsPayload(dynamic payload) {
     if (payload is List) {
       return payload

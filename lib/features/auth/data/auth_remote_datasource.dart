@@ -324,6 +324,78 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<void> logout() async {
+    try {
+      await _apiClient.post('/auth/logout', requiresAuth: true);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AuthDataSource] Server logout failed: $e');
+      // Continue to clear local tokens even if the server call fails.
+    } finally {
+      await _secureStorage.clearTokens();
+      await _secureStorage.clearPendingUserId();
+      await _secureStorage.clearUserProfile();
+    }
+  }
+
+  Future<void> fetchMe() async {
+    final response = await _apiClient.get('/auth/me', requiresAuth: true);
+    
+    final email = _readString(response, keys: ['email', 'user_email']);
+    final displayName = _readString(
+      response,
+      keys: [
+        'name',
+        'full_name',
+        'fullName',
+        'display_name',
+        'displayName',
+        'username',
+      ],
+    );
+
+    String? finalDisplayName = displayName;
+    if (finalDisplayName == null || finalDisplayName.isEmpty) {
+      final firstName = _readString(
+        response,
+        keys: ['first_name', 'firstName'],
+      );
+      final lastName = _readString(response, keys: ['last_name', 'lastName']);
+      if (firstName != null && firstName.isNotEmpty) {
+        finalDisplayName = [
+          firstName,
+          lastName,
+        ].where((s) => s != null && s.isNotEmpty).join(' ');
+      }
+    }
+
+    await _saveDisplayName(finalDisplayName, fallbackEmail: email);
+    await UserProfileSync.mergeFromApiResponse(
+      _secureStorage,
+      response,
+      fallbackEmail: email,
+    );
+  }
+
+  Future<void> updateUserProfile(Map<String, dynamic> data) async {
+    await _apiClient.post('/auth/profile/update', data: data, requiresAuth: true);
+    // After update, fetch the latest profile data
+    await fetchMe();
+  }
+
+  Future<void> uploadAvatar(String imagePath) async {
+    final formData = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(imagePath),
+    });
+    
+    await _apiClient.post(
+      '/auth/profile/avatar',
+      data: formData,
+      requiresAuth: true,
+    );
+    // After upload, fetch the latest profile data
+    await fetchMe();
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   /// Searches [response] (flat + inside 'data' and 'user' keys) for any of [keys].

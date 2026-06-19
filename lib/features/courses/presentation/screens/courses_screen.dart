@@ -353,6 +353,36 @@ class _CourseCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                if (course.isEnrolled) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Progress',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                      ),
+                      Text(
+                        '${(course.progressPercent ?? 0).clamp(0, 100)}%',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF181C1F),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: (course.progressPercent ?? 0).clamp(0, 100) / 100,
+                      minHeight: 6,
+                      backgroundColor: const Color(0xFFE8ECF0),
+                      color: const Color(0xFF398FDE),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,

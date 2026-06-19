@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import '../../data/datasources/courses_remote_datasource.dart';
 
 class AssignmentReviewScreen extends ConsumerStatefulWidget {
@@ -224,6 +225,21 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
   }
 
   Widget _buildRequirementsChecklist() {
+    final currentRole = ref.watch(currentUserRoleProvider).value;
+    final roleName = currentRole?.name.toLowerCase() ?? '';
+    
+    String buttonText = 'Approve & Mark Completed';
+    String nextStatus = 'completed';
+
+    switch (roleName) {
+      case 'coordinator':
+      case 'admin':
+      case 'superadmin':
+        buttonText = 'Finalize & Mark Completed';
+        nextStatus = 'completed';
+        break;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,12 +256,14 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
           title: 'Review Submission Notes',
           description: widget.submissionData?['notes']?.toString() ?? 'No notes provided.',
           currentStatus: status,
-          statusColor: status == 'Approved' 
+          statusColor: status == 'completed' 
               ? Colors.green 
-              : status == 'Rejected' 
+              : status == 'rejected' 
                   ? Colors.red 
                   : Colors.orange,
-          showActions: status == 'Pending Review',
+          showActions: status.toLowerCase().contains('pending'),
+          buttonText: buttonText,
+          nextStatus: nextStatus,
         ),
       ],
     );
@@ -257,6 +275,8 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
     required String currentStatus,
     required Color statusColor,
     required bool showActions,
+    required String buttonText,
+    required String nextStatus,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -359,13 +379,13 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: isSubmitting ? null : () => _submitReview('Approved', 'Assignment Approved successfully!'),
+                    onPressed: isSubmitting ? null : () => _submitReview(nextStatus, 'Assignment approved successfully!'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                       elevation: 0,
                     ),
-                    child: isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Approve'),
+                    child: isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(buttonText),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -441,7 +461,7 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.red.shade600,
+            backgroundColor: newStatus == 'completed' ? Colors.green : Colors.red.shade600,
           ),
         );
       }

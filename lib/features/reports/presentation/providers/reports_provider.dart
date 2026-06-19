@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/reports/data/models/report_model.dart';
@@ -31,17 +32,33 @@ class FlaggedReportsNotifier extends AsyncNotifier<List<ReportModel>> {
       }
     });
 
-    return ref.read(reportsRepositoryProvider).getFlaggedReports();
+    return _filterByRole(await ref.read(reportsRepositoryProvider).getFlaggedReports());
   }
 
   /// Silently fetches updates in the background without causing a loading flicker
   Future<void> _pollUpdates() async {
     try {
       final reports = await ref.read(reportsRepositoryProvider).getFlaggedReports();
-      state = AsyncData(reports);
+      state = AsyncData(_filterByRole(reports));
     } catch (_) {
       // Ignore polling errors
     }
+  }
+
+  List<ReportModel> _filterByRole(List<ReportModel> reports) {
+    final currentRole = ref.read(currentUserRoleProvider).value;
+    if (currentRole == null) return [];
+
+    return reports.where((report) {
+      switch (currentRole.name.toLowerCase()) {
+        case 'coordinator':
+        case 'admin':
+        case 'superadmin':
+          return report.status == ReportStatus.pending;
+        default:
+          return false;
+      }
+    }).toList();
   }
 
   Future<void> refresh() async {
@@ -71,9 +88,9 @@ class FlaggedReportsNotifier extends AsyncNotifier<List<ReportModel>> {
     }
   }
 
-  Future<bool> approveReport(String submissionId) async {
+  Future<bool> approveReport(String submissionId, String nextStatus) async {
     try {
-      await ref.read(reportsRepositoryProvider).approveReport(submissionId);
+      await ref.read(reportsRepositoryProvider).approveReport(submissionId, nextStatus);
       await refresh();
       return true;
     } catch (e) {

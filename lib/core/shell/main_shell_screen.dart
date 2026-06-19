@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/core/widgets/app_bottom_nav.dart';
 import 'package:gttp/features/notices/presentation/providers/notices_provider.dart';
+import 'package:gttp/core/network/connectivity_provider.dart';
 
 /// Persistent bottom navigation for all main app tabs (Dashboard, Notices, Courses, Profile).
 class MainShellScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           },
           orElse: () => null,
         );
+
+    final isOnline = ref.watch(connectivityProvider).value ?? true;
 
     // Nav bar = 70px height + 20px gap from bottom + system safe area
     // By injecting this as MediaQuery bottom padding, every screen's
@@ -91,6 +94,34 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                       initialLocation: index == widget.navigationShell.currentIndex,
                     );
                   },
+                ),
+              ),
+            if (!isOnline)
+              Positioned(
+                top: MediaQuery.of(context).padding.top,
+                left: 0,
+                right: 0,
+                child: Material(
+                  elevation: 2,
+                  child: Container(
+                    color: const Color(0xFFDC2626), // Error Red
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wifi_off, color: Colors.white, size: 14),
+                        SizedBox(width: 8),
+                        Text(
+                          'You are offline. Showing cached data.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
           ],

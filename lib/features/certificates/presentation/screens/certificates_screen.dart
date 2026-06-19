@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/certificates/data/models/certificate_model.dart';
 import 'package:gttp/features/certificates/presentation/providers/certificates_provider.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -17,6 +18,7 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
   @override
   Widget build(BuildContext context) {
     final certificatesAsync = ref.watch(filteredCertificatesProvider);
+    final roleAsync = ref.watch(currentUserRoleProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
@@ -201,6 +203,22 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: roleAsync.whenOrNull(
+        data: (role) {
+          if (role.canAccessSchoolNetwork) {
+            return FloatingActionButton.extended(
+              onPressed: () => context.push('/dashboard/certificates/builder'),
+              backgroundColor: const Color(0xFFE65C00),
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Builder',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            );
+          }
+          return null;
+        },
       ),
     );
   }

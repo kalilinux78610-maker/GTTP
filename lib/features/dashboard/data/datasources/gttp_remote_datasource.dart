@@ -45,13 +45,24 @@ class GttpRemoteDataSource {
 
   Future<List<Map<String, dynamic>>> getFaculty() async {
     try {
-      final response = await _apiClient.get('/faculties', requiresAuth: true);
+      final response = await _apiClient.get(
+        '/faculties',
+        requiresAuth: true,
+        queryParameters: {
+          'limit': 1000,
+          'per_page': 1000,
+          'paginate': 0,
+          'pagination': false,
+          'all': true,
+        },
+      );
       final faculties = _extractList(response);
       
       // Filter out only obvious dummy accounts
       return faculties.where((faculty) {
-        final name = (faculty['name'] ?? faculty['faculty_name'] ?? faculty['full_name'] ?? '').toString().toLowerCase();
-        final email = (faculty['email'] ?? '').toString().toLowerCase();
+        final userObj = faculty['user'] is Map ? Map<String, dynamic>.from(faculty['user']) : faculty;
+        final name = (userObj['name'] ?? userObj['faculty_name'] ?? userObj['full_name'] ?? '').toString().toLowerCase();
+        final email = (userObj['email'] ?? '').toString().toLowerCase();
         
         return !(name == 'dummy' || name == 'mock' || name == 'test' || 
                  email == 'dummy@dummy.com' || email == 'test@test.com');
@@ -76,8 +87,27 @@ class GttpRemoteDataSource {
   }
 
   Future<List<Map<String, dynamic>>> getSchools() async {
-    final response = await _apiClient.get('/schools', requiresAuth: true);
-    return _extractList(response);
+    final response = await _apiClient.get(
+      '/schools', 
+      requiresAuth: true,
+      queryParameters: {
+        'limit': 1000, 
+        'per_page': 1000,
+        'paginate': 0,
+        'pagination': false,
+        'all': true,
+      },
+    );
+    final schools = _extractList(response);
+
+    // Filter out dummy or test schools to match actual data
+    return schools.where((school) {
+      final name = (school['name'] ?? school['institute_name'] ?? '').toString().toLowerCase();
+      final email = (school['email'] ?? '').toString().toLowerCase();
+      
+      return !(name.contains('dummy') || name.contains('mock') || name == 'test' || name == 'test school' ||
+               email == 'dummy@dummy.com' || email == 'test@test.com');
+    }).toList();
   }
 
   Future<List<Map<String, dynamic>>> getStudents({

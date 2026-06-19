@@ -52,8 +52,9 @@ const _$ReportCategoryEnumMap = {
 
 const _$ReportStatusEnumMap = {
   ReportStatus.pending: 'pending',
+  ReportStatus.completed: 'completed',
   ReportStatus.flagged: 'flagged',
   ReportStatus.overridden: 'overridden',
-  ReportStatus.approved: 'approved',
+  ReportStatus.rejected: 'rejected',
   ReportStatus.resolved: 'resolved',
 };

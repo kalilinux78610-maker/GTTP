@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/network/api_exception.dart';
+import 'package:gttp/core/cache/cache_service.dart';
 import '../../domain/repositories/courses_repository.dart';
 import '../datasources/courses_remote_datasource.dart';
 import '../models/course_model.dart';
@@ -16,9 +17,20 @@ class CoursesRepositoryImpl implements CoursesRepository {
 
   @override
   Future<List<CourseModel>> getCourses() async {
+    const cacheKey = 'courses_list_cache';
     try {
-      return await _remoteDataSource.getCourses();
+      final courses = await _remoteDataSource.getCourses();
+      final coursesJson = courses.map((c) => c.toJson()).toList();
+      await CacheService.instance.putList(cacheKey, coursesJson);
+      return courses;
     } catch (e) {
+      final cachedJsonList = CacheService.instance.getList<Map<String, dynamic>>(
+        cacheKey,
+        fromJson: (json) => json,
+      );
+      if (cachedJsonList != null) {
+        return cachedJsonList.map((json) => CourseModel.fromJson(json)).toList();
+      }
       if (e is ApiException) rethrow;
       throw ApiException('Failed to fetch courses: $e');
     }
@@ -26,9 +38,21 @@ class CoursesRepositoryImpl implements CoursesRepository {
 
   @override
   Future<CourseModel?> getCourseDetails(String id) async {
+    final cacheKey = 'course_details_$id';
     try {
-      return await _remoteDataSource.getCourseDetails(id);
+      final course = await _remoteDataSource.getCourseDetails(id);
+      if (course != null) {
+        await CacheService.instance.put(cacheKey, course.toJson());
+      }
+      return course;
     } catch (e) {
+      final cachedJson = CacheService.instance.get<Map<String, dynamic>>(
+        cacheKey,
+        fromJson: (json) => json,
+      );
+      if (cachedJson != null) {
+        return CourseModel.fromJson(cachedJson);
+      }
       if (e is ApiException) rethrow;
       throw ApiException('Failed to fetch course details: $e');
     }
@@ -81,6 +105,26 @@ class CoursesRepositoryImpl implements CoursesRepository {
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Failed to mark module as complete: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> markSubmoduleComplete(String courseId, String moduleId, String submoduleId) async {
+    try {
+      return await _remoteDataSource.markSubmoduleComplete(courseId, moduleId, submoduleId);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to mark submodule as complete: $e');
+    }
+  }
+
+  @override
+  Future<void> submitSessionProof(String courseId, String sessionId, String fileName, List<int> fileBytes) async {
+    try {
+      await _remoteDataSource.submitSessionProof(courseId, sessionId, fileName, fileBytes);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to submit session proof: $e');
     }
   }
 }

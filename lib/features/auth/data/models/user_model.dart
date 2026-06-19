@@ -28,15 +28,45 @@ class UserModel extends User {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final schoolMap = json['school'] is Map
+        ? Map<String, dynamic>.from(json['school'] as Map)
+        : null;
+
+    String? pickString(List<String> keys, [Map<String, dynamic>? nested]) {
+      for (final key in keys) {
+        final value = json[key] ?? nested?[key];
+        if (value == null) continue;
+        if (value is Map) {
+          final inner = value['name'] ?? value['title'] ?? value['label'];
+          if (inner != null && inner.toString().trim().isNotEmpty) {
+            return inner.toString().trim();
+          }
+        } else if (value.toString().trim().isNotEmpty) {
+          return value.toString().trim();
+        }
+      }
+      return null;
+    }
+
     return UserModel(
       id: ApiJsonParser.asInt(json['id']),
       name: ApiJsonParser.asString(json['name']),
       email: ApiJsonParser.asString(json['email']),
       emailVerifiedAt: ApiJsonParser.tryString(json['email_verified_at']),
-      phone: ApiJsonParser.tryString(json['phone']),
+      phone: pickString(
+            const [
+              'phone',
+              'mobile',
+              'contact_number',
+              'contact_phone',
+              'phone_number',
+              'contact',
+            ],
+          ) ??
+          pickString(const ['phone', 'mobile'], schoolMap),
       passportNumber: ApiJsonParser.tryString(json['passport_number']),
       passportExpiry: ApiJsonParser.tryString(json['passport_expiry']),
-      roleLevel: ApiJsonParser.asInt(json['role_level']),
+      roleLevel: ApiJsonParser.asInt(json['role_level'] ?? json['roleLevel']),
       isAlumni: ApiJsonParser.asBool(json['is_alumni']),
       avatar: ApiJsonParser.tryString(json['avatar']),
       isActive: ApiJsonParser.asBool(json['is_active']),
@@ -44,15 +74,46 @@ class UserModel extends User {
       updatedAt: ApiJsonParser.tryString(json['updated_at']),
       deletedAt: ApiJsonParser.tryString(json['deleted_at']),
       schoolId: json['school_id'] != null ? ApiJsonParser.asInt(json['school_id']) : null,
-      institute: ApiJsonParser.tryString(json['institute']),
-      role: ApiJsonParser.tryString(json['role']),
-      studentClass: ApiJsonParser.tryString(json['class']) ?? ApiJsonParser.tryString(json['class_name']) ?? ApiJsonParser.tryString(json['student_class']),
+      institute: pickString(
+            const [
+              'institute',
+              'organization',
+              'organisation',
+              'trust_name',
+              'school_name',
+              'company',
+              'branch_name',
+              'center_name',
+              'centre_name',
+            ],
+          ) ??
+          pickString(const ['name', 'title', 'school_name'], schoolMap),
+      role: ApiJsonParser.tryString(json['role']) ??
+          (json['roles'] is List && (json['roles'] as List).isNotEmpty
+              ? ApiJsonParser.tryString((json['roles'] as List).first is Map
+                  ? ((json['roles'] as List).first as Map)['name']
+                  : (json['roles'] as List).first)
+              : null),
+      studentClass: ApiJsonParser.tryString(json['class']) ??
+          ApiJsonParser.tryString(json['class_name']) ??
+          ApiJsonParser.tryString(json['student_class']),
       parentName: ApiJsonParser.tryString(json['parent_name']),
-      parentMobile: ApiJsonParser.tryString(json['parent_mobile']) ?? ApiJsonParser.tryString(json['parent_phone']),
-      instituteType: ApiJsonParser.tryString(json['institute_type']) ?? 
-                     ApiJsonParser.tryString(json['institution_type']) ?? 
-                     ApiJsonParser.tryString(json['school_type']) ??
-                     (json['school'] is Map ? (ApiJsonParser.tryString(json['school']['institute_type']) ?? ApiJsonParser.tryString(json['school']['institution_type']) ?? ApiJsonParser.tryString(json['school']['type'])) : null),
+      parentMobile: ApiJsonParser.tryString(json['parent_mobile']) ??
+          ApiJsonParser.tryString(json['parent_phone']),
+      instituteType: pickString(
+            const [
+              'institute_type',
+              'institution_type',
+              'school_type',
+              'type',
+              'category',
+              'institute_category',
+            ],
+          ) ??
+          pickString(
+            const ['institute_type', 'institution_type', 'school_type', 'type'],
+            schoolMap,
+          ),
       roles: () {
         final rolesData = json['roles'];
         if (rolesData is List) {

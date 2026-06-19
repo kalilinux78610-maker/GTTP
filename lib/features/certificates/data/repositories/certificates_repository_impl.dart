@@ -41,4 +41,16 @@ class CertificatesRepositoryImpl implements CertificatesRepository {
       throw ApiException('Failed to get certificate detail: $e');
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> getCertificateBuilder() async {
+    try {
+      final data = await _remoteDataSource.getCertificateBuilder();
+      return data;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to get certificate builder: $e');
+    }
+  }
 }

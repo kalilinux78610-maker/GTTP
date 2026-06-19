@@ -8,4 +8,6 @@ abstract class CoursesRepository {
   Future<List<Map<String, dynamic>>> getPendingSubmissions(String courseId);
   Future<void> submitQuiz(String courseId, String moduleId, int scorePercentage, bool passed);
   Future<Map<String, dynamic>> markModuleComplete(String courseId, String moduleId);
+  Future<Map<String, dynamic>> markSubmoduleComplete(String courseId, String moduleId, String submoduleId);
+  Future<void> submitSessionProof(String courseId, String sessionId, String fileName, List<int> fileBytes);
 }

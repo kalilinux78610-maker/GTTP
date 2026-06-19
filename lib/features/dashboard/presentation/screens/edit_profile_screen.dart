@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gttp/core/widgets/custom_text_field.dart';
 import 'package:gttp/core/widgets/custom_button.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
-import 'package:gttp/features/auth/data/models/user_model.dart';
+
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -82,28 +82,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     try {
       final storage = ref.read(secureStorageProvider);
-      final user = await storage.getUserModel();
+      
+      // Update data on the backend API
+      await ref.read(authRemoteDataSourceProvider).updateUserProfile({
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+      });
 
+      // Update local storage manually just in case
+      final user = await storage.getUserModel();
       if (user != null) {
-        final updatedUser = UserModel(
-          id: user.id,
+        final updatedUser = user.copyWith(
           name: _nameController.text.trim(),
-          email: user.email,
-          emailVerifiedAt: user.emailVerifiedAt,
           phone: _phoneController.text.trim(),
-          passportNumber: user.passportNumber,
-          passportExpiry: user.passportExpiry,
-          roleLevel: user.roleLevel,
-          isAlumni: user.isAlumni,
-          avatar: user.avatar,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-          deletedAt: user.deletedAt,
-          schoolId: user.schoolId,
-          institute: user.institute,
-          role: user.role,
-          roles: user.roles,
         );
         await storage.saveUserModel(updatedUser);
       }

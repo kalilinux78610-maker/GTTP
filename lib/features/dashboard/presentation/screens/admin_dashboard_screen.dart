@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
@@ -198,7 +199,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           Consumer(
                             builder: (context, ref, child) {
                               final userAsync = ref.watch(userModelProvider);
-                              final avatarUrl = userAsync.value?.avatar;
+                              final avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
                               
                               Widget placeholder = Container(
                                 width: 44,

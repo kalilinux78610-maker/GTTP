@@ -182,8 +182,9 @@ class ReportDetailScreen extends ConsumerWidget {
       case ReportStatus.pending: color = Colors.orange; break;
       case ReportStatus.flagged: color = Colors.red; break;
       case ReportStatus.overridden: color = Colors.blue; break;
-      case ReportStatus.approved:
+      case ReportStatus.completed:
       case ReportStatus.resolved: color = Colors.green; break;
+      default: color = Colors.grey; break;
     }
 
     return Container(
@@ -284,7 +285,7 @@ class ReportDetailScreen extends ConsumerWidget {
           Expanded(
             child: ElevatedButton(
               onPressed: () async {
-                final success = await ref.read(flaggedReportsProvider.notifier).approveReport(report.submissionId);
+                final success = await ref.read(flaggedReportsProvider.notifier).approveReport(report.submissionId, 'completed');
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

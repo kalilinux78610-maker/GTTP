@@ -104,7 +104,8 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
               child: facultyAsync.when(
                 data: (facultyList) {
                   final filteredList = facultyList.where((f) {
-                    final name = (f['name'] ?? f['faculty_name'] ?? '').toString().toLowerCase();
+                    final userObj = f['user'] is Map ? f['user'] as Map : f;
+                    final name = (userObj['name'] ?? userObj['faculty_name'] ?? '').toString().toLowerCase();
                     return name.contains(_searchQuery);
                   }).toList();
 
@@ -134,11 +135,13 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final faculty = filteredList[index];
-                      final name = (faculty['name'] ?? faculty['faculty_name'] ?? 'Unknown').toString();
-                      final email = (faculty['email'] ?? 'No email').toString();
-                      final phone = (faculty['phone'] ?? faculty['mobile'] ?? 'No phone').toString();
-                      final role = (faculty['role'] ?? faculty['designation'] ?? 'Faculty').toString();
-                      final avatarUrl = StudentRowParser.avatar(faculty);
+                      final userObj = faculty['user'] is Map ? faculty['user'] as Map : faculty;
+                      
+                      final name = (userObj['name'] ?? userObj['faculty_name'] ?? 'Unknown').toString();
+                      final email = (userObj['email'] ?? 'No email').toString();
+                      final phone = (userObj['phone'] ?? userObj['mobile'] ?? 'No phone').toString();
+                      final role = (userObj['role'] ?? userObj['designation'] ?? 'Faculty').toString();
+                      final avatarUrl = StudentRowParser.avatar(Map<String, dynamic>.from(userObj));
 
                       return Container(
                         padding: const EdgeInsets.all(16),
@@ -153,7 +156,13 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                             ),
                           ],
                         ),
-                        child: Row(
+                        child: InkWell(
+                          onTap: () {
+                            // Navigate to details screen, pass faculty map as extra
+                            context.push('/dashboard/faculty-members/details', extra: faculty);
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
                           children: [
                             if (avatarUrl != null)
                               ClipOval(
@@ -238,7 +247,8 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                             ),
                           ],
                         ),
-                      );
+                      ),
+                    );
                     },
                   );
                 },

@@ -69,10 +69,11 @@ class ReportsRemoteDataSource {
       final statusRaw = str(['status']).toLowerCase();
       final status =
           const {
-            'flagged': ReportStatus.flagged,
             'pending': ReportStatus.pending,
-            'approved': ReportStatus.approved,
+            'completed': ReportStatus.completed,
+            'flagged': ReportStatus.flagged,
             'overridden': ReportStatus.overridden,
+            'rejected': ReportStatus.rejected,
             'resolved': ReportStatus.resolved,
           }[statusRaw] ??
           ReportStatus.pending;
@@ -124,7 +125,10 @@ class ReportsRemoteDataSource {
 
   Future<List<ReportModel>> getProgressReports() async {
     try {
-      final response = await _apiClient.get('/reports/progress', requiresAuth: true);
+      final response = await _apiClient.get(
+        '/reports/progress',
+        requiresAuth: true,
+      );
 
       List<dynamic> rawList = [];
       if (response['data'] is List) {
@@ -150,16 +154,20 @@ class ReportsRemoteDataSource {
     }
   }
 
-  Future<StudentProgressModel> getStudentProgressReports({String? studentId}) async {
+  Future<StudentProgressModel> getStudentProgressReports({
+    String? studentId,
+  }) async {
     try {
-      final endpoint = studentId != null ? '/reports/progress?studentId=$studentId' : '/reports/progress';
+      final endpoint = studentId != null
+          ? '/reports/progress?studentId=$studentId'
+          : '/reports/progress';
       final response = await _apiClient.get(endpoint, requiresAuth: true);
-      
+
       final data = response['data'] ?? response;
       if (data is Map<String, dynamic>) {
         return StudentProgressModel.fromJson(data);
       }
-      
+
       throw ApiException('Invalid response format for student progress.');
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -274,10 +282,11 @@ class ReportsRemoteDataSource {
     }
   }
 
-  Future<void> approveReport(String submissionId) async {
+  Future<void> approveReport(String submissionId, String targetStatus) async {
     try {
       await _apiClient.post(
         '/reports/approve/$submissionId',
+        data: {'status': targetStatus},
         requiresAuth: true,
       );
     } on ApiException {
@@ -314,7 +323,7 @@ class ReportsRemoteDataSource {
     try {
       final Map<String, dynamic> payloadData = {
         'course_id': ?courseId,
-        'unit_id': ?moduleId,
+        'module_id': ?moduleId,
         'submodule_id': ?submoduleId,
         'activity_title': activityTitle,
         'description': description,
@@ -339,20 +348,19 @@ class ReportsRemoteDataSource {
       );
     } on ApiException catch (e) {
       // Check if it's a network/offline error
-      if (e.statusCode == null || e.message.contains('timeout') || e.message.contains('connect')) {
+      if (e.statusCode == null ||
+          e.message.contains('timeout') ||
+          e.message.contains('connect')) {
         final payload = {
           'course_id': ?courseId,
-          'unit_id': ?moduleId,
+          'module_id': ?moduleId,
           'submodule_id': ?submoduleId,
           'activity_title': activityTitle,
           'description': description,
           'category': category.toString().split('.').last,
         };
 
-        await SyncQueueService.instance.enqueue(
-          '/reports/submit',
-          payload,
-        );
+        await SyncQueueService.instance.enqueue('/reports/submit', payload);
         throw OfflineSavedException();
       }
       rethrow;

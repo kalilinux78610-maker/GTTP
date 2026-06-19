@@ -14,6 +14,7 @@ class CourseModuleRequirementModel {
   final String? className;
   final String? submittedAt;
   final String? fileUrl;
+  final String? submissionId;
 
   const CourseModuleRequirementModel({
     required this.id,
@@ -26,6 +27,7 @@ class CourseModuleRequirementModel {
     this.className,
     this.submittedAt,
     this.fileUrl,
+    this.submissionId,
   });
 
   factory CourseModuleRequirementModel.fromJson(Map<String, dynamic> json) {
@@ -75,6 +77,9 @@ class CourseModuleRequirementModel {
             submission?['file_url'] ??
             submission?['file_path'],
       ),
+      submissionId: str(json['submission_id'] ?? submission?['id'] ?? submission?['submission_id']).isEmpty 
+          ? null 
+          : str(json['submission_id'] ?? submission?['id'] ?? submission?['submission_id']),
     );
   }
 
@@ -100,6 +105,7 @@ class CourseModuleRequirementModel {
       className: className,
       submittedAt: submittedAt,
       fileUrl: fileUrl,
+      submissionId: submissionId,
     );
   }
 
@@ -257,6 +263,8 @@ class CourseModuleModel {
   final List<CourseModuleRequirementModel> requirements;
   final List<CourseSessionModel> sessions;
   final int order;
+  final int completedSubmissionsCount;
+  final int pendingSubmissionsCount;
 
   final bool mcqEnabled;
   final List<CourseModuleMcqQuestionModel> mcqQuestions;
@@ -279,6 +287,8 @@ class CourseModuleModel {
     this.requirements = const [],
     this.sessions = const [],
     this.order = 0,
+    this.completedSubmissionsCount = 0,
+    this.pendingSubmissionsCount = 0,
     this.mcqEnabled = false,
     this.mcqQuestions = const [],
   });
@@ -306,12 +316,16 @@ class CourseModuleModel {
     }
 
     // Fallback for upload modules if backend didn't provide criterias
-    if (requirements.isEmpty && (type.contains('upload') || type == 'report')) {
+    if (requirements.isEmpty && (type.contains('upload') || type == 'report' || type == 'assignment')) {
+      String desc = str(json['overview'] ?? json['instructions'] ?? 'Please upload your completed analysis or required document.');
+      desc = desc.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+      if (desc.isEmpty) desc = 'Please upload your completed analysis or required document.';
+
       requirements.add(
         CourseModuleRequirementModel(
           id: str(json['id'] ?? json['module_id'] ?? 'req_1'),
-          title: 'Upload your analysis report *',
-          description: 'Please upload your completed analysis or required document.',
+          title: 'Upload your assignment/report *',
+          description: desc,
           status: str(json['status']).isEmpty ? 'pending' : str(json['status']).toLowerCase(),
           needsAdminApproval: true,
           submittedAt: str(json['submitted_at']).isEmpty ? null : str(json['submitted_at']),
@@ -366,6 +380,8 @@ class CourseModuleModel {
       requirements: requirements,
       sessions: sessions,
       order: int.tryParse(str(json['order'])) ?? index,
+      completedSubmissionsCount: int.tryParse(str(json['completed_submissions_count'] ?? json['completed_submissions'] ?? json['completed_count'])) ?? 0,
+      pendingSubmissionsCount: int.tryParse(str(json['pending_submissions_count'] ?? json['pending_submissions'] ?? json['pending_count'])) ?? 0,
       mcqEnabled: ApiJsonParser.asBool(json['mcq_enabled'] ?? json['mcqEnabled']),
       mcqQuestions: mcqQuestions,
     );
@@ -451,6 +467,8 @@ class CourseModuleModel {
       requirements: requirements.map((r) => r.toEntity()).toList(),
       sessions: sessions.map((s) => s.toEntity()).toList(),
       order: order,
+      completedSubmissionsCount: completedSubmissionsCount,
+      pendingSubmissionsCount: pendingSubmissionsCount,
       mcqEnabled: mcqEnabled,
       mcqQuestions: mcqQuestions.map((q) => q.toEntity()).toList(),
     );
@@ -475,6 +493,8 @@ class CourseModuleModel {
       'requirements': requirements.map((r) => r.toJson()).toList(),
       'sessions': sessions.map((s) => s.toJson()).toList(),
       'order': order,
+      'completed_submissions_count': completedSubmissionsCount,
+      'pending_submissions_count': pendingSubmissionsCount,
       'mcq_enabled': mcqEnabled,
       'mcq_questions': mcqQuestions.map((q) => q.toJson()).toList(),
     };

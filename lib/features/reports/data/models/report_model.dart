@@ -27,12 +27,14 @@ abstract class ReportModel with _$ReportModel {
 enum ReportStatus {
   @JsonValue('pending')
   pending,
+  @JsonValue('completed')
+  completed,
   @JsonValue('flagged')
   flagged,
   @JsonValue('overridden')
   overridden,
-  @JsonValue('approved')
-  approved,
+  @JsonValue('rejected')
+  rejected,
   @JsonValue('resolved')
   resolved,
 }

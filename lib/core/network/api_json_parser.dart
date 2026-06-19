@@ -82,9 +82,9 @@ class ApiJsonParser {
     return str.isEmpty ? null : str;
   }
 
-  /// Throws when the API returns an error envelope (e.g. `{ "error": "...", "message": "..." }`).
+  /// Throws when the API returns an error envelope (e.g. `{ "error": "...", "message": "..." }` or `{ "status": false }`).
   static void throwIfErrorResponse(Map<String, dynamic> response) {
-    if (response['success'] == false) {
+    if (response['success'] == false || response['status'] == false) {
       throw ApiException(_errorMessage(response));
     }
 

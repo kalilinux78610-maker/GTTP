@@ -83,12 +83,14 @@ class SchoolModel {
       return fallback;
     }
 
-    // Extract principal name from principals array (API returns array of objects)
+    // Extract principal name from principals array (API returns array of objects or strings)
     String extractFromArray(String arrayKey, List<String> nameKeys) {
       final arr = json[arrayKey];
       if (arr is List && arr.isNotEmpty) {
         final first = arr.first;
-        if (first is Map<String, dynamic>) {
+        if (first is String) {
+          if (first.trim().isNotEmpty) return first.trim();
+        } else if (first is Map<String, dynamic>) {
           for (final key in nameKeys) {
             final val = first[key];
             if (val != null && val.toString().trim().isNotEmpty) {

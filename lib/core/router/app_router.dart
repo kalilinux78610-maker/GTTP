@@ -10,7 +10,7 @@ import 'package:gttp/features/auth/presentation/screens/reset_password_screen.da
 import 'package:gttp/features/auth/presentation/screens/splash_screen.dart';
 import 'package:gttp/features/auth/presentation/screens/verify_otp_screen.dart';
 import 'package:gttp/features/certificates/presentation/screens/certificates_screen.dart';
-import 'package:gttp/features/courses/presentation/screens/assignment_review_screen.dart';
+import 'package:gttp/features/certificates/presentation/screens/certificate_builder_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/course_details_proxy_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/course_module_detail_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/course_quiz_screen.dart';
@@ -18,6 +18,7 @@ import 'package:gttp/features/courses/presentation/screens/courses_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/pending_submissions_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/dashboard_proxy_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/faculty_members_screen.dart';
+import 'package:gttp/features/dashboard/presentation/screens/faculty_details_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/my_students_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/profile_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/edit_profile_screen.dart';
@@ -158,12 +159,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'data-export',
-                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const DataExportCenterScreen(),
                   ),
                   GoRoute(
                     path: 'certificates',
                     builder: (context, state) => const CertificatesScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'builder',
+                        builder: (context, state) => const CertificateBuilderScreen(),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'events',
@@ -270,13 +276,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: ':id/submissions/:submissionId',
                     builder: (context, state) {
                       final courseId = state.pathParameters['id'] ?? '';
-                      final submissionId =
-                          state.pathParameters['submissionId'] ?? '';
+                      // final submissionId = state.pathParameters['submissionId'] ?? '';
                       final extra = state.extra as Map<String, dynamic>?;
+                      final moduleId = extra?['module_id']?.toString() ?? '';
 
-                      return AssignmentReviewScreen(
+                      return CourseModuleDetailScreen(
                         courseId: courseId,
-                        submissionId: submissionId,
+                        moduleId: moduleId,
                         submissionData: extra,
                       );
                     },
@@ -312,6 +318,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/dashboard/faculty-members',
                 builder: (context, state) => const FacultyMembersScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'details',
+                    builder: (context, state) {
+                      final faculty = state.extra as Map<String, dynamic>? ?? {};
+                      return FacultyDetailsScreen(faculty: faculty);
+                    },
+                  ),
+                ],
               ),
             ],
           ),

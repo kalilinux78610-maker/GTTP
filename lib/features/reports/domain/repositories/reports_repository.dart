@@ -12,7 +12,7 @@ abstract class ReportsRepository {
     required String comments,
   });
   Future<void> resolveReport(String id);
-  Future<void> approveReport(String submissionId);
+  Future<void> approveReport(String submissionId, String nextStatus);
   Future<void> rejectReport(String submissionId, {String? reason});
   Future<void> submitReport({
     String? courseId,

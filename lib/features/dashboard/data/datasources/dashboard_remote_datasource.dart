@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:gttp/core/auth/user_profile_sync.dart';
 import 'package:gttp/core/network/api_client.dart';
 import 'package:gttp/core/network/api_exception.dart';
 import 'package:gttp/features/dashboard/data/models/dashboard_model.dart';
@@ -85,25 +86,15 @@ class DashboardRemoteDataSource {
 
   Future<DashboardModel> getDashboardData({Map<String, dynamic>? preloadedResponse}) async {
     try {
-      // 1. Fetch dashboard data (or use preloaded) and schools concurrently to halve the loading time!
-      final dashboardFuture = preloadedResponse != null
-          ? Future.value(preloadedResponse)
-          : fetchDashboardResponse();
+      // 1. Fetch dashboard data and schools sequentially to prevent backend session deadlocks
+      final dashboardResponse = preloadedResponse ?? await fetchDashboardResponse();
       
-      // We don't await immediately, we run them in parallel
-      final schoolsFuture = _apiClient.get('/schools', requiresAuth: true);
-
-      final results = await Future.wait([
-        dashboardFuture,
-        // Catch errors on schools so it doesn't crash the whole dashboard
-        schoolsFuture.catchError((e) {
-          debugPrint('[DashboardRemoteDataSource] Could not fetch schools data: $e');
-          return <String, dynamic>{}; 
-        })
-      ]);
-
-      final dashboardResponse = results[0];
-      final schoolsResponse = results[1];
+      Map<String, dynamic> schoolsResponse = {};
+      try {
+        schoolsResponse = await _apiClient.get('/schools', requiresAuth: true);
+      } catch (e) {
+        debugPrint('[DashboardRemoteDataSource] Could not fetch schools data: $e');
+      }
 
       var model = await parseDashboardResponse(dashboardResponse);
 
@@ -125,9 +116,16 @@ class DashboardRemoteDataSource {
               totalStudents: totalStudents,
               totalUsers: totalFaculties + totalPrincipals + totalCoordinators,
               schoolLogo: schoolLogo,
-              schoolName: schoolName,
-              schoolType: schoolType,
-              totalSchools: 1, // Single school context
+              schoolName: schoolName ?? model.currentUserOrganization,
+              schoolType: schoolType ?? model.currentUserInstituteType,
+              totalSchools: 1,
+            );
+          } else if (data.isNotEmpty) {
+            model = model.copyWith(
+              totalSchools: model.totalSchools > 0 ? model.totalSchools : data.length,
+              schoolName: model.currentUserOrganization ??
+                  model.schoolName ??
+                  'GTTP Trust Network',
             );
           }
         }
@@ -147,6 +145,10 @@ class DashboardRemoteDataSource {
   Future<DashboardModel> parseDashboardResponse(Map<String, dynamic> response) async {
     try {
       final greetingName = _userDisplayNameFromResponse(response);
+      final profileMap = UserProfileSync.extractProfileMap(response);
+      final profilePhone = profileMap?['phone']?.toString();
+      final profileOrg = profileMap?['institute']?.toString();
+      final profileType = profileMap?['institute_type']?.toString();
 
       if (kDebugMode) {
         debugPrint(
@@ -161,6 +163,9 @@ class DashboardRemoteDataSource {
         return DashboardModel.fromJson(
           Map<String, dynamic>.from(data),
           currentUserDisplayName: greetingName,
+          currentUserPhone: profilePhone,
+          currentUserOrganization: profileOrg,
+          currentUserInstituteType: profileType,
         );
       }
 
@@ -171,6 +176,9 @@ class DashboardRemoteDataSource {
         return DashboardModel.fromJson(
           Map<String, dynamic>.from(stats),
           currentUserDisplayName: greetingName,
+          currentUserPhone: profilePhone,
+          currentUserOrganization: profileOrg,
+          currentUserInstituteType: profileType,
         );
       }
 
@@ -207,12 +215,22 @@ class DashboardRemoteDataSource {
         'myCertificates',
         'earned_certificates',
         'earnedCertificates',
+        'active_courses_count',
+        'institutes_count',
+        'total_active_courses',
+        'faculties_count',
+        'students',
+        'faculties',
+        'institutes',
       ];
       if (knownKeys.any((k) => response.containsKey(k))) {
         if (kDebugMode) debugPrint('[Dashboard] Parsing from root keys');
         return DashboardModel.fromJson(
           response,
           currentUserDisplayName: greetingName,
+          currentUserPhone: profilePhone,
+          currentUserOrganization: profileOrg,
+          currentUserInstituteType: profileType,
         );
       }
 
@@ -227,6 +245,9 @@ class DashboardRemoteDataSource {
             return DashboardModel.fromJson(
               nested,
               currentUserDisplayName: greetingName,
+              currentUserPhone: profilePhone,
+              currentUserOrganization: profileOrg,
+              currentUserInstituteType: profileType,
             );
           }
         }
@@ -241,6 +262,9 @@ class DashboardRemoteDataSource {
       return DashboardModel.fromJson(
         response,
         currentUserDisplayName: greetingName,
+        currentUserPhone: profilePhone,
+        currentUserOrganization: profileOrg,
+        currentUserInstituteType: profileType,
       );
     } on ApiException {
       rethrow;

@@ -223,28 +223,76 @@ class StudentProgressScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           ...course.modules.map<Widget>((module) {
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                module.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: module.isCompleted ? const Color(0xFF10B981) : const Color(0xFFD1D5DB),
-              ),
-              title: Text(
-                module.title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: module.isCompleted ? const Color(0xFF4B5563) : const Color(0xFF1F2937),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    module.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: module.isCompleted ? const Color(0xFF10B981) : const Color(0xFFD1D5DB),
+                  ),
+                  title: Text(
+                    module.title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: module.isCompleted ? const Color(0xFF4B5563) : const Color(0xFF1F2937),
+                    ),
+                  ),
+                  trailing: !module.isCompleted
+                      ? TextButton(
+                          onPressed: () {
+                            context.push('/courses/${course.id}/modules/${module.id}');
+                          },
+                          child: const Text('Go to Module'),
+                        )
+                      : const Text('Completed', style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
                 ),
-              ),
-              trailing: !module.isCompleted
-                  ? TextButton(
-                      onPressed: () {
-                        context.push('/courses/${course.id}/modules/${module.id}');
-                      },
-                      child: const Text('Go to Module'),
-                    )
-                  : const Text('Completed', style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
+                if (module.submodules.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 32.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: module.submodules.map((sub) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                sub.isCompleted ? Icons.check_box : Icons.check_box_outline_blank,
+                                size: 16,
+                                color: sub.isCompleted ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  sub.title,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: sub.isCompleted ? const Color(0xFF6B7280) : const Color(0xFF4B5563),
+                                  ),
+                                ),
+                              ),
+                              if (sub.status != 'pending' && !sub.isCompleted)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3F4F6),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    sub.status.toUpperCase(),
+                                    style: const TextStyle(fontSize: 10, color: Color(0xFF4B5563)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+              ],
             );
           }).toList(),
         ],

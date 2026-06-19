@@ -14,6 +14,11 @@ class CourseSessionModel {
   final String? submissionDeadline;
   final bool isCompleted;
   final String? fileUrl;
+  final bool requiresProofUpload;
+  final String? instructions;
+  final String? referenceMaterialUrl;
+  final String? videoUrl;
+  final String? linkVisibleFrom;
 
   const CourseSessionModel({
     required this.id,
@@ -27,6 +32,11 @@ class CourseSessionModel {
     this.submissionDeadline,
     this.isCompleted = false,
     this.fileUrl,
+    this.requiresProofUpload = true,
+    this.instructions,
+    this.referenceMaterialUrl,
+    this.videoUrl,
+    this.linkVisibleFrom,
   });
 
   factory CourseSessionModel.fromJson(Map<String, dynamic> json) {
@@ -46,9 +56,18 @@ class CourseSessionModel {
       fileUrl: CourseAssetUrl.resolve(
         json['file_url'] ??
             json['file_path'] ??
-            json['material_url'] ??
-            json['url'],
+            json['url'] ??
+            json['external_url'],
       ),
+      requiresProofUpload: json.containsKey('requires_proof_upload') 
+          ? ApiJsonParser.asBool(json['requires_proof_upload'])
+          : json.containsKey('requiresProofUpload')
+              ? ApiJsonParser.asBool(json['requiresProofUpload'])
+              : true, // Default to true if not provided for safety
+      instructions: str(json['instructions'] ?? json['activity_instructions'] ?? json['instruction'] ?? json['overview'] ?? json['description'] ?? json['details']).isEmpty ? null : str(json['instructions'] ?? json['activity_instructions'] ?? json['instruction'] ?? json['overview'] ?? json['description'] ?? json['details']),
+      referenceMaterialUrl: CourseAssetUrl.resolve(json['reference_material_url'] ?? json['material_url']),
+      videoUrl: str(json['video_url'] ?? json['external_url']).isEmpty ? null : str(json['video_url'] ?? json['external_url']),
+      linkVisibleFrom: str(json['link_visible_from']).isEmpty ? null : str(json['link_visible_from']),
     );
   }
 
@@ -65,6 +84,11 @@ class CourseSessionModel {
       submissionDeadline: submissionDeadline,
       isCompleted: isCompleted,
       fileUrl: fileUrl,
+      requiresProofUpload: requiresProofUpload,
+      instructions: instructions,
+      referenceMaterialUrl: referenceMaterialUrl,
+      videoUrl: videoUrl,
+      linkVisibleFrom: linkVisibleFrom,
     );
   }
 
@@ -81,6 +105,11 @@ class CourseSessionModel {
       'submission_deadline': submissionDeadline,
       'is_completed': isCompleted,
       'file_url': fileUrl,
+      'requires_proof_upload': requiresProofUpload,
+      'instructions': instructions,
+      'reference_material_url': referenceMaterialUrl,
+      'video_url': videoUrl,
+      'link_visible_from': linkVisibleFrom,
     };
   }
 }

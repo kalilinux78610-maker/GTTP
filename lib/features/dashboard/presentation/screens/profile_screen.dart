@@ -1,7 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
@@ -27,7 +29,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _parentMobile = '';
   String _instituteType = '';
   String _avatar = '';
-
+  bool _isUploadingAvatar = false;
   @override
   void initState() {
     super.initState();
@@ -36,53 +38,113 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final storage = ref.read(secureStorageProvider);
-    final user = await storage.getUserModel();
+    
+    // --- 1. FAST PATH: Load from local cache immediately ---
+    var user = await storage.getUserModel();
     final fallbackName = await storage.getDisplayName();
+    var dashboard = ref.read(dashboardDataProvider).value;
     
+    void updateState(dynamic u, dynamic d) {
+      if (!mounted) return;
+      String roleRaw = u?.effectiveRole ?? '';
+      String display = u?.name ?? '';
+      if (display.isEmpty && fallbackName != null) {
+        display = fallbackName;
+      }
+      String email = u?.email ?? '';
+
+      // Hardcode override since API doesn't return full data
+      if (email.toLowerCase().contains('shreyanshvasava@efsouls.com') ||
+          email.toLowerCase().contains('superadmin') ||
+          display.toLowerCase().contains('shreyanshvasava') ||
+          display.toLowerCase().contains('super admin')) {
+        if (roleRaw.isEmpty || roleRaw == '5' || roleRaw == 'student') {
+          roleRaw = '0'; // Super Admin role level
+        }
+        if (display.isEmpty) {
+          display = 'Super Admin';
+        }
+      }
+
+      // Graceful fallback for empty names using email prefix
+      if (display.isEmpty && email.isNotEmpty) {
+        final localPart = email.split('@').first;
+        display = localPart
+            .replaceAll(RegExp(r'[._-]+'), ' ')
+            .split(' ')
+            .map((s) => s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1)}' : '')
+            .join(' ');
+      }
+
+      var phone = u?.phone ?? '';
+      var institute = u?.institute ?? '';
+      var instituteType = u?.instituteType ?? '';
+
+      if (phone.isEmpty && (d?.currentUserPhone?.isNotEmpty ?? false)) {
+        phone = d!.currentUserPhone!;
+      }
+      if (institute.isEmpty && (d?.currentUserOrganization?.isNotEmpty ?? false)) {
+        institute = d!.currentUserOrganization!;
+      } else if (institute.isEmpty && (d?.schoolName?.isNotEmpty ?? false)) {
+        institute = d!.schoolName!;
+      }
+      if (instituteType.isEmpty && (d?.currentUserInstituteType?.isNotEmpty ?? false)) {
+        instituteType = d!.currentUserInstituteType!;
+      } else if (instituteType.isEmpty && (d?.schoolType?.isNotEmpty ?? false)) {
+        instituteType = d!.schoolType!;
+      }
+      
+      setState(() {
+        _displayName = display;
+        _email = email;
+        _phone = phone;
+        _role = roleRaw.isNotEmpty
+            ? AppUserRole.fromApi(roleRaw).label
+            : AppUserRole.superAdmin.label; // Fallback for unknown
+        _institute = institute;
+        _studentClass = u?.studentClass ?? '';
+        _parentMobile = u?.parentMobile ?? '';
+        _instituteType = instituteType;
+        _avatar = u?.avatar ?? '';
+      });
+    }
+
+    // Update UI immediately with what we have
+    updateState(user, dashboard);
+
+    // --- 2. SLOW PATH: Fetch latest profile from backend sequentially ---
+    try {
+      await ref.read(authRemoteDataSourceProvider).fetchMe();
+      ref.invalidate(dashboardDataProvider);
+      await ref.read(dashboardDataProvider.future);
+    } catch (e) {
+      debugPrint('Failed to refresh profile/dashboard: $e');
+    }
+
     if (!mounted) return;
-    String roleRaw = user?.effectiveRole ?? '';
-    String display = user?.name ?? '';
-    if (display.isEmpty && fallbackName != null) {
-      display = fallbackName;
-    }
-    String email = user?.email ?? '';
 
-    // Hardcode override since API doesn't return full data
-    if (email.toLowerCase().contains('shreyanshvasava@efsouls.com') ||
-        email.toLowerCase().contains('superadmin') ||
-        display.toLowerCase().contains('shreyanshvasava') ||
-        display.toLowerCase().contains('super admin')) {
-      if (roleRaw.isEmpty || roleRaw == '5' || roleRaw == 'student') {
-        roleRaw = '0'; // Super Admin role level
-      }
-      if (display.isEmpty) {
-        display = 'Super Admin';
-      }
-    }
+    // Read fresh data after network fetch
+    user = await storage.getUserModel();
+    dashboard = ref.read(dashboardDataProvider).value;
 
-    // Graceful fallback for empty names using email prefix
-    if (display.isEmpty && email.isNotEmpty) {
-      final localPart = email.split('@').first;
-      display = localPart
-          .replaceAll(RegExp(r'[._-]+'), ' ')
-          .split(' ')
-          .map((s) => s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1)}' : '')
-          .join(' ');
+    // Update UI again with fresh data
+    updateState(user, dashboard);
+
+    // Persist dashboard-derived fields when the user record was missing them
+    if (user != null &&
+        (_phone.isNotEmpty || _institute.isNotEmpty || _instituteType.isNotEmpty)) {
+      final updatedUser = user.copyWith(
+        phone: _phone.isNotEmpty ? _phone : user.phone,
+        institute: _institute.isNotEmpty ? _institute : user.institute,
+        instituteType: _instituteType.isNotEmpty ? _instituteType : user.instituteType,
+      );
+      if (updatedUser.phone != user.phone ||
+          updatedUser.institute != user.institute ||
+          updatedUser.instituteType != user.instituteType) {
+        await storage.saveUserModel(updatedUser);
+        ref.invalidate(userModelProvider);
+      }
     }
-    
-    setState(() {
-      _displayName = display;
-      _email = email;
-      _phone = user?.phone ?? '';
-      _role = roleRaw.isNotEmpty
-          ? AppUserRole.fromApi(roleRaw).label
-          : AppUserRole.superAdmin.label; // Fallback for unknown
-      _institute = user?.institute ?? '';
-      _studentClass = user?.studentClass ?? '';
-      _parentMobile = user?.parentMobile ?? '';
-      _instituteType = user?.instituteType ?? '';
-      _avatar = user?.avatar ?? '';
-    });
 
     // Fallback: Try to fetch from students API directly if fields are missing for a student
     if (_role.toLowerCase() == 'student' && (_studentClass.isEmpty || _parentMobile.isEmpty)) {
@@ -127,6 +189,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         debugPrint('Direct fallback fetch failed: $e');
       }
     }
+
+    // Fallback: Try to fetch from faculties API if fields are still missing
+    final isStaffRole = _role.toLowerCase().contains('faculty') || 
+                          _role.toLowerCase().contains('teacher') || 
+                          _role.toLowerCase().contains('principal') || 
+                          _role.toLowerCase().contains('coordinator') ||
+                          _role.toLowerCase().contains('administrator');
+                          
+    if (isStaffRole && (_phone.isEmpty || _institute.isEmpty || _instituteType.isEmpty)) {
+      try {
+        final gttpDataSource = ref.read(gttpRemoteDataSourceProvider);
+        final faculties = await gttpDataSource.getFaculty();
+        
+        final emailLower = _email.toLowerCase();
+        final me = faculties.firstWhere(
+          (f) {
+            final userObj = f['user'] is Map ? f['user'] as Map : f;
+            return (userObj['email'] ?? '').toString().toLowerCase() == emailLower;
+          }, 
+          orElse: () => <String, dynamic>{}
+        );
+        
+        if (me.isNotEmpty && mounted) {
+          final userObj = me['user'] is Map ? me['user'] as Map : me;
+          final newPhone = (userObj['phone'] ?? userObj['mobile'] ?? me['phone'] ?? me['mobile'] ?? '').toString();
+          final newInstitute = (userObj['school_name'] ?? userObj['institute'] ?? me['school_name'] ?? me['institute'] ?? '').toString();
+          final newInstituteType = (userObj['institute_type'] ?? me['institute_type'] ?? '').toString();
+          
+          setState(() {
+            if (_phone.isEmpty) _phone = newPhone;
+            if (_institute.isEmpty) _institute = newInstitute;
+            if (_instituteType.isEmpty) _instituteType = newInstituteType;
+            if (_avatar.isEmpty) {
+              _avatar = (userObj['avatar'] ?? me['avatar'] ?? '').toString();
+            }
+          });
+          
+          if (user != null) {
+            final updatedUser = user.copyWith(
+              phone: newPhone.isNotEmpty ? newPhone : user.phone,
+              institute: newInstitute.isNotEmpty ? newInstitute : user.institute,
+              instituteType: newInstituteType.isNotEmpty ? newInstituteType : user.instituteType,
+            );
+            await storage.saveUserModel(updatedUser);
+            ref.invalidate(userModelProvider);
+          }
+        }
+      } catch (e) {
+        debugPrint('Direct faculty fallback fetch failed: $e');
+      }
+    }
   }
 
   String get _initials {
@@ -140,6 +253,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     }
     return _displayName.substring(0, 1).toUpperCase();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() => _isUploadingAvatar = true);
+      try {
+        await ref.read(authRemoteDataSourceProvider).uploadAvatar(pickedFile.path);
+        await _loadProfile(); // Refresh UI with new data
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload image: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isUploadingAvatar = false);
+      }
+    }
   }
 
   Color get _themeColor {
@@ -235,22 +368,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ],
                     ),
-                    child: Builder(
-                      builder: (context) {
-                        String? imageUrlToShow;
-                        if (_avatar.isNotEmpty) {
-                          imageUrlToShow = CourseAssetUrl.resolve(_avatar);
-                        }
-                        if (imageUrlToShow == null && schoolLogo != null && schoolLogo.isNotEmpty) {
-                          imageUrlToShow = CourseAssetUrl.resolve(schoolLogo);
-                        }
+                    child: InkWell(
+                      onTap: _isUploadingAvatar ? null : _pickImage,
+                      borderRadius: BorderRadius.circular(50),
+                      child: Stack(
+                        children: [
+                          Builder(
+                            builder: (context) {
+                              String? imageUrlToShow;
+                              if (_avatar.isNotEmpty) {
+                                imageUrlToShow = CourseAssetUrl.resolve(_avatar);
+                              }
+                              if (imageUrlToShow == null && schoolLogo != null && schoolLogo.isNotEmpty) {
+                                imageUrlToShow = CourseAssetUrl.resolve(schoolLogo);
+                              }
 
-                        if (imageUrlToShow != null) {
-                          return ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: imageUrlToShow,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Center(
+                              if (imageUrlToShow != null) {
+                                return SizedBox(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  child: ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: imageUrlToShow,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Center(
+                                        child: Text(
+                                          _initials,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) => Center(
+                                        child: Text(
+                                          _initials,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              
+                              return Center(
                                 child: Text(
                                   _initials,
                                   style: const TextStyle(
@@ -259,32 +425,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                              );
+                            }
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
                               ),
-                              errorWidget: (context, url, error) => Center(
-                                child: Text(
-                                  _initials,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                        
-                        return Center(
-                          child: Text(
-                            _initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                              child: _isUploadingAvatar 
+                                ? const SizedBox(
+                                    width: 16, height: 16, 
+                                    child: CircularProgressIndicator(strokeWidth: 2)
+                                  )
+                                : Icon(Icons.camera_alt, color: themeColor, size: 16),
                             ),
                           ),
-                        );
-                      }
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -353,12 +515,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ));
 
                           if (_role.toLowerCase() != 'student' || _phone.isNotEmpty) {
+                            final dashboardPhone = dashboardAsync.value?.currentUserPhone ?? '';
                             infoItems.add(_buildInfoItem(
                               icon: Icons.phone_outlined,
                               iconColor: const Color(0xFF10B981),
                               bgColor: const Color(0xFFECFDF5),
                               title: 'Phone',
-                              value: _phone.isNotEmpty ? _phone : 'Not Provided',
+                              value: _phone.isNotEmpty
+                                  ? _phone
+                                  : (dashboardPhone.isNotEmpty ? dashboardPhone : 'Not Provided'),
                             ));
                           }
 
@@ -379,8 +544,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             iconColor: const Color(0xFFF97316),
                             bgColor: const Color(0xFFFFF7ED),
                             title: 'Organization',
-                            value: dashboardAsync.value?.schoolName ??
-                                (_institute.isNotEmpty ? _institute : 'Not Provided'),
+                            value: _institute.isNotEmpty && _institute.toLowerCase() != 'school'
+                                ? _institute
+                                : (dashboardAsync.value?.currentUserOrganization?.isNotEmpty == true
+                                    ? dashboardAsync.value!.currentUserOrganization!
+                                    : (dashboardAsync.value?.schoolName?.isNotEmpty == true
+                                        ? dashboardAsync.value!.schoolName!
+                                        : (_role.toLowerCase().contains('super admin') || _role.toLowerCase().contains('admin') ? 'GTTP' : 'Not Provided'))),
                           ));
 
                           if (_role.toLowerCase() == 'student' && _parentMobile.isNotEmpty) {
@@ -393,9 +563,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ));
                           }
 
-                          final dashboardSchoolType = dashboardAsync.value?.schoolType ?? '';
-                          String displayType = _instituteType.isNotEmpty ? _instituteType : dashboardSchoolType;
-                          if (displayType.isEmpty) displayType = _institute;
+                          final dashboardSchoolType =
+                              dashboardAsync.value?.currentUserInstituteType ??
+                              dashboardAsync.value?.schoolType ??
+                              '';
+                          
+                          String displayType = _instituteType.isNotEmpty
+                              ? _instituteType
+                              : dashboardSchoolType;
+                              
+                          if (displayType.isEmpty && _institute.toLowerCase() == 'school') {
+                            displayType = 'school';
+                          }
 
                           final formattedType = displayType.isNotEmpty
                               ? '${displayType[0].toUpperCase()}${displayType.substring(1)}'
@@ -433,19 +612,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           _loadProfile();
                         }
                       },
-                      icon: Icon(Icons.settings_outlined, color: themeColor),
+                      icon: Icon(Icons.settings_outlined, color: themeColor, size: 24),
                       label: Text(
                         'Edit Profile',
                         style: TextStyle(
                           color: themeColor,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        side: BorderSide(color: themeColor, width: 1.5),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: themeColor, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -466,18 +645,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           context.go('/login');
                         }
                       },
-                      icon: const Icon(Icons.logout, color: Colors.white),
+                      icon: const Icon(Icons.logout, color: Colors.white, size: 24),
                       label: const Text(
                         'Logout',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEF4444),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -486,7 +665,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 140), // Space for bottom nav
+                  const SizedBox(height: 16),
+
+
+                  const SizedBox(height: 120), // Space for bottom nav
                 ],
               ),
             ),

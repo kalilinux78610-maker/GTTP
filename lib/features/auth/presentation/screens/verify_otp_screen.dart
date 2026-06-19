@@ -32,11 +32,15 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   bool _canResend = false;
   bool _isResending = false;
 
+  // Expire OTP variables
+  Timer? _expireTimer;
+  int _expireSeconds = 180; // 3 minutes
+
   @override
   void initState() {
     super.initState();
     _redirectIfAlreadySignedIn();
-    _startResendTimer();
+    _startTimers();
     for (var c in _controllers) {
       c.addListener(() => setState(() {}));
     }
@@ -50,6 +54,11 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     if (token != null && token.isNotEmpty) {
       context.go('/dashboard');
     }
+  }
+
+  void _startTimers() {
+    _startResendTimer();
+    _startExpireTimer();
   }
 
   void _startResendTimer() {
@@ -68,6 +77,26 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     });
   }
 
+  void _startExpireTimer() {
+    setState(() {
+      _expireSeconds = 180;
+    });
+    _expireTimer?.cancel();
+    _expireTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_expireSeconds > 0) {
+        setState(() => _expireSeconds--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String get _formattedExpireTime {
+    final minutes = (_expireSeconds / 60).floor().toString().padLeft(2, '0');
+    final seconds = (_expireSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
+
   Future<void> _handleResendOTP() async {
     if (!_canResend) return;
 
@@ -79,7 +108,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     try {
       await ref.read(authRepositoryProvider).resendOtp();
       if (!mounted) return;
-      _startResendTimer();
+      _startTimers();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('OTP sent successfully!'),
@@ -100,11 +129,12 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   }
 
   bool get _isButtonEnabled =>
-      _controllers.every((c) => c.text.isNotEmpty);
+      _controllers.every((c) => c.text.isNotEmpty) && _expireSeconds > 0;
 
   @override
   void dispose() {
     _resendTimer?.cancel();
+    _expireTimer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -369,24 +399,24 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         ],
                       ),
                     ],
-                    const SizedBox(height: 32),
+                    
+                    const SizedBox(height: 24),
 
-                    // Verify OTP Button
-                    _isLoading
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: CircularProgressIndicator(
-                                color: AppTheme.primaryBlue,
-                              ),
-                            ),
-                          )
-                        : CustomButton(
-                            text: "Verify OTP",
-                            isEnabled: _isButtonEnabled,
-                            onPressed: _handleVerifyOTP,
-                          ),
-                    const SizedBox(height: 20),
+                    // Expiration timer display
+                    Center(
+                      child: Text(
+                        _expireSeconds > 0 
+                            ? "OTP expires in $_formattedExpireTime" 
+                            : "OTP has expired. Please resend.",
+                        style: TextStyle(
+                          color: _expireSeconds > 0 ? AppTheme.textMuted : AppTheme.signalRed,
+                          fontSize: 13,
+                          fontWeight: _expireSeconds > 0 ? FontWeight.normal : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
 
                     // Resend OTP
                     Center(
@@ -425,6 +455,24 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                               ),
                             ),
                     ),
+
+                    const SizedBox(height: 32),
+
+                    // Verify OTP Button
+                    _isLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: CircularProgressIndicator(
+                                color: AppTheme.primaryBlue,
+                              ),
+                            ),
+                          )
+                        : CustomButton(
+                            text: "Verify OTP",
+                            isEnabled: _isButtonEnabled,
+                            onPressed: _handleVerifyOTP,
+                          ),
                   ],
                 ),
               ),

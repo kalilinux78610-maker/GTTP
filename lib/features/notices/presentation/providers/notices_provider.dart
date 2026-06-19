@@ -231,8 +231,14 @@ final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref
   final userDataAsync = ref.watch(userModelProvider);
 
   if (!asyncNotices.hasValue || !dashboardDataAsync.hasValue || !userDataAsync.hasValue) {
-    if (asyncNotices.hasError || dashboardDataAsync.hasError || userDataAsync.hasError) {
-      return const AsyncData(<NoticeModel>[]);
+    if (asyncNotices.hasError) {
+      return AsyncError(asyncNotices.error!, asyncNotices.stackTrace!);
+    }
+    if (dashboardDataAsync.hasError) {
+      return AsyncError(dashboardDataAsync.error!, dashboardDataAsync.stackTrace!);
+    }
+    if (userDataAsync.hasError) {
+      return AsyncError(userDataAsync.error!, userDataAsync.stackTrace!);
     }
     return const AsyncLoading();
   }
@@ -258,6 +264,9 @@ final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref
         final schoolName = dashboardSchool.isNotEmpty ? dashboardSchool : userSchool;
         
         filtered = filtered.where((notice) {
+          // Bypass school check if it's a global notice
+          if (notice.isGlobal) return true;
+
           if (notice.targetInstituteNames.isNotEmpty) {
             bool targetsSchool = false;
             
@@ -281,6 +290,9 @@ final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref
         final assignedSchools = ref.watch(schoolsProvider).value;
         
         filtered = filtered.where((notice) {
+          // Bypass school check if it's a global notice
+          if (notice.isGlobal) return true;
+
           if (notice.targetInstituteNames.isNotEmpty) {
             if (assignedSchools == null || assignedSchools.isEmpty) return false;
             
