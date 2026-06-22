@@ -80,6 +80,7 @@ class StudentRowParser {
       'score',
       'progress',
       'progress_percent',
+      'progress_percentage',
       'progressPercent',
       'completion',
       'overall_progress',

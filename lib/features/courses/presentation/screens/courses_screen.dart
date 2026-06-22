@@ -5,6 +5,8 @@ import '../providers/courses_provider.dart';
 import '../widgets/course_cover_image.dart';
 import '../../data/models/course_model.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/auth/user_role.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
 enum _CourseFilter { all, open, invite, batch }
 
@@ -262,13 +264,17 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+class _CourseCard extends ConsumerWidget {
   final CourseModel course;
 
   const _CourseCard({required this.course});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userModelProvider);
+    final userRole = AppUserRole.fromApi(userAsync.value?.effectiveRole);
+    final isStudent = userRole == AppUserRole.student;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -353,7 +359,7 @@ class _CourseCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (course.isEnrolled) ...[
+                if (course.isEnrolled && isStudent) ...[
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -363,7 +369,7 @@ class _CourseCard extends StatelessWidget {
                         style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
                       ),
                       Text(
-                        '${(course.progressPercent ?? 0).clamp(0, 100)}%',
+                        '${(course.progressPercent ?? 0).clamp(0, 100).toInt()}%',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,

@@ -48,10 +48,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final dashboardAsync = ref.watch(dashboardDataProvider);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor: colorScheme.surface,
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(dashboardDataProvider);
@@ -150,7 +151,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               right: 0,
               height: 1000,
               child: Container(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFF3B82F6),
+                color: Theme.of(context).colorScheme.primaryContainer,
               ),
             ),
             Container(
@@ -160,9 +161,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                      : [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
+                  colors: [
+                    Theme.of(context).colorScheme.primaryContainer,
+                    Theme.of(context).colorScheme.primary,
+                  ],
                 ),
               ),
               child: SafeArea(
@@ -330,14 +332,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     required String totalStudents,
     required bool isDark,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2235) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-        ),
         boxShadow: [
           BoxShadow(
             color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.08),
@@ -354,7 +354,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 24),
@@ -390,7 +390,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: isDark ? Colors.white60 : Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             height: 1.2,
           ),
         ),
@@ -407,17 +407,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     String? trailingText,
     required bool isDark,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A2235) : Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-          ),
           boxShadow: [
             if (!isDark)
               BoxShadow(
@@ -465,7 +463,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -474,7 +472,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -485,14 +483,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   trailingText,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -501,7 +499,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: isDark ? Colors.white30 : const Color(0xFFCBD5E1),
+                color: colorScheme.outline,
               ),
           ],
         ),

@@ -83,10 +83,10 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                       icon: Icons.business,
                       iconColor: const Color(0xFF3B82F6),
                       title: 'Institute Records',
-                      subtitle: 'View and manage institutional & college students',
+                      subtitle: 'View assigned schools &\ncollege students',
                       trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalSchools} Schools & Colleges',
-                        orElse: () => 'Schools & Colleges',
+                        data: (data) => '${data.totalSchools} Institutes',
+                        orElse: () => 'Institutes',
                       ),
                       onTap: () => context.push('/dashboard/school-network'),
                       isDark: isDark,
@@ -96,8 +96,11 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                       icon: Icons.photo_library_outlined,
                       iconColor: const Color(0xFF10B981),
                       title: 'Gallery',
-                      subtitle: 'Manage photos and visual documentation',
-                      trailingText: 'View Photos',
+                      subtitle: 'Manage photos & event\ndocumentation',
+                      trailingText: dashboardAsync.maybeWhen(
+                        data: (data) => data.totalGallery > 0 ? '${data.totalGallery} Photos' : 'View Photos',
+                        orElse: () => 'View Photos',
+                      ),
                       onTap: () => context.push('/dashboard/gallery'),
                       isDark: isDark,
                     ),
@@ -410,19 +413,12 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    iconColor.withValues(alpha: 0.8),
-                    iconColor,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: iconColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: iconColor.withValues(alpha: 0.3),
-                    blurRadius: 12,
+                    color: iconColor.withValues(alpha: 0.2),
+                    blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
@@ -459,28 +455,16 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
               ),
             ),
             if (trailingText != null) ...[
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  trailingText,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white70 : const Color(0xFF475569),
-                    fontWeight: FontWeight.bold,
-                  ),
+              const SizedBox(width: 8),
+              Text(
+                trailingText,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ] else
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: isDark ? Colors.white30 : const Color(0xFFCBD5E1),
-              ),
+            ],
           ],
         ),
       ),

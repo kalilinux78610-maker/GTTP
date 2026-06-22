@@ -156,6 +156,14 @@ class GttpRemoteDataSource {
     return validStudents;
   }
 
+  Future<List<Map<String, dynamic>>> getStudentCourses(String studentId) async {
+    final response = await _apiClient.get(
+      '/students/$studentId/courses',
+      requiresAuth: true,
+    );
+    return _extractList(response);
+  }
+
   Future<List<Map<String, dynamic>>> getClasses() async {
     final response = await _apiClient.get('/classes', requiresAuth: true);
     final classes = _extractList(response);

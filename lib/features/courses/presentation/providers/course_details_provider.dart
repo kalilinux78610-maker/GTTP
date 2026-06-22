@@ -24,13 +24,15 @@ final coursePendingSubmissionsProvider =
   
   return submissions.where((sub) {
     final status = sub['status']?.toString().toLowerCase();
-    switch (currentRole.name.toLowerCase()) {
-      case 'coordinator':
-      case 'admin':
-      case 'superadmin':
-        return status == 'pending';
-      default:
-        return false;
+    final roleName = currentRole.name.toLowerCase();
+    
+    if (roleName.contains('coordinator') || 
+        roleName.contains('admin') || 
+        roleName.contains('principal') || 
+        roleName.contains('faculty')) {
+      return status == 'pending';
     }
+    
+    return false;
   }).toList();
 });

@@ -139,7 +139,7 @@ class _FacultyMembersScreenState extends ConsumerState<FacultyMembersScreen> {
                       
                       final name = (userObj['name'] ?? userObj['faculty_name'] ?? 'Unknown').toString();
                       final email = (userObj['email'] ?? 'No email').toString();
-                      final phone = (userObj['phone'] ?? userObj['mobile'] ?? 'No phone').toString();
+                      final phone = (userObj['phone'] ?? userObj['mobile'] ?? userObj['mobile_number'] ?? 'No phone').toString();
                       final role = (userObj['role'] ?? userObj['designation'] ?? 'Faculty').toString();
                       final avatarUrl = StudentRowParser.avatar(Map<String, dynamic>.from(userObj));
 

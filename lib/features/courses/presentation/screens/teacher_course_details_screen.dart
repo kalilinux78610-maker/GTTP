@@ -7,6 +7,7 @@ import '../../data/models/course_module_model.dart';
 import '../providers/course_details_provider.dart';
 import '../utils/course_links.dart';
 import '../widgets/course_cover_image.dart';
+import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 
 class TeacherCourseDetailsScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -552,6 +553,26 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
   Widget _buildEnrolledStudentsSection(String courseId) {
     return Consumer(
       builder: (context, ref, _) {
+        final userAsync = ref.watch(userModelProvider);
+        
+        bool isCoordinator = false;
+        String titlePrefix = 'Enrolled Students';
+        
+        userAsync.whenData((user) {
+          final roleName = user?.effectiveRole.toLowerCase() ?? user?.role?.toLowerCase() ?? '';
+          if (roleName.contains('coordinator')) {
+            isCoordinator = true;
+          } else if (roleName.contains('principal')) {
+            titlePrefix = 'Enrolled Students from Your School';
+          } else if (roleName.contains('faculty')) {
+            titlePrefix = 'Enrolled Students from Your Class';
+          }
+        });
+
+        if (isCoordinator) {
+          return const SizedBox.shrink();
+        }
+
         final studentsAsync = ref.watch(courseEnrolledStudentsProvider(courseId));
 
         return studentsAsync.when(
@@ -588,7 +609,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    'Enrolled Students from Your Class (${students.length})',
+                    '$titlePrefix (${students.length})',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

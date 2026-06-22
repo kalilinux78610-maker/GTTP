@@ -1,6 +1,7 @@
 import 'package:gttp/core/network/api_json_parser.dart';
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 import 'package:gttp/features/courses/domain/entities/course_session.dart';
+import 'package:gttp/features/courses/data/models/course_module_model.dart';
 
 class CourseSessionModel {
   final String id;
@@ -19,6 +20,8 @@ class CourseSessionModel {
   final String? referenceMaterialUrl;
   final String? videoUrl;
   final String? linkVisibleFrom;
+  final String? submissionStatus;
+  final List<dynamic> mcqQuestions;
 
   const CourseSessionModel({
     required this.id,
@@ -37,6 +40,8 @@ class CourseSessionModel {
     this.referenceMaterialUrl,
     this.videoUrl,
     this.linkVisibleFrom,
+    this.submissionStatus,
+    this.mcqQuestions = const [],
   });
 
   factory CourseSessionModel.fromJson(Map<String, dynamic> json) {
@@ -68,6 +73,8 @@ class CourseSessionModel {
       referenceMaterialUrl: CourseAssetUrl.resolve(json['reference_material_url'] ?? json['material_url']),
       videoUrl: str(json['video_url'] ?? json['external_url']).isEmpty ? null : str(json['video_url'] ?? json['external_url']),
       linkVisibleFrom: str(json['link_visible_from']).isEmpty ? null : str(json['link_visible_from']),
+      submissionStatus: str(json['submission_status']).isEmpty ? null : str(json['submission_status']),
+      mcqQuestions: (json['mcq_questions'] as List<dynamic>?)?.map((q) => CourseModuleMcqQuestionModel.fromJson(q as Map<String, dynamic>)).toList() ?? [],
     );
   }
 
@@ -89,6 +96,8 @@ class CourseSessionModel {
       referenceMaterialUrl: referenceMaterialUrl,
       videoUrl: videoUrl,
       linkVisibleFrom: linkVisibleFrom,
+      submissionStatus: submissionStatus,
+      mcqQuestions: mcqQuestions.whereType<CourseModuleMcqQuestionModel>().map((q) => q.toEntity()).toList(),
     );
   }
 

@@ -1,20 +1,76 @@
-# GTTP
-**The Global Travel and Tourism Partnership**
+# GTTP Mobile Application
 
-A modern Flutter mobile application built with secure, highly-scalable Clean Architecture.
+Welcome to the GTTP Mobile Application repository. This project is a robust, production-grade Flutter application built for educational and networking management.
 
-## API Coverage
-- Auth: `/auth/login`, `/auth/verify-otp`, `/auth/resend-otp`, `/auth/forgot-password`, `/auth/reset-password`
-- Dashboard: `/dashboard`
-- Master Data: `/certificates`, `/schedules`, `/subjects`, `/syllabus`, `/timetable`, `/notices`, `/schools`, `/students`, `/classes`
+## 🌟 Key Features
+- **Role-Based Access:** Secure login via Email/OTP.
+- **Course Management:** View enrolled courses, explore modules, take quizzes, and submit assignment reports.
+- **Notices & Announcements:** Real-time updates and important alerts.
+- **School Network & Gallery:** Connect with peers and view event galleries.
+- **Robust Architecture:** Feature-First Clean Architecture ensures a scalable, maintainable, and testable codebase.
 
-## Recent Updates
-- Events parsing now supports both list payloads and single-object payloads in `data`.
-- Courses parsing now supports `cover_image` for thumbnails and `total_hours` for duration.
-- Courses description text is now sanitized from HTML, and relative course images are resolved through `/storage/...`.
-- Events image parsing now resolves relative image paths through `/storage/...` for reliable rendering.
-- Courses UI now shows API settings details: start/end dates, enrollment type, status, and pass percentage.
-- Reports UI now shows a dedicated "Coming Soon" state for the `Flagged` review filter.
-- Added Certificates and Notices features with full UI.
-- Added offline mode support with Hive caching.
-- Added PDF/CSV/Excel export functionality.
+## 🏗️ Architecture & Tech Stack
+- **Framework:** Flutter (Material 3)
+- **State Management:** Riverpod (v2.0+)
+- **Routing:** GoRouter
+- **Networking:** Dio (with interceptors for secure token handling)
+- **Security:** `flutter_secure_storage`, `flutter_dotenv`
+- **Testing:** Integration Testing (`integration_test`), Mocktail
+
+### Folder Structure (Feature-First)
+```
+lib/
+├── core/               # App-wide configs, networking, routing, themes
+├── features/           # Independent feature modules
+│   ├── auth/           
+│   ├── courses/        
+│   ├── dashboard/      
+│   ├── notices/        
+│   └── profile/        
+└── main.dart           # App Entry Point
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Flutter SDK (latest stable recommended)
+- Dart SDK
+- Android Studio / Xcode (for emulation)
+
+### Setup Instructions
+1. **Clone the repository:**
+   ```bash
+   git clone <repository_url>
+   cd GTTP
+   ```
+
+2. **Install Dependencies:**
+   ```bash
+   flutter pub get
+   ```
+
+3. **Environment Configuration:**
+   Create a `.env` file in the root directory:
+   ```env
+   API_BASE_URL=https://gttp.efsouls.com/api
+   ```
+
+4. **Run the App:**
+   ```bash
+   flutter run
+   ```
+
+## 🧪 Testing
+The project includes a robust suite of native Integration Tests verifying the entire user flow (Login -> OTP -> Dashboard -> Courses).
+Run the E2E tests via:
+```bash
+flutter test integration_test/app_test.dart
+```
+
+## 🛡️ Security Best Practices Enforced
+- **Zero Hardcoded Secrets:** All sensitive endpoints use `.env`.
+- **Encrypted Storage:** Auth tokens are saved securely via `flutter_secure_storage`.
+- **Resilient Networking:** Interceptors automatically manage 401 token states and retry logic.
+
+## 📚 Further Documentation
+Please refer to the `docs/handover/` directory for detailed client Handover packages, Setup Guides, and Security Audits.

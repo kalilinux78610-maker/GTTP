@@ -8,11 +8,13 @@ import '../../data/repositories/courses_repository_impl.dart';
 class CourseQuizScreen extends ConsumerStatefulWidget {
   final String courseId;
   final String moduleId;
+  final String? submoduleId;
 
   const CourseQuizScreen({
     super.key,
     required this.courseId,
     required this.moduleId,
+    this.submoduleId,
   });
 
   @override
@@ -29,33 +31,48 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
 
   void _submitQuiz(List<dynamic> questions) async {
     int score = 0;
-    for (final question in questions) {
-      final selectedOptionId = _selectedAnswers[question.id];
-      if (selectedOptionId != null) {
-        final selectedOption = question.options.firstWhere(
-          (o) => o.id == selectedOptionId,
-          orElse: () => question.options.first, // fallback
-        );
-        if (selectedOption.isCorrect) {
-          score += (question.points as int);
+    try {
+      for (final question in questions) {
+        final selectedOptionId = _selectedAnswers[question.id];
+        if (selectedOptionId != null) {
+          dynamic selectedOption;
+          for (final o in question.options) {
+            if (o.id == selectedOptionId) {
+              selectedOption = o;
+              break;
+            }
+          }
+          selectedOption ??= question.options[0]; // fallback
+          
+          print('Question ID: ${question.id}');
+          print('Selected Option ID: ${selectedOption.id}');
+          print('Is Correct: ${selectedOption.isCorrect}');
+          print('Question Points: ${question.points}');
+
+          if (selectedOption.isCorrect == true || 
+              selectedOption.isCorrect == 1 || 
+              selectedOption.isCorrect?.toString() == '1' || 
+              selectedOption.isCorrect?.toString().toLowerCase() == 'true') {
+            score += (question.points as int);
+          }
         }
       }
-    }
+      print('Calculated Score: $score');
 
-    int totalPoints = questions.fold(0, (sum, q) => sum + (q.points as int));
-    int percentage = totalPoints > 0 ? ((score / totalPoints) * 100).round() : 0;
-    bool passed = percentage >= 50;
+      int totalPoints = questions.fold(0, (sum, q) => sum + (q.points as int));
+      int percentage = totalPoints > 0 ? ((score / totalPoints) * 100).round() : 0;
+      bool passed = percentage >= 50;
 
-    setState(() {
-      _isSubmitting = true;
-    });
+      setState(() {
+        _isSubmitting = true;
+      });
 
-    try {
       await ref.read(coursesRepositoryProvider).submitQuiz(
             widget.courseId,
             widget.moduleId,
             percentage,
             passed,
+            widget.submoduleId,
           );
       
       if (mounted) {
@@ -104,7 +121,17 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
             if (module == null) {
               return const Center(child: Text('Module not found.'));
             }
-            var questions = module.mcqQuestions;
+            
+            List<dynamic> questions = [];
+            if (widget.submoduleId != null) {
+              final session = module.sessions.firstWhere(
+                (s) => s.id == widget.submoduleId,
+                orElse: () => module.sessions.first,
+              );
+              questions = session.mcqQuestions;
+            } else {
+              questions = module.mcqQuestions;
+            }
             
             if (questions.isEmpty) {
               return const Center(child: Text('No quiz questions available.'));
@@ -327,7 +354,7 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () {
-                  context.pop();
+                  context.pop(true);
                 },
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF7C3AED),

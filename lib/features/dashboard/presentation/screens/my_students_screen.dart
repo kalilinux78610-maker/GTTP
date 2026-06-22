@@ -210,6 +210,7 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
 
                   return RefreshIndicator(
                     onRefresh: () async {
+                      ref.invalidate(studentsApiProvider);
                       ref.invalidate(myStudentsProvider);
                       await ref.read(myStudentsProvider.future);
                     },

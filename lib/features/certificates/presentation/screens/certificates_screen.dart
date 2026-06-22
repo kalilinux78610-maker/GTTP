@@ -21,7 +21,7 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
     final roleAsync = ref.watch(currentUserRoleProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       body: SafeArea(
         child: Column(
           children: [
@@ -29,8 +29,8 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 24),
-              decoration: const BoxDecoration(
-                color: Color(0xFF209E5A),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,11 +209,11 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
           if (role.canAccessSchoolNetwork) {
             return FloatingActionButton.extended(
               onPressed: () => context.push('/dashboard/certificates/builder'),
-              backgroundColor: const Color(0xFFE65C00),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              icon: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimaryContainer),
+              label: Text(
                 'Builder',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold),
               ),
             );
           }
@@ -231,12 +231,13 @@ class _CertificateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -253,11 +254,11 @@ class _CertificateCard extends StatelessWidget {
             // Top Section with Ribbon
             Container(
               height: 100,
-              color: const Color(0xFFEFF2F6),
+              color: colorScheme.surfaceContainerHighest,
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.military_tech_outlined,
-                color: Color(0xFFEA580C),
+                color: colorScheme.primary,
                 size: 40,
               ),
             ),
@@ -276,10 +277,10 @@ class _CertificateCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           certificate.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -306,19 +307,19 @@ class _CertificateCard extends StatelessWidget {
                   // Subtitle
                   Text(
                     certificate.schoolName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF64748B),
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 16),
                   
                   // Details
-                  _buildDetailRow('Course:', certificate.courseName),
+                  _buildDetailRow(context, 'Course:', certificate.courseName),
                   const SizedBox(height: 6),
-                  _buildDetailRow('Module:', certificate.description ?? 'Module 1: Introduction to Tourism'),
+                  _buildDetailRow(context, 'Module:', certificate.description ?? 'Module 1: Introduction to Tourism'),
                   const SizedBox(height: 6),
-                  _buildDetailRow('Issued:', certificate.issuedDate),
+                  _buildDetailRow(context, 'Issued:', certificate.issuedDate),
                   const SizedBox(height: 20),
                   
                   // Action Buttons
@@ -398,14 +399,14 @@ class _CertificateCard extends StatelessWidget {
     }
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF6B7280),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -414,8 +415,8 @@ class _CertificateCard extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              color: Color(0xFF2A3A4A),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

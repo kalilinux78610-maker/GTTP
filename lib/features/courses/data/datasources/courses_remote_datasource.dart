@@ -42,9 +42,12 @@ class CoursesRemoteDataSource {
     return ApiJsonParser.extractList(response).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  Future<void> submitQuiz(String courseId, String moduleId, int scorePercentage, bool passed) async {
+  Future<void> submitQuiz(String courseId, String moduleId, int scorePercentage, bool passed, [String? submoduleId]) async {
+    final endpoint = submoduleId != null 
+        ? '/courses/$courseId/modules/$moduleId/submodules/$submoduleId/quiz/submit'
+        : '/courses/$courseId/modules/$moduleId/quiz/submit';
     await _apiClient.post(
-      '/courses/$courseId/modules/$moduleId/quiz/submit',
+      endpoint,
       requiresAuth: true,
       data: {
         'score_percentage': scorePercentage,

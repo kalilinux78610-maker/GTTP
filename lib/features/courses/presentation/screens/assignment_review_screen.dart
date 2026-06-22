@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
-import '../../data/datasources/courses_remote_datasource.dart';
+import '../providers/assignment_review_provider.dart';
+import '../providers/course_details_provider.dart';
 
 class AssignmentReviewScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -23,23 +24,25 @@ class AssignmentReviewScreen extends ConsumerStatefulWidget {
 
 class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen> {
   String status = 'Pending Review';
-  bool isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: colorScheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(
           widget.submissionData?['module_name']?.toString() ?? 'Assignment Review',
-          style: const TextStyle(
-            color: Color(0xFF1E293B),
+          style: TextStyle(
+            color: colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -116,43 +119,44 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
   }
 
   Widget _buildInfoSection() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.submissionData?['module_name']?.toString() ?? 'Submission Details',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.person_outline, size: 16, color: Color(0xFF64748B)),
+              Icon(Icons.person_outline, size: 16, color: colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(
                 'Student: ${widget.submissionData?['student_name']?.toString() ?? 'Unknown'}',
-                style: const TextStyle(color: Color(0xFF64748B)),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF64748B)),
+              Icon(Icons.calendar_today_outlined, size: 16, color: colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(
                 'Submitted: ${widget.submissionData?['submitted_at']?.toString() ?? 'N/A'}',
-                style: const TextStyle(color: Color(0xFF64748B)),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -240,15 +244,16 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
         break;
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Requirements Checklist',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
@@ -278,12 +283,15 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
     required String buttonText,
     required String nextStatus,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isSubmitting = ref.watch(assignmentReviewProvider).isLoading;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,13 +453,11 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
   }
 
   Future<void> _submitReview(String newStatus, String message, {String note = 'Reviewed from UI'}) async {
-    setState(() {
-      isSubmitting = true;
-    });
-
     try {
-      final remoteSource = ref.read(coursesRemoteDataSourceProvider);
-      await remoteSource.reviewSubmission(widget.submissionId, newStatus.toLowerCase(), note);
+      await ref.read(assignmentReviewProvider.notifier).submitReview(widget.submissionId, newStatus.toLowerCase(), note);
+      
+      // Invalidate the pending submissions list so it refreshes when returning
+      ref.invalidate(coursePendingSubmissionsProvider(widget.courseId));
       
       setState(() {
         status = newStatus;
@@ -470,12 +476,6 @@ class _AssignmentReviewScreenState extends ConsumerState<AssignmentReviewScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to review submission: $e'), backgroundColor: Colors.red),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isSubmitting = false;
-        });
       }
     }
   }

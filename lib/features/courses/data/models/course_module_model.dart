@@ -196,7 +196,7 @@ class CourseModuleMcqQuestionModel {
   factory CourseModuleMcqQuestionModel.fromJson(Map<String, dynamic> json) {
     String str(dynamic v) => ApiJsonParser.asString(v);
     
-    final optionsRaw = json['options'];
+    final optionsRaw = json['options'] ?? json['mcq_options'];
     final options = <CourseModuleMcqOptionModel>[];
     if (optionsRaw is List) {
       for (final item in optionsRaw) {

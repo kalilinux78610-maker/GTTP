@@ -126,23 +126,21 @@ final studentsApiProvider = FutureProvider<List<Map<String, dynamic>>>((ref) asy
   ref.watch(userModelProvider);
   ref.watch(currentUserRoleProvider);
 
-  return _cacheFirstNetworkSecondFetch(
-    ref,
-    'students_cache',
-    () async {
-      final user = await ref.read(userModelProvider.future);
-      final role = await ref.read(currentUserRoleProvider.future);
-      
-      String? schoolQuery;
-      if (user != null && (role == AppUserRole.faculty || role == AppUserRole.coordinator || role == AppUserRole.principal || role == AppUserRole.unknown)) {
-        if (user.institute != null && user.institute!.isNotEmpty) {
-          schoolQuery = user.institute;
-        }
-      }
+  final user = await ref.read(userModelProvider.future);
+  final role = await ref.read(currentUserRoleProvider.future);
+  
+  String? schoolQuery;
+  if (user != null && (role == AppUserRole.faculty || role == AppUserRole.coordinator || role == AppUserRole.principal || role == AppUserRole.unknown)) {
+    if (user.institute != null && user.institute!.isNotEmpty) {
+      schoolQuery = user.institute;
+    }
+  }
 
-      return ref.read(gttpRemoteDataSourceProvider).getStudents(school: schoolQuery);
-    },
-  );
+  return ref.read(gttpRemoteDataSourceProvider).getStudents(school: schoolQuery);
+});
+
+final studentCoursesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, studentId) async {
+  return ref.read(gttpRemoteDataSourceProvider).getStudentCourses(studentId);
 });
 
 

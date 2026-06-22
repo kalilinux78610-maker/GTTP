@@ -489,7 +489,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                   style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
                 Text(
-                  '$progress% Complete',
+                  '${progress.toInt()}% Complete',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

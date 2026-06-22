@@ -111,7 +111,8 @@ class CourseModel {
     }
 
     int? parseProgress(List<CourseModuleModel> modules) {
-      final raw = json['progress_percent'] ??
+      final raw = json['progress_percentage'] ??
+          json['progress_percent'] ??
           json['progressPercent'] ??
           json['overall_progress'] ??
           json['progress'];

@@ -1361,7 +1361,7 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
         onTap: () async {
           final cId = GoRouterState.of(context).pathParameters['id'] ?? '';
           final mId = GoRouterState.of(context).pathParameters['moduleId'] ?? '';
-          final completed = await Navigator.of(context, rootNavigator: true).push<bool>(
+          await Navigator.of(context, rootNavigator: true).push<bool>(
             MaterialPageRoute(
               builder: (context) => CourseSessionDetailScreen(
                 session: widget.session,
@@ -1373,11 +1373,9 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
             ),
           );
 
-          if (completed == true && mounted) {
-            setState(() {
-              _isCompletedLocally = true;
-            });
-          }
+          // We don't set _isCompletedLocally manually here because
+          // CourseSessionDetailScreen already invalidates the providers
+          // on submission, so the state will refresh from the backend.
         },
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -1435,6 +1433,29 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check, size: 16, color: Colors.white),
+                )
+              else if (widget.session.submissionStatus == 'pending')
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time, size: 14, color: Color(0xFFEA7A1A)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Pending Review',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFEA7A1A),
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               else
                 const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),

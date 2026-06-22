@@ -213,9 +213,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         
         if (me.isNotEmpty && mounted) {
           final userObj = me['user'] is Map ? me['user'] as Map : me;
-          final newPhone = (userObj['phone'] ?? userObj['mobile'] ?? me['phone'] ?? me['mobile'] ?? '').toString();
-          final newInstitute = (userObj['school_name'] ?? userObj['institute'] ?? me['school_name'] ?? me['institute'] ?? '').toString();
-          final newInstituteType = (userObj['institute_type'] ?? me['institute_type'] ?? '').toString();
+          
+          String getValid(List<Map> maps, List<String> keys) {
+            for (var map in maps) {
+              for (var key in keys) {
+                if (map[key] != null && map[key].toString().trim().isNotEmpty) {
+                  return map[key].toString().trim();
+                }
+              }
+            }
+            return '';
+          }
+
+          final newPhone = getValid([userObj, me], ['phone', 'mobile', 'mobile_number']);
+          final newInstitute = getValid([userObj, me], ['school_name', 'institute']);
+          final newInstituteType = getValid([userObj, me], ['institute_type']);
           
           setState(() {
             if (_phone.isEmpty) _phone = newPhone;

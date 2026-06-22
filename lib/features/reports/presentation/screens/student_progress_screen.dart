@@ -65,7 +65,7 @@ class StudentProgressScreen extends ConsumerWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
             itemCount: courses.length + 1, // +1 for the student header
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -254,7 +254,7 @@ class StudentProgressScreen extends ConsumerWidget {
                     padding: const EdgeInsets.only(left: 32.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: module.submodules.map((sub) {
+                      children: module.submodules.map<Widget>((sub) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: Row(

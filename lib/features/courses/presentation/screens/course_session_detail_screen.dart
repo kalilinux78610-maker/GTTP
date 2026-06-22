@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:gttp/features/courses/data/repositories/courses_repository_impl.dart';
 import 'package:gttp/features/courses/data/models/course_session_model.dart';
 import 'package:gttp/features/reports/data/repositories/reports_repository_impl.dart';
@@ -11,6 +11,8 @@ import 'package:gttp/features/courses/presentation/providers/course_module_provi
 import 'package:gttp/features/courses/presentation/providers/course_details_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:gttp/features/courses/presentation/widgets/session_video_player.dart';
+import 'package:gttp/features/courses/presentation/providers/courses_provider.dart';
 
 
 class CourseSessionDetailScreen extends ConsumerStatefulWidget {
@@ -46,7 +48,8 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
 
   bool get _requiresProofUpload {
     final type = widget.session.contentType?.toLowerCase().replaceAll('_', ' ') ?? '';
-    return widget.session.requiresProofUpload || type.contains('report upload') || type.contains('submission');
+    if (type.contains('quiz') || type.contains('mcq')) return false;
+    return widget.session.requiresProofUpload || type.contains('report upload') || type.contains('submission') || type.contains('assignment');
   }
 
   Future<void> _pickFile() async {
@@ -87,15 +90,6 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
           widget.session.id,
         );
       } else {
-        await ref.read(reportsRepositoryProvider).submitReport(
-          courseId: widget.courseId,
-          moduleId: widget.moduleId,
-          submoduleId: widget.session.id,
-          activityTitle: 'Session Completed',
-          description: 'Marked as complete by user.',
-          category: ReportCategory.theory,
-        );
-        
         await ref.read(coursesRepositoryProvider).markSubmoduleComplete(
           widget.courseId,
           widget.moduleId,
@@ -115,6 +109,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
         );
         ref.invalidate(courseDetailsProvider(widget.courseId));
         ref.invalidate(courseModuleProvider((courseId: widget.courseId, moduleId: widget.moduleId)));
+        ref.invalidate(coursesProvider);
         
         if (!_requiresProofUpload) {
           Navigator.pop(context, true);
@@ -167,7 +162,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
     final isVideo = type == 'video (url)' || type == 'video';
     final isExternal = type == 'external course (url)' || type == 'external course';
     final isLiveSession = type == 'live session (meeting link)' || type == 'live session';
-    final isMCQ = type == 'mcq test' || type == 'mcq';
+    final isMCQ = type == 'mcq test' || type == 'mcq' || type == 'quiz';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -413,16 +408,8 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
 
                     const SizedBox(height: 24),
                   ] else if (isVideo && widget.session.videoUrl != null && widget.session.videoUrl!.isNotEmpty) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => openCourseUrl(context, widget.session.videoUrl),
-                        icon: const Icon(Icons.play_circle_outline, size: 18),
-                        label: const Text('Watch Video', style: TextStyle(fontSize: 15)),
-                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                    SessionVideoPlayer(videoUrl: widget.session.videoUrl!),
+                    const SizedBox(height: 16),
                   ] else if ((isExternal || type == 'external course') && widget.session.fileUrl != null && widget.session.fileUrl!.isNotEmpty) ...[
                     SizedBox(
                       width: double.infinity,
@@ -431,6 +418,37 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                         icon: const Icon(Icons.open_in_new, size: 18),
                         label: const Text('Open External Course', style: TextStyle(fontSize: 15)),
                         style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ] else if (isMCQ) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          // Route to the quiz screen, passing the submoduleId
+                          final result = await context.push<bool>('/courses/${widget.courseId}/modules/${widget.moduleId}/quiz?submoduleId=${widget.session.id}');
+                          if (result == true && mounted) {
+                            setState(() {
+                              _isCompletedLocally = true;
+                            });
+                            // Refresh course details
+                            ref.invalidate(courseDetailsProvider(widget.courseId));
+                          }
+                        },
+                        icon: Icon(
+                          _isCompletedLocally ? Icons.check_circle : Icons.quiz_outlined, 
+                          size: 18
+                        ),
+                        label: Text(
+                          _isCompletedLocally ? 'Retake MCQ Quiz' : 'Take MCQ Quiz', 
+                          style: const TextStyle(fontSize: 15)
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: _isCompletedLocally ? const Color(0xFF059669) : const Color(0xFF7C3AED),
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -443,7 +461,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                         label: Text(
                           widget.session.deliveryMode?.toLowerCase() == 'virtual'
                               ? 'View Virtual Material'
-                              : (isMCQ ? 'Take MCQ Test' : 'Read Material'),
+                              : 'Read Material',
                           style: const TextStyle(fontSize: 15),
                         ),
                         style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
@@ -526,7 +544,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                             ),
                           ),
                           const SizedBox(height: 24),
-                          if (!_isCompletedLocally) ...[
+                          if (!_isCompletedLocally && widget.session.submissionStatus != 'pending') ...[
                             InkWell(
                               onTap: _pickFile,
                               borderRadius: BorderRadius.circular(8),
@@ -644,7 +662,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
             ),
           ),
 
-          if (widget.isStudent && !_isCompletedLocally && !_requiresProofUpload)
+          if (widget.isStudent && !_isCompletedLocally && !_requiresProofUpload && !isMCQ)
             Positioned(
               bottom: 0,
               left: 0,

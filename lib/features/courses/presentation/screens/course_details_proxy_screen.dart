@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
-import 'package:gttp/features/courses/presentation/screens/coordinator_course_details_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/course_details_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/teacher_course_details_screen.dart';
 
@@ -23,11 +22,7 @@ class CourseDetailsProxyScreen extends ConsumerWidget {
       error: (_, _) => CourseDetailsScreen(courseId: courseId),
       data: (user) {
         final role = AppUserRole.fromApi(user?.effectiveRole);
-        if (role.isCoordinator) {
-          return CoordinatorCourseDetailsScreen(courseId: courseId);
-        }
-
-        if (role.usesTeacherDashboard) {
+        if (role.isCoordinator || role.usesTeacherDashboard) {
           return TeacherCourseDetailsScreen(courseId: courseId);
         }
 

@@ -89,9 +89,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<void> submitQuiz(String courseId, String moduleId, int scorePercentage, bool passed) async {
+  Future<void> submitQuiz(String courseId, String moduleId, int scorePercentage, bool passed, [String? submoduleId]) async {
     try {
-      await _remoteDataSource.submitQuiz(courseId, moduleId, scorePercentage, passed);
+      await _remoteDataSource.submitQuiz(courseId, moduleId, scorePercentage, passed, submoduleId);
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Failed to submit quiz: $e');
@@ -125,6 +125,16 @@ class CoursesRepositoryImpl implements CoursesRepository {
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Failed to submit session proof: $e');
+    }
+  }
+
+  @override
+  Future<void> reviewSubmission(String submissionId, String status, String reviewNotes) async {
+    try {
+      await _remoteDataSource.reviewSubmission(submissionId, status, reviewNotes);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to review submission: $e');
     }
   }
 }

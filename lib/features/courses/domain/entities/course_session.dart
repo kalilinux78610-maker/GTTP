@@ -15,6 +15,8 @@ class CourseSession {
   final String? referenceMaterialUrl;
   final String? videoUrl;
   final String? linkVisibleFrom;
+  final String? submissionStatus;
+  final List<dynamic> mcqQuestions;
 
   const CourseSession({
     required this.id,
@@ -33,6 +35,8 @@ class CourseSession {
     this.referenceMaterialUrl,
     this.videoUrl,
     this.linkVisibleFrom,
+    this.submissionStatus,
+    this.mcqQuestions = const [],
   });
 
   CourseSession copyWith({
@@ -52,6 +56,7 @@ class CourseSession {
     String? referenceMaterialUrl,
     String? videoUrl,
     String? linkVisibleFrom,
+    List<dynamic>? mcqQuestions,
   }) {
     return CourseSession(
       id: id ?? this.id,
@@ -70,6 +75,7 @@ class CourseSession {
       referenceMaterialUrl: referenceMaterialUrl ?? this.referenceMaterialUrl,
       videoUrl: videoUrl ?? this.videoUrl,
       linkVisibleFrom: linkVisibleFrom ?? this.linkVisibleFrom,
+      mcqQuestions: mcqQuestions ?? this.mcqQuestions,
     );
   }
 }

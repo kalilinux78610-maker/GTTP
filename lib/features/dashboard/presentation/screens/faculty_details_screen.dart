@@ -43,7 +43,7 @@ class FacultyDetailsScreen extends ConsumerWidget {
     
     final name = (userObj['name'] ?? userObj['faculty_name'] ?? 'Unknown').toString();
     final email = (userObj['email'] ?? 'No email').toString();
-    final phone = (userObj['phone'] ?? userObj['mobile'] ?? 'Not provided').toString();
+    final phone = (userObj['phone'] ?? userObj['mobile'] ?? userObj['mobile_number'] ?? 'Not provided').toString();
     final role = (userObj['role'] ?? userObj['designation'] ?? 'Faculty').toString();
     final schoolName = (schoolObj['name'] ?? 'Unknown School').toString();
     final avatarUrl = StudentRowParser.avatar(userObj as Map<String, dynamic>);

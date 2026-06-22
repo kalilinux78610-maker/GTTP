@@ -16,6 +16,7 @@ import 'package:gttp/features/courses/presentation/screens/course_module_detail_
 import 'package:gttp/features/courses/presentation/screens/course_quiz_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/courses_screen.dart';
 import 'package:gttp/features/courses/presentation/screens/pending_submissions_screen.dart';
+import 'package:gttp/features/courses/presentation/screens/assignment_review_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/dashboard_proxy_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/faculty_members_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/faculty_details_screen.dart';
@@ -23,6 +24,7 @@ import 'package:gttp/features/dashboard/presentation/screens/my_students_screen.
 import 'package:gttp/features/dashboard/presentation/screens/profile_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'package:gttp/features/dashboard/presentation/screens/teacher_student_detail_screen.dart';
+import 'package:gttp/features/reports/presentation/screens/student_progress_screen.dart';
 import 'package:gttp/features/gallery/presentation/screens/gallery_screen.dart';
 import 'package:gttp/features/notices/presentation/screens/notices_screen.dart';
 import 'package:gttp/features/notices/presentation/screens/notice_detail_screen.dart';
@@ -30,7 +32,7 @@ import 'package:gttp/features/notices/presentation/screens/create_notice_screen.
 import 'package:gttp/features/reports/presentation/screens/data_export_screen.dart';
 import 'package:gttp/features/reports/presentation/screens/report_detail_screen.dart';
 import 'package:gttp/features/reports/presentation/screens/report_list_screen.dart';
-import 'package:gttp/features/reports/presentation/screens/student_progress_screen.dart';
+
 import 'package:gttp/features/reports/presentation/screens/submit_report_screen.dart';
 import 'package:gttp/features/school_network/presentation/screens/school_network_screen.dart';
 import 'package:gttp/features/events/presentation/screens/events_screen.dart';
@@ -255,9 +257,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               final courseId = state.pathParameters['id'] ?? '';
                               final moduleId =
                                   state.pathParameters['moduleId'] ?? '';
+                              final submoduleId =
+                                  state.uri.queryParameters['submoduleId'];
                               return CourseQuizScreen(
                                 courseId: courseId,
                                 moduleId: moduleId,
+                                submoduleId: submoduleId,
                               );
                             },
                           ),
@@ -276,13 +281,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: ':id/submissions/:submissionId',
                     builder: (context, state) {
                       final courseId = state.pathParameters['id'] ?? '';
-                      // final submissionId = state.pathParameters['submissionId'] ?? '';
+                      final submissionId = state.pathParameters['submissionId'] ?? '';
                       final extra = state.extra as Map<String, dynamic>?;
-                      final moduleId = extra?['module_id']?.toString() ?? '';
 
-                      return CourseModuleDetailScreen(
+                      return AssignmentReviewScreen(
                         courseId: courseId,
-                        moduleId: moduleId,
+                        submissionId: submissionId,
                         submissionData: extra,
                       );
                     },
@@ -312,6 +316,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => TeacherStudentDetailScreen(
                       studentId: state.pathParameters['id'] ?? '',
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'progress',
+                        builder: (context, state) => StudentProgressScreen(
+                          studentId: state.pathParameters['id'],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
