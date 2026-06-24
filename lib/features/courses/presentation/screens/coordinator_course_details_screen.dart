@@ -103,9 +103,24 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
       expandedHeight: 200,
       pinned: true,
       backgroundColor: const Color(0xFF0F62FE),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => context.pop(),
+      leading: Center(
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: InkWell(
+            onTap: () => context.pop(),
+            borderRadius: BorderRadius.circular(16),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: CourseCoverImage(

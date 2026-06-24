@@ -56,7 +56,6 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'],
-      withData: true,
     );
 
     if (result != null) {
@@ -73,6 +72,8 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
       if (_requiresProofUpload) {
         if (_selectedFile == null) return;
         
+        final bytes = _selectedFile != null ? await _selectedFile!.readAsBytes() : null;
+
         await ref.read(reportsRepositoryProvider).submitReport(
           courseId: widget.courseId,
           moduleId: widget.moduleId,
@@ -81,7 +82,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
           description: 'Submitted via course session details screen.',
           category: ReportCategory.theory,
           fileName: _selectedFile?.name,
-          fileBytes: _selectedFile?.bytes,
+          fileBytes: bytes,
         );
         
         await ref.read(coursesRepositoryProvider).markSubmoduleComplete(

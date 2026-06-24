@@ -35,7 +35,6 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'],
-      withData: true,
     );
 
     if (result != null) {
@@ -50,6 +49,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     
     setState(() => _isSubmitting = true);
     try {
+      final bytes = _selectedFile != null ? await _selectedFile!.readAsBytes() : null;
+
       await ref.read(reportsRepositoryProvider).submitReport(
         courseId: widget.courseId,
         moduleId: widget.moduleId,
@@ -58,7 +59,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
         fileName: _selectedFile?.name,
-        fileBytes: _selectedFile?.bytes,
+        fileBytes: bytes,
       );
       
       if (mounted) {

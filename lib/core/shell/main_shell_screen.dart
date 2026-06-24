@@ -45,13 +45,21 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
-        // 1. If we are NOT on the Dashboard tab, switch to Dashboard tab instead of exiting.
+        final router = GoRouter.of(context);
+        
+        // 1. If the current inner navigator can pop (e.g., inside a sub-route), pop it normally.
+        if (router.canPop()) {
+          router.pop();
+          return;
+        }
+
+        // 2. If we are NOT on the Dashboard tab, switch to Dashboard tab instead of exiting.
         if (widget.navigationShell.currentIndex != 0) {
           widget.navigationShell.goBranch(0);
           return;
         }
 
-        // 2. If we ARE on the Dashboard tab, require double back press to exit.
+        // 3. If we ARE on the Dashboard tab, require double back press to exit.
         final now = DateTime.now();
         if (_lastPressedAt == null || now.difference(_lastPressedAt!) > const Duration(seconds: 2)) {
           _lastPressedAt = now;

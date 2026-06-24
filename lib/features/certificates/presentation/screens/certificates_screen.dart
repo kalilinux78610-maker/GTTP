@@ -22,16 +22,20 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Green Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-              ),
+      body: Column(
+        children: [
+          // Blue Header
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16, 
+              left: 24, 
+              right: 24, 
+              bottom: 24,
+            ),
+            decoration: const BoxDecoration(
+              color: Color(0xFF3286C9),
+            ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -203,7 +207,6 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
             ),
           ],
         ),
-      ),
       floatingActionButton: roleAsync.whenOrNull(
         data: (role) {
           if (role.canAccessSchoolNetwork) {
@@ -276,7 +279,9 @@ class _CertificateCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          certificate.title,
+                          certificate.title.isNotEmpty 
+                            ? (certificate.title == certificate.type ? 'Certificate of ${certificate.type}' : certificate.title) 
+                            : 'Certificate of ${certificate.type ?? 'Completion'}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -288,12 +293,14 @@ class _CertificateCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
+                          color: certificate.type?.toLowerCase() == 'participation'
+                              ? const Color(0xFF3B82F6) // Blue for Participation
+                              : const Color(0xFF10B981), // Green for Completion
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          'Completion',
-                          style: TextStyle(
+                        child: Text(
+                          certificate.type ?? 'Completion',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,

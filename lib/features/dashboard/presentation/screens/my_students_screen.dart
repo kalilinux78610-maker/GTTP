@@ -34,13 +34,17 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 24),
-              decoration: const BoxDecoration(
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 24,
+              right: 24,
+              bottom: 24,
+            ),
+            decoration: const BoxDecoration(
                 color: Color(0xFF0052CC), // Updated to match admin blue theme
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(30),
@@ -425,7 +429,6 @@ class _MyStudentsScreenState extends ConsumerState<MyStudentsScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

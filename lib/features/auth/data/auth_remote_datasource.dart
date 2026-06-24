@@ -117,6 +117,11 @@ class AuthRemoteDataSource {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+      try {
+        await fetchMe();
+      } catch (e) {
+        if (kDebugMode) debugPrint('[AuthDataSource] Failed to fetch profile during login: $e');
+      }
       return;
     }
 
@@ -239,6 +244,12 @@ class AuthRemoteDataSource {
       accessToken: accessToken,
       refreshToken: refreshToken,
     );
+
+    try {
+      await fetchMe();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AuthDataSource] Failed to fetch profile during verifyOtp: $e');
+    }
   }
 
   Future<void> _saveDisplayName(

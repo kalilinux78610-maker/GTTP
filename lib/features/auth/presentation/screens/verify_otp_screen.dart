@@ -194,9 +194,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     }
   }
 
-  Widget _buildOtpBox(int index) {
+  Widget _buildOtpBox(int index, double width) {
     return SizedBox(
-      width: 48,
+      width: width,
       height: 56,
       child: TextFormField(
         controller: _controllers[index],
@@ -374,12 +374,18 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                     const SizedBox(height: 32),
 
                     // OTP Boxes
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(
-                        6,
-                        (i) => _buildOtpBox(i),
-                      ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        double boxWidth = (constraints.maxWidth - 40) / 6;
+                        if (boxWidth > 48) boxWidth = 48;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List.generate(
+                            6,
+                            (i) => _buildOtpBox(i, boxWidth),
+                          ),
+                        );
+                      },
                     ),
 
                     if (_errorText != null) ...[

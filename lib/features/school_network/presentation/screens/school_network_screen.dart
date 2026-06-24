@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/features/dashboard/presentation/providers/gttp_api_providers.dart';
@@ -179,6 +178,7 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
+      resizeToAvoidBottomInset: false,
       body: RefreshIndicator(
         onRefresh: _refreshAllData,
         child: SingleChildScrollView(
@@ -233,21 +233,6 @@ class _SchoolNetworkScreenState extends ConsumerState<SchoolNetworkScreen>
                       icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                       onPressed: () {
                         NavigationUtils.safePop(context);
-                      },
-                    ),
-                  ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.download_rounded, color: Colors.white, size: 22),
-                      onPressed: () {
-                        context.push('/data-export');
                       },
                     ),
                   ),

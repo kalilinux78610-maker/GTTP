@@ -9,6 +9,7 @@ class CertificateModel {
   final String status;
   final String? certificateUrl;
   final String? description;
+  final String? type;
 
   CertificateModel({
     required this.id,
@@ -21,6 +22,7 @@ class CertificateModel {
     required this.status,
     this.certificateUrl,
     this.description,
+    this.type,
   });
 
   factory CertificateModel.fromJson(Map<String, dynamic> json) {
@@ -41,15 +43,16 @@ class CertificateModel {
 
     return CertificateModel(
       id: getString(['id', 'certificate_id', 'certificateId', 'cert_id']),
-      title: getString(['title', 'name', 'certificate_name', 'certificateTitle']),
+      title: getString(['title', 'name', 'certificate_name', 'certificateTitle', 'type']),
       studentName: getString(['student_name', 'studentName', 'student', 'user_name', 'userName']),
       schoolName: getString(['school_name', 'schoolName', 'school', 'institute']),
       courseName: getString(['course_name', 'courseName', 'course', 'program']),
       issuedDate: getString(['issued_date', 'issuedDate', 'date', 'created_at', 'createdAt', 'issue_date']),
       expiryDate: getString(['expiry_date', 'expiryDate', 'expires_at', 'expiresAt', 'valid_until']),
       status: getString(['status', 'certificate_status', 'state']),
-      certificateUrl: tryString(json['certificate_url'] ?? json['url'] ?? json['file_url'] ?? json['pdf_url']),
+      certificateUrl: tryString(json['certificate_url'] ?? json['download_url'] ?? json['image_url'] ?? json['url'] ?? json['file_url'] ?? json['pdf_url']),
       description: tryString(json['description'] ?? json['notes'] ?? json['remarks']),
+      type: tryString(json['type']),
     );
   }
 
@@ -82,6 +85,7 @@ class CertificateModel {
       'status': status,
       'certificateUrl': certificateUrl,
       'description': description,
+      'type': type,
     };
   }
 }

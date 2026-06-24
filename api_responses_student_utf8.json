@@ -1,0 +1,979 @@
+﻿{
+    "dashboard":  {
+                      "status":  true,
+                      "message":  "Dashboard data fetched successfully.",
+                      "data":  {
+                                   "total_schools":  15,
+                                   "total_students":  14,
+                                   "average_students":  1,
+                                   "total_classes":  11,
+                                   "total_notices":  6,
+                                   "total_certificates":  1,
+                                   "total_users":  45,
+                                   "total_principals":  2,
+                                   "total_faculties":  7,
+                                   "total_courses":  3,
+                                   "total_progress_reports":  1,
+                                   "total_events":  3,
+                                   "total_gallery":  4,
+                                   "total_certificate_templates":  1,
+                                   "total_roles":  6,
+                                   "total_audit_logs":  379
+                               }
+                  },
+    "principal/dashboard":  "The remote server returned an error: (403) Forbidden.",
+    "courses/1":  {
+                      "status":  true,
+                      "message":  "Course details retrieved successfully",
+                      "data":  {
+                                   "id":  1,
+                                   "title":  "TRAVEL \u0026 TOURISM INDUSTRY STRUCTURE ",
+                                   "description":  "\u003cp\u003eThe \u003cstrong\u003eTravel \u0026amp; Tourism Industry Structure\u003c/strong\u003e is the organization of different sectors that work together to provide travel services. It includes:\u003c/p\u003e\u003cul\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eService providers\u003c/strong\u003e like airlines, hotels, restaurants, and tourist attractions\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eIntermediaries\u003c/strong\u003e such as travel agents and online booking platforms\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eSupporting services\u003c/strong\u003e like insurance, visa services, and currency exchange\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eGovernment bodies\u003c/strong\u003e that regulate and promote tourism\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eTourists\u003c/strong\u003e, who are the customers\u003c/p\u003e\u003c/li\u003e\u003c/ul\u003e\u003cp\u003eAll these parts work together to plan, manage, and deliver travel experiences.\u003c/p\u003e",
+                                   "cover_image":  "https://gttp.efsouls.com/storage/courses/01KS9NSHE6CK3WP8K5H7WC3XDH.jpg",
+                                   "course_details_pdf":  "https://gttp.efsouls.com/storage/courses/details/01KS9NSHE3S85G49NCPP48GY4X.pdf",
+                                   "start_date":  "2026-05-20T18:30:00.000000Z",
+                                   "end_date":  "2026-05-23T18:30:00.000000Z",
+                                   "enrollment_type":  "open",
+                                   "status":  "published",
+                                   "is_enrollable":  true,
+                                   "is_enrolled":  true,
+                                   "progress_percentage":  0,
+                                   "modules":  [
+                                                   {
+                                                       "id":  1,
+                                                       "course_id":  "1",
+                                                       "title":  "Defining Travellers",
+                                                       "order":  "1",
+                                                       "use_submodules":  false,
+                                                       "duration_hours":  "1",
+                                                       "is_sequential":  true,
+                                                       "scheduled_from":  null,
+                                                       "scheduled_to":  null,
+                                                       "scheduled_month":  null,
+                                                       "deadline_date":  null,
+                                                       "reminder_days_before":  "3",
+                                                       "is_completed":  false,
+                                                       "submodules":  [
+
+                                                                      ],
+                                                       "type":  "assignment",
+                                                       "type_label":  "Student submits — Assignment (PDF)",
+                                                       "overview":  "\u003col start=\"1\"\u003e\u003cli\u003e\u003cp\u003eUpload a file/image and write any necessary notes, then submit the assignment.\u003c/p\u003e\u003c/li\u003e\u003c/ol\u003e",
+                                                       "external_url":  "https://youtu.be/KqNrZMX49F0?si=GLuEicOsWuyRu5ZC",
+                                                       "file_path":  null,
+                                                       "link_visible_time":  null,
+                                                       "requires_proof_upload":  false,
+                                                       "mcq_enabled":  false,
+                                                       "mcq_pass_percent":  "10",
+                                                       "mcq_max_attempts":  "1",
+                                                       "mcq_shuffle":  false,
+                                                       "mcq_time_limit_minutes":  "10",
+                                                       "mcq_show_answers":  "after_attempts",
+                                                       "submission_status":  null,
+                                                       "submission_id":  null,
+                                                       "proof_url":  null,
+                                                       "submitted_at":  null,
+                                                       "criterias":  [
+
+                                                                     ],
+                                                       "mcq_questions":  [
+                                                                             {
+                                                                                 "id":  1,
+                                                                                 "module_id":  "1",
+                                                                                 "submodule_id":  null,
+                                                                                 "question_text":  "test ",
+                                                                                 "question_image":  null,
+                                                                                 "explanation":  "1",
+                                                                                 "points":  "1",
+                                                                                 "order":  "1",
+                                                                                 "deleted_at":  null,
+                                                                                 "options":  [
+                                                                                                 {
+                                                                                                     "id":  1,
+                                                                                                     "question_id":  "1",
+                                                                                                     "option_text":  "1",
+                                                                                                     "is_correct":  "0",
+                                                                                                     "order":  "1",
+                                                                                                     "deleted_at":  null
+                                                                                                 },
+                                                                                                 {
+                                                                                                     "id":  2,
+                                                                                                     "question_id":  "1",
+                                                                                                     "option_text":  "2",
+                                                                                                     "is_correct":  "0",
+                                                                                                     "order":  "2",
+                                                                                                     "deleted_at":  null
+                                                                                                 },
+                                                                                                 {
+                                                                                                     "id":  3,
+                                                                                                     "question_id":  "1",
+                                                                                                     "option_text":  "3",
+                                                                                                     "is_correct":  "1",
+                                                                                                     "order":  "3",
+                                                                                                     "deleted_at":  null
+                                                                                                 },
+                                                                                                 {
+                                                                                                     "id":  4,
+                                                                                                     "question_id":  "1",
+                                                                                                     "option_text":  "4",
+                                                                                                     "is_correct":  "0",
+                                                                                                     "order":  "4",
+                                                                                                     "deleted_at":  null
+                                                                                                 }
+                                                                                             ]
+                                                                             }
+                                                                         ]
+                                                   },
+                                                   {
+                                                       "id":  2,
+                                                       "course_id":  "1",
+                                                       "title":  "Capture Picture ",
+                                                       "order":  "1",
+                                                       "use_submodules":  false,
+                                                       "duration_hours":  null,
+                                                       "is_sequential":  true,
+                                                       "scheduled_from":  null,
+                                                       "scheduled_to":  null,
+                                                       "scheduled_month":  null,
+                                                       "deadline_date":  null,
+                                                       "reminder_days_before":  "3",
+                                                       "is_completed":  false,
+                                                       "submodules":  [
+
+                                                                      ],
+                                                       "type":  "report_upload",
+                                                       "type_label":  "Student submits — Report (PDF)",
+                                                       "overview":  "\u003cp\u003es\u003c/p\u003e",
+                                                       "external_url":  null,
+                                                       "file_path":  null,
+                                                       "link_visible_time":  null,
+                                                       "requires_proof_upload":  false,
+                                                       "mcq_enabled":  false,
+                                                       "mcq_pass_percent":  null,
+                                                       "mcq_max_attempts":  null,
+                                                       "mcq_shuffle":  false,
+                                                       "mcq_time_limit_minutes":  null,
+                                                       "mcq_show_answers":  "after_attempts",
+                                                       "submission_status":  null,
+                                                       "submission_id":  null,
+                                                       "proof_url":  null,
+                                                       "submitted_at":  null,
+                                                       "criterias":  [
+
+                                                                     ],
+                                                       "mcq_questions":  [
+
+                                                                         ]
+                                                   }
+                                               ]
+                               }
+                  },
+    "faculties":  {
+                      "status":  true,
+                      "message":  "Faculties list fetched successfully.",
+                      "data":  [
+                                   {
+                                       "id":  1,
+                                       "user_id":  "6",
+                                       "school_id":  "2",
+                                       "roll_number":  null,
+                                       "date_of_birth":  "1985-06-05T18:30:00.000000Z",
+                                       "gender":  "female",
+                                       "blood_group":  "AB-",
+                                       "address":  null,
+                                       "academic_year":  "2026-2027",
+                                       "is_active":  true,
+                                       "institute":  "school",
+                                       "image":  null,
+                                       "passport_number":  null,
+                                       "passport_expiry":  null,
+                                       "city":  "surat",
+                                       "state":  "gujarat",
+                                       "state_code":  null,
+                                       "created_at":  "2026-05-21T00:40:31.000000Z",
+                                       "updated_at":  "2026-05-30T07:50:17.000000Z",
+                                       "class_id":  [
+                                                        2
+                                                    ],
+                                       "section":  [
+                                                       "B"
+                                                   ],
+                                       "department":  null,
+                                       "program":  null,
+                                       "semester":  null,
+                                       "deleted_at":  null,
+                                       "students_count":  0,
+                                       "school":  {
+                                                      "id":  2,
+                                                      "name":  "School2",
+                                                      "institute":  "school",
+                                                      "code":  "002",
+                                                      "address":  "surat, gujarat",
+                                                      "phone":  "7483827563",
+                                                      "email":  "school2@gmail.com",
+                                                      "logo":  null,
+                                                      "is_active":  true,
+                                                      "created_at":  "2026-05-21T00:32:56.000000Z",
+                                                      "updated_at":  "2026-06-11T06:51:45.000000Z",
+                                                      "deleted_at":  null,
+                                                      "national_coordinator_id":  null
+                                                  },
+                                       "user":  {
+                                                    "id":  6,
+                                                    "name":  "fac1",
+                                                    "email":  "fac1@gmail.com",
+                                                    "email_verified_at":  null,
+                                                    "phone":  null,
+                                                    "passport_number":  "A1234568",
+                                                    "passport_expiry":  null,
+                                                    "role_level":  0,
+                                                    "is_alumni":  false,
+                                                    "avatar":  null,
+                                                    "is_active":  true,
+                                                    "created_at":  "2026-05-21T00:40:31.000000Z",
+                                                    "updated_at":  "2026-05-30T07:50:17.000000Z",
+                                                    "deleted_at":  null,
+                                                    "school_id":  "2",
+                                                    "institute":  "school",
+                                                    "role":  "Faculty",
+                                                    "roles":  [
+                                                                  {
+                                                                      "id":  4,
+                                                                      "name":  "Faculty",
+                                                                      "guard_name":  "web",
+                                                                      "created_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "updated_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "pivot":  {
+                                                                                    "model_type":  "App\\Models\\User",
+                                                                                    "model_id":  "6",
+                                                                                    "role_id":  "4"
+                                                                                }
+                                                                  }
+                                                              ]
+                                                }
+                                   },
+                                   {
+                                       "id":  4,
+                                       "user_id":  "42",
+                                       "school_id":  "2",
+                                       "roll_number":  null,
+                                       "date_of_birth":  "1910-06-04T18:30:00.000000Z",
+                                       "gender":  "female",
+                                       "blood_group":  null,
+                                       "address":  null,
+                                       "academic_year":  null,
+                                       "is_active":  true,
+                                       "institute":  "school",
+                                       "image":  null,
+                                       "passport_number":  null,
+                                       "passport_expiry":  null,
+                                       "city":  "surat",
+                                       "state":  null,
+                                       "state_code":  null,
+                                       "created_at":  "2026-06-02T05:41:42.000000Z",
+                                       "updated_at":  "2026-06-04T04:43:25.000000Z",
+                                       "class_id":  [
+                                                        2
+                                                    ],
+                                       "section":  [
+                                                       "B"
+                                                   ],
+                                       "department":  null,
+                                       "program":  null,
+                                       "semester":  null,
+                                       "deleted_at":  null,
+                                       "students_count":  0,
+                                       "school":  {
+                                                      "id":  2,
+                                                      "name":  "School2",
+                                                      "institute":  "school",
+                                                      "code":  "002",
+                                                      "address":  "surat, gujarat",
+                                                      "phone":  "7483827563",
+                                                      "email":  "school2@gmail.com",
+                                                      "logo":  null,
+                                                      "is_active":  true,
+                                                      "created_at":  "2026-05-21T00:32:56.000000Z",
+                                                      "updated_at":  "2026-06-11T06:51:45.000000Z",
+                                                      "deleted_at":  null,
+                                                      "national_coordinator_id":  null
+                                                  },
+                                       "user":  {
+                                                    "id":  42,
+                                                    "name":  "fac1",
+                                                    "email":  "fac2@gmail.com",
+                                                    "email_verified_at":  null,
+                                                    "phone":  null,
+                                                    "passport_number":  null,
+                                                    "passport_expiry":  null,
+                                                    "role_level":  0,
+                                                    "is_alumni":  false,
+                                                    "avatar":  null,
+                                                    "is_active":  true,
+                                                    "created_at":  "2026-06-02T05:41:42.000000Z",
+                                                    "updated_at":  "2026-06-02T05:41:42.000000Z",
+                                                    "deleted_at":  null,
+                                                    "school_id":  "2",
+                                                    "institute":  "school",
+                                                    "role":  "Faculty",
+                                                    "roles":  [
+                                                                  {
+                                                                      "id":  4,
+                                                                      "name":  "Faculty",
+                                                                      "guard_name":  "web",
+                                                                      "created_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "updated_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "pivot":  {
+                                                                                    "model_type":  "App\\Models\\User",
+                                                                                    "model_id":  "42",
+                                                                                    "role_id":  "4"
+                                                                                }
+                                                                  }
+                                                              ]
+                                                }
+                                   },
+                                   {
+                                       "id":  5,
+                                       "user_id":  "44",
+                                       "school_id":  "13",
+                                       "roll_number":  "-500",
+                                       "date_of_birth":  "1111-11-10T18:06:32.000000Z",
+                                       "gender":  "male",
+                                       "blood_group":  null,
+                                       "address":  null,
+                                       "academic_year":  null,
+                                       "is_active":  true,
+                                       "institute":  "college",
+                                       "image":  null,
+                                       "passport_number":  null,
+                                       "passport_expiry":  null,
+                                       "city":  "surat",
+                                       "state":  null,
+                                       "state_code":  null,
+                                       "created_at":  "2026-06-03T05:32:42.000000Z",
+                                       "updated_at":  "2026-06-03T05:32:42.000000Z",
+                                       "class_id":  null,
+                                       "section":  null,
+                                       "department":  [
+                                                          "Information Technology"
+                                                      ],
+                                       "program":  [
+                                                       "B. Tech"
+                                                   ],
+                                       "semester":  [
+                                                        1
+                                                    ],
+                                       "deleted_at":  null,
+                                       "students_count":  4,
+                                       "school":  null,
+                                       "user":  {
+                                                    "id":  44,
+                                                    "name":  "fac3",
+                                                    "email":  "fac3@gmail.com",
+                                                    "email_verified_at":  null,
+                                                    "phone":  null,
+                                                    "passport_number":  "passportnum1",
+                                                    "passport_expiry":  "2027-06-02T18:30:00.000000Z",
+                                                    "role_level":  0,
+                                                    "is_alumni":  false,
+                                                    "avatar":  null,
+                                                    "is_active":  true,
+                                                    "created_at":  "2026-06-03T05:32:41.000000Z",
+                                                    "updated_at":  "2026-06-03T05:38:31.000000Z",
+                                                    "deleted_at":  null,
+                                                    "school_id":  "13",
+                                                    "institute":  "college",
+                                                    "role":  "Faculty",
+                                                    "roles":  [
+                                                                  {
+                                                                      "id":  4,
+                                                                      "name":  "Faculty",
+                                                                      "guard_name":  "web",
+                                                                      "created_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "updated_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "pivot":  {
+                                                                                    "model_type":  "App\\Models\\User",
+                                                                                    "model_id":  "44",
+                                                                                    "role_id":  "4"
+                                                                                }
+                                                                  }
+                                                              ]
+                                                }
+                                   },
+                                   {
+                                       "id":  8,
+                                       "user_id":  "57",
+                                       "school_id":  "1",
+                                       "roll_number":  null,
+                                       "date_of_birth":  "2026-06-01T18:30:00.000000Z",
+                                       "gender":  "male",
+                                       "blood_group":  null,
+                                       "address":  null,
+                                       "academic_year":  null,
+                                       "is_active":  true,
+                                       "institute":  "school",
+                                       "image":  null,
+                                       "passport_number":  null,
+                                       "passport_expiry":  null,
+                                       "city":  "dd",
+                                       "state":  null,
+                                       "state_code":  null,
+                                       "created_at":  "2026-06-10T05:12:07.000000Z",
+                                       "updated_at":  "2026-06-10T05:12:07.000000Z",
+                                       "class_id":  [
+                                                        1
+                                                    ],
+                                       "section":  [
+                                                       "A"
+                                                   ],
+                                       "department":  null,
+                                       "program":  null,
+                                       "semester":  null,
+                                       "deleted_at":  null,
+                                       "students_count":  2,
+                                       "school":  null,
+                                       "user":  {
+                                                    "id":  57,
+                                                    "name":  "Muffadal bodgam",
+                                                    "email":  "musffadal.bodgam.efsoulss@gmail.com",
+                                                    "email_verified_at":  null,
+                                                    "phone":  null,
+                                                    "passport_number":  null,
+                                                    "passport_expiry":  null,
+                                                    "role_level":  0,
+                                                    "is_alumni":  false,
+                                                    "avatar":  null,
+                                                    "is_active":  true,
+                                                    "created_at":  "2026-06-10T05:12:07.000000Z",
+                                                    "updated_at":  "2026-06-10T05:12:07.000000Z",
+                                                    "deleted_at":  null,
+                                                    "school_id":  "1",
+                                                    "institute":  "school",
+                                                    "role":  "Faculty",
+                                                    "roles":  [
+                                                                  {
+                                                                      "id":  4,
+                                                                      "name":  "Faculty",
+                                                                      "guard_name":  "web",
+                                                                      "created_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "updated_at":  "2026-05-21T00:24:09.000000Z",
+                                                                      "pivot":  {
+                                                                                    "model_type":  "App\\Models\\User",
+                                                                                    "model_id":  "57",
+                                                                                    "role_id":  "4"
+                                                                                }
+                                                                  }
+                                                              ]
+                                                }
+                                   }
+                               ],
+                      "meta":  {
+                                   "current_page":  1,
+                                   "last_page":  1,
+                                   "per_page":  20,
+                                   "total":  4
+                               }
+                  },
+    "notices":  {
+                    "status":  true,
+                    "message":  "Notices list fetched successfully.",
+                    "data":  [
+                                 {
+                                     "id":  1,
+                                     "institute_type":  "school",
+                                     "school_ids":  [
+                                                        1,
+                                                        2
+                                                    ],
+                                     "institute_names":  [
+                                                             "School2"
+                                                         ],
+                                     "title":  "Visit",
+                                     "body":  "This is to inform all concerned that a visit event has been scheduled on [date] at [venue]. The event will begin at [time] and aims to provide valuable exposure and learning experience to all participants.\n\nAll attendees are requested to report on time and follow the instructions given by the organizers. Proper discipline and adherence to guidelines are expected throughout the visit.\n\nFor any queries or further information, please contact [name/designation/contact].\n\nWe look forward to your active participation.",
+                                     "type":  "event",
+                                     "target_audience":  "all",
+                                     "target_class":  [
+                                                          "Class1"
+                                                      ],
+                                     "target_section":  [
+                                                            "A"
+                                                        ],
+                                     "target_program":  null,
+                                     "target_department":  null,
+                                     "target_semester":  null,
+                                     "created_by":  "Rutu Bhatt",
+                                     "publish_at":  "2026-05-21 12:30",
+                                     "expires_at":  null,
+                                     "is_global":  true
+                                 }
+                             ],
+                    "meta":  {
+                                 "current_page":  1,
+                                 "last_page":  1,
+                                 "per_page":  20,
+                                 "total":  1
+                             }
+                },
+    "schools":  {
+                    "status":  true,
+                    "message":  "Schools list fetched successfully.",
+                    "data":  [
+                                 {
+                                     "id":  2,
+                                     "name":  "School2",
+                                     "code":  "002",
+                                     "address":  "surat, gujarat",
+                                     "phone":  "7483827563",
+                                     "email":  "school2@gmail.com",
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  2,
+                                     "total_coordinators":  0,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+
+                                                      ],
+                                     "created_at":  "2026-05-21T00:32:56.000000Z"
+                                 },
+                                 {
+                                     "id":  3,
+                                     "name":  "college1",
+                                     "code":  null,
+                                     "address":  "surat, gujarat",
+                                     "phone":  "7483827564",
+                                     "email":  "college1@gmail.com",
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "NC1"
+                                                      ],
+                                     "created_at":  "2026-05-21T00:33:55.000000Z"
+                                 },
+                                 {
+                                     "id":  5,
+                                     "name":  "school4",
+                                     "code":  "65",
+                                     "address":  "surat",
+                                     "phone":  "9887965462",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  1,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  2,
+                                     "total_students":  "0",
+                                     "principals":  [
+                                                        "Mr. Raju"
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ms. Priti Desai",
+                                                          "Ayush Prajapati"
+                                                      ],
+                                     "created_at":  "2026-05-21T01:16:24.000000Z"
+                                 },
+                                 {
+                                     "id":  6,
+                                     "name":  "rngpit",
+                                     "code":  "084",
+                                     "address":  "tajpore",
+                                     "phone":  "1236547789",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ms. Priti Desai"
+                                                      ],
+                                     "created_at":  "2026-05-21T04:49:38.000000Z"
+                                 },
+                                 {
+                                     "id":  7,
+                                     "name":  "COUNTRYSIDE INTERNATIONAL SCHOOL",
+                                     "code":  "1416",
+                                     "address":  "Near Bhesan Railway Crossing, CIS Barbodhan Road, Opp. Segvachhama Bus Stop, SURAT - 395005 - GUJARAT - INDIA",
+                                     "phone":  "7096670000",
+                                     "email":  "ciscompdept@gmail.com",
+                                     "logo":  "school-logos/01KSA5APG0571DZD2A1VS88EY0.jpg",
+                                     "total_principals":  1,
+                                     "total_faculties":  1,
+                                     "total_coordinators":  0,
+                                     "total_students":  "3",
+                                     "principals":  [
+                                                        "Sheetal Mukherji"
+                                                    ],
+                                     "coordinators":  [
+
+                                                      ],
+                                     "created_at":  "2026-05-23T04:45:40.000000Z"
+                                 },
+                                 {
+                                     "id":  8,
+                                     "name":  "Jajnan",
+                                     "code":  "00",
+                                     "address":  "Surat",
+                                     "phone":  "6666666666",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ms. Priti Desai"
+                                                      ],
+                                     "created_at":  "2026-05-23T07:02:30.000000Z"
+                                 },
+                                 {
+                                     "id":  12,
+                                     "name":  "  School 3  ",
+                                     "code":  "SCH@#$%",
+                                     "address":  "add",
+                                     "phone":  "1111111111",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  2,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ms. Priti Desai",
+                                                          "Ayush Prajapati"
+                                                      ],
+                                     "created_at":  "2026-05-25T05:13:54.000000Z"
+                                 },
+                                 {
+                                     "id":  14,
+                                     "name":  "clg1",
+                                     "code":  "5",
+                                     "address":  "navsari",
+                                     "phone":  "1243568790",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "3",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "NC1"
+                                                      ],
+                                     "created_at":  "2026-05-28T01:00:23.000000Z"
+                                 },
+                                 {
+                                     "id":  18,
+                                     "name":  "scl5",
+                                     "code":  "v",
+                                     "address":  "surat, gujarat",
+                                     "phone":  "1243567890",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  0,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+
+                                                      ],
+                                     "created_at":  "2026-06-04T03:44:30.000000Z"
+                                 },
+                                 {
+                                     "id":  20,
+                                     "name":  "demo college",
+                                     "code":  "democlg001",
+                                     "address":  "navsari",
+                                     "phone":  "2222222222",
+                                     "email":  "demoscl1@example.com",
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "1",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ayush Prajapati"
+                                                      ],
+                                     "created_at":  "2026-06-05T04:14:15.000000Z"
+                                 },
+                                 {
+                                     "id":  21,
+                                     "name":  "demo school",
+                                     "code":  "demoscl001",
+                                     "address":  "navsari",
+                                     "phone":  "9999999999",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  1,
+                                     "total_coordinators":  1,
+                                     "total_students":  "5",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ayush Prajapati"
+                                                      ],
+                                     "created_at":  "2026-06-05T04:15:02.000000Z"
+                                 },
+                                 {
+                                     "id":  22,
+                                     "name":  "college4",
+                                     "code":  "65",
+                                     "address":  "surat, gujarat",
+                                     "phone":  "0000000000",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ayush Prajapati"
+                                                      ],
+                                     "created_at":  "2026-06-08T04:13:41.000000Z"
+                                 },
+                                 {
+                                     "id":  23,
+                                     "name":  "test school",
+                                     "code":  "tscl1",
+                                     "address":  "surat",
+                                     "phone":  "2134567890",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  0,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+
+                                                      ],
+                                     "created_at":  "2026-06-08T08:50:47.000000Z"
+                                 },
+                                 {
+                                     "id":  24,
+                                     "name":  "college 2",
+                                     "code":  "084",
+                                     "address":  "surat",
+                                     "phone":  "5555555555",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Ayush Prajapati"
+                                                      ],
+                                     "created_at":  "2026-06-10T04:04:35.000000Z"
+                                 },
+                                 {
+                                     "id":  25,
+                                     "name":  "bems",
+                                     "code":  "99",
+                                     "address":  "3333",
+                                     "phone":  "5555555558",
+                                     "email":  null,
+                                     "logo":  null,
+                                     "total_principals":  0,
+                                     "total_faculties":  0,
+                                     "total_coordinators":  1,
+                                     "total_students":  "0",
+                                     "principals":  [
+
+                                                    ],
+                                     "coordinators":  [
+                                                          "Muffadalbodgam"
+                                                      ],
+                                     "created_at":  "2026-06-10T08:20:46.000000Z"
+                                 }
+                             ],
+                    "meta":  {
+                                 "current_page":  1,
+                                 "last_page":  1,
+                                 "per_page":  20,
+                                 "total":  15
+                             }
+                },
+    "faculties/3":  "The remote server returned an error: (404) Not Found.",
+    "classes":  {
+                    "status":  true,
+                    "message":  "Classes list fetched successfully.",
+                    "data":  [
+
+                             ],
+                    "meta":  {
+                                 "current_page":  1,
+                                 "last_page":  1,
+                                 "per_page":  20,
+                                 "total":  0
+                             }
+                },
+    "subjects":  "The remote server returned an error: (404) Not Found.",
+    "reports/progress":  "The remote server returned an error: (422) Unprocessable Entity.",
+    "events":  {
+                   "status":  true,
+                   "message":  "Events list fetched successfully.",
+                   "data":  [
+                                {
+                                    "id":  5,
+                                    "title":  "gallery",
+                                    "year":  2026,
+                                    "image":  [
+                                                  "https://gttp.efsouls.com/storage/temp-uploads/01KTK9XA7T03VSEZ04BDF8NYAY.jpeg"
+                                              ],
+                                    "created_at":  "2026-06-08T09:44:36.000000Z",
+                                    "updated_at":  "2026-06-08T09:44:36.000000Z",
+                                    "deleted_at":  null,
+                                    "academic_year_id":  null
+                                },
+                                {
+                                    "id":  2,
+                                    "title":  "Annual Conference 2024",
+                                    "year":  null,
+                                    "image":  [
+                                                  "https://gttp.efsouls.com/storage/events/01KSKNAFEK8HABN4N9RABFZPHP.webp"
+                                              ],
+                                    "created_at":  "2026-05-26T21:18:20.000000Z",
+                                    "updated_at":  "2026-05-26T21:18:20.000000Z",
+                                    "deleted_at":  null,
+                                    "academic_year_id":  null
+                                },
+                                {
+                                    "id":  1,
+                                    "title":  "Visit",
+                                    "year":  2025,
+                                    "image":  [
+                                                  "https://gttp.efsouls.com/storage/events/01KS4JZ90MDYM20T5WZTHAXAQJ.jpg",
+                                                  "https://gttp.efsouls.com/storage/events/01KS4JZ90R6CR95NREJJY6KQM5.jpg"
+                                              ],
+                                    "created_at":  "2026-05-21T00:48:39.000000Z",
+                                    "updated_at":  "2026-06-16T10:17:52.000000Z",
+                                    "deleted_at":  null,
+                                    "academic_year_id":  null
+                                }
+                            ],
+                   "meta":  {
+                                "current_page":  1,
+                                "last_page":  1,
+                                "per_page":  20,
+                                "total":  3
+                            }
+               },
+    "student/dashboard":  "The remote server returned an error: (401) Unauthorized.",
+    "certificates":  {
+                         "status":  true,
+                         "data":  [
+
+                                  ]
+                     },
+    "courses":  {
+                    "status":  true,
+                    "message":  "Courses fetched successfully.",
+                    "data":  [
+                                 {
+                                     "id":  1,
+                                     "title":  "TRAVEL \u0026 TOURISM INDUSTRY STRUCTURE ",
+                                     "description":  "\u003cp\u003eThe \u003cstrong\u003eTravel \u0026amp; Tourism Industry Structure\u003c/strong\u003e is the organization of different sectors that work together to provide travel services. It includes:\u003c/p\u003e\u003cul\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eService providers\u003c/strong\u003e like airlines, hotels, restaurants, and tourist attractions\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eIntermediaries\u003c/strong\u003e such as travel agents and online booking platforms\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eSupporting services\u003c/strong\u003e like insurance, visa services, and currency exchange\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eGovernment bodies\u003c/strong\u003e that regulate and promote tourism\u003c/p\u003e\u003c/li\u003e\u003cli\u003e\u003cp\u003e\u003cstrong\u003eTourists\u003c/strong\u003e, who are the customers\u003c/p\u003e\u003c/li\u003e\u003c/ul\u003e\u003cp\u003eAll these parts work together to plan, manage, and deliver travel experiences.\u003c/p\u003e",
+                                     "cover_image":  "https://gttp.efsouls.com/storage/courses/01KS9NSHE6CK3WP8K5H7WC3XDH.jpg",
+                                     "course_details_pdf":  "https://gttp.efsouls.com/storage/courses/details/01KS9NSHE3S85G49NCPP48GY4X.pdf",
+                                     "start_date":  "2026-05-20T18:30:00.000000Z",
+                                     "end_date":  "2026-05-23T18:30:00.000000Z",
+                                     "enrollment_type":  "open",
+                                     "status":  "published",
+                                     "is_enrollable":  true,
+                                     "is_enrolled":  true,
+                                     "modules_count":  "2",
+                                     "sessions_count":  "0",
+                                     "progress_percentage":  0
+                                 },
+                                 {
+                                     "id":  7,
+                                     "title":  "Introduction to the Travel \u0026 Tourism Industry: Passport to the World",
+                                     "description":  "\u003ch2\u003e\u003cstrong\u003eUnderstand the key points of the customer journey in travel\u003c/strong\u003e\u003c/h2\u003e\u003cp\u003eThe travel and tourism sector contributes hundreds of millions of jobs to the global economy each year, and it’s likely to continue increasing.\u003c/p\u003e\u003cp\u003eOn this eight-week course, you’ll explore the customer journey through the eight stages of travel. Each week you’ll focus on a new stage, looking at the various aspects involved from both a customer and business perspective, as well as the trends and possible careers in each industry sector.\u003c/p\u003e\u003ch2\u003e\u003cstrong\u003eDevelop your understanding of the pre-travel sectors of the tourism industry\u003c/strong\u003e\u003c/h2\u003e\u003cp\u003eNot every trip or experience will require the traveller to go through each stage of travel, but when going to a new destination, it’s likely they will use all eight stages.\u003c/p\u003e\u003cp\u003eYou’ll start by delving into finding a destination and making reservations. Alongside discussing the jobs and careers within each stage, you’ll look at how social media and reviews influence decision making and the research around how destinations can better ‘cope with success’.\u003c/p\u003e\u003ch2\u003e\u003cstrong\u003eExplore the accommodation and food sectors of the industry\u003c/strong\u003e\u003c/h2\u003e\u003cp\u003eThe internet has reshaped the travel and tourism industry, especially accommodation. With sites like \u003ca href=\"http://Booking.com\"\u003eBooking.com\u003c/a\u003e and AirBnB, there is ample opportunity (and competition) for businesses.\u003c/p\u003e\u003cp\u003eYou’ll learn about the different types of hotels, from independent to luxury, as well as the competition from non-hotels. Then you’ll delve into the food sector, exploring the best menus to offer tourists and why it’s difficult to find authentic meals.\u003c/p\u003e\u003ch2\u003e\u003cstrong\u003eDiscover how travellers share their experiences and feedback in the modern world\u003c/strong\u003e\u003c/h2\u003e\u003cp\u003eTowards the end of this course, you’ll delve into the post-travel stages of the tourism industry. This section will guide you through how social media, blogs, and review sites like TripAdvisor have changed the way people share their experiences.\u003c/p\u003e",
+                                     "cover_image":  "https://gttp.efsouls.com/storage/courses/01KTJS1RR9X0BQAQPVE79KRRSK.jpg",
+                                     "course_details_pdf":  null,
+                                     "start_date":  "2026-06-09T18:30:00.000000Z",
+                                     "end_date":  "2027-06-09T18:30:00.000000Z",
+                                     "enrollment_type":  "open",
+                                     "status":  "published",
+                                     "is_enrollable":  true,
+                                     "is_enrolled":  false,
+                                     "modules_count":  "1",
+                                     "sessions_count":  "6",
+                                     "progress_percentage":  0
+                                 },
+                                 {
+                                     "id":  10,
+                                     "title":  "QA Master Test Course",
+                                     "description":  "\u003cp\u003e\u003c/p\u003e",
+                                     "cover_image":  "https://gttp.efsouls.com/storage/courses/01KVFFCWEH68ZY3EE6XNB9WHG9.png",
+                                     "course_details_pdf":  null,
+                                     "start_date":  "2026-06-18T18:30:00.000000Z",
+                                     "end_date":  "2026-06-29T18:30:00.000000Z",
+                                     "enrollment_type":  "open",
+                                     "status":  "published",
+                                     "is_enrollable":  true,
+                                     "is_enrolled":  false,
+                                     "modules_count":  "3",
+                                     "sessions_count":  "5",
+                                     "progress_percentage":  0
+                                 }
+                             ],
+                    "meta":  {
+                                 "current_page":  1,
+                                 "last_page":  1,
+                                 "per_page":  20,
+                                 "total":  3
+                             }
+                },
+    "timetable":  "The remote server returned an error: (404) Not Found.",
+    "schedules":  "The remote server returned an error: (404) Not Found.",
+    "syllabus":  {
+                     "status":  true,
+                     "message":  "Syllabus list fetched successfully.",
+                     "data":  [
+
+                              ],
+                     "meta":  {
+                                  "current_page":  1,
+                                  "last_page":  1,
+                                  "per_page":  20,
+                                  "total":  0
+                              }
+                 },
+    "national-coordinator/dashboard":  "The remote server returned an error: (403) Forbidden."
+}

@@ -214,6 +214,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
               (course.endDate?.isNotEmpty ?? false);
 
           return SafeArea(
+            top: true,
             bottom: true,
             child: RefreshIndicator(
               onRefresh: () async =>
@@ -288,15 +289,15 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             fit: BoxFit.cover,
           ),
           Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            top: 16,
             left: 16,
             child: _overlayIconButton(
-              icon: Icons.arrow_back,
+              icon: Icons.arrow_back_ios_new,
               onTap: () => NavigationUtils.safePop(context),
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            top: 16,
             right: 16,
             child: _overlayIconButton(
               icon: Icons.share_outlined,
@@ -317,16 +318,17 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.35),
-      shape: const CircleBorder(),
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
-        customBorder: const CircleBorder(),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
+        borderRadius: BorderRadius.circular(16),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }

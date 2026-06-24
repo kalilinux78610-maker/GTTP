@@ -245,10 +245,14 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
           context.go('/dashboard');
         }
       },
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
+      child: ColoredBox(
+        color: Colors.white,
+        child: SafeArea(
+          bottom: false,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
@@ -296,7 +300,12 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    padding: EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 20,
+                      bottom: MediaQuery.of(context).padding.bottom + 140,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -406,7 +415,7 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
                           rowEst,
                           filteredStudents,
                         ),
-                        const SizedBox(height: 100), // Extra padding to scroll past the bottom navigation bar
+                        // The bottom padding handles the safe area space now
                       ],
                     ),
                   ),
@@ -435,8 +444,11 @@ class _DataExportCenterScreenState extends ConsumerState<DataExportCenterScreen>
             ),
           ],
         ],
-      ),
-    ));
+      ), // Stack
+      ), // Scaffold
+      ), // SafeArea
+      ), // ColoredBox
+    ); // PopScope
   }
 
   // Tappable filter tile that opens a bottom sheet picker

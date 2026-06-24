@@ -229,13 +229,11 @@ final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref
   final asyncNotices = ref.watch(noticesNotifierProvider);
   final dashboardDataAsync = ref.watch(dashboardDataProvider);
   final userDataAsync = ref.watch(userModelProvider);
+  final schoolsAsync = ref.watch(schoolsProvider);
 
-  if (!asyncNotices.hasValue || !dashboardDataAsync.hasValue || !userDataAsync.hasValue) {
+  if (!asyncNotices.hasValue || !userDataAsync.hasValue) {
     if (asyncNotices.hasError) {
       return AsyncError(asyncNotices.error!, asyncNotices.stackTrace!);
-    }
-    if (dashboardDataAsync.hasError) {
-      return AsyncError(dashboardDataAsync.error!, dashboardDataAsync.stackTrace!);
     }
     if (userDataAsync.hasError) {
       return AsyncError(userDataAsync.error!, userDataAsync.stackTrace!);
@@ -245,20 +243,21 @@ final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref
 
   final dashboardData = dashboardDataAsync.value;
   final userData = userDataAsync.value;
+  final assignedSchools = schoolsAsync.value;
 
   return asyncNotices.whenData((notices) {
     var filtered = List<NoticeModel>.from(notices);
     
     // Strict security: if user context is missing, return nothing.
-    if (userData == null || dashboardData == null) {
+    if (userData == null) {
       return <NoticeModel>[];
     }
 
-    final appRole = AppUserRole.fromApi(userData.role);
+    final appRole = AppUserRole.fromApi(userData.effectiveRole);
       
       // Filter for school/college level roles
       if (appRole.isPrincipal || appRole.usesTeacherDashboard || appRole == AppUserRole.student) {
-        final dashboardSchool = dashboardData.schoolName?.toLowerCase() ?? '';
+        final dashboardSchool = dashboardData?.schoolName?.toLowerCase() ?? '';
         final userSchool = userData.institute?.toLowerCase() ?? '';
         final userSchoolId = userData.schoolId?.toString() ?? '';
         final schoolName = dashboardSchool.isNotEmpty ? dashboardSchool : userSchool;
@@ -287,8 +286,6 @@ final roleFilteredNoticesProvider = Provider<AsyncValue<List<NoticeModel>>>((ref
       } 
       // Filter for coordinator roles
       else if (appRole.isCoordinator) {
-        final assignedSchools = ref.watch(schoolsProvider).value;
-        
         filtered = filtered.where((notice) {
           // Bypass school check if it's a global notice
           if (notice.isGlobal) return true;

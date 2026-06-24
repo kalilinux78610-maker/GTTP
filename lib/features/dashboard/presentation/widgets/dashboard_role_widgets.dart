@@ -33,7 +33,7 @@ class DashboardRoleWidgets {
       );
     } else {
       // Default / Student / Teacher fallback
-      final displayCourses = coursesFallback > 0 ? coursesFallback : (data.totalCourses > 0 ? data.totalCourses : data.totalClasses);
+      final displayCourses = coursesFallback > 0 ? coursesFallback : data.totalCourses;
       final displaySchedules = data.totalSchedules > 0 ? data.totalSchedules : schedulesFallback;
       final displayCerts = data.totalCertificates > 0 ? data.totalCertificates : certsFallback;
 
@@ -60,7 +60,9 @@ class DashboardRoleWidgets {
       required Color iconBg,
       required VoidCallback onTap,
     }) buildQuickAccessCard,
+    required int coursesFallback,
     required int certsFallback,
+    required VoidCallback onNavigateCourses,
     required VoidCallback onNavigateCertificates,
     required VoidCallback onNavigateGallery,
   }) {
@@ -135,6 +137,7 @@ class DashboardRoleWidgets {
       // Default / Student / Teacher fallback
       final certCount = data.totalCertificates > 0 ? data.totalCertificates : certsFallback;
       final certTrailing = '$certCount Earned';
+      final displayCourses = coursesFallback > 0 ? coursesFallback : data.totalCourses;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,6 +151,15 @@ class DashboardRoleWidgets {
             ),
           ),
           const SizedBox(height: 16),
+          buildQuickAccessCard(
+            title: 'Courses',
+            subtitle: 'View your enrolled courses',
+            trailing: '$displayCourses Enrolled',
+            icon: Icons.menu_book_outlined,
+            iconColor: Colors.white,
+            iconBg: const Color(0xFF3286C9),
+            onTap: onNavigateCourses,
+          ),
           buildQuickAccessCard(
             title: 'Certificates',
             subtitle: 'View all your earned certificates',

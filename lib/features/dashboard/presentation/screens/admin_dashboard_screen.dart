@@ -13,7 +13,8 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key, required this.displayName});
 
   @override
-  ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+  ConsumerState<AdminDashboardScreen> createState() =>
+      _AdminDashboardScreenState();
 }
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
@@ -52,7 +53,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF6F8FA),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(dashboardDataProvider);
@@ -72,12 +73,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   children: [
                     const SizedBox(height: 32),
                     Text(
-                      'QUICK ACCESS',
+                      'Quick Access',
                       style: TextStyle(
-                        fontSize: 13,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white54 : Colors.black54,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -110,8 +110,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       title: 'Gallery',
                       subtitle: 'View all events, competitions & activities',
                       trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => data.totalGallery > 0 
-                            ? '${data.totalGallery} Photos' 
+                        data: (data) => data.totalGallery > 0
+                            ? '${data.totalGallery} Photos'
                             : 'View Photos',
                         orElse: () => 'View Photos',
                       ),
@@ -150,69 +150,110 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               left: 0,
               right: 0,
               height: 1000,
-              child: Container(
-                color: Theme.of(context).colorScheme.primaryContainer,
-              ),
+              child: Container(color: const Color(0xFF357AB6)),
             ),
             Container(
               height: 300,
               width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Theme.of(context).colorScheme.primaryContainer,
-                    Theme.of(context).colorScheme.primary,
-                  ],
+              decoration: const BoxDecoration(color: Color(0xFF357AB6)),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  MediaQuery.of(context).padding.top + 16,
+                  20,
+                  20,
                 ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 88),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 86,
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/images/gttp-logo.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.language, color: Colors.blue, size: 24),
                                 ),
-                              ],
+                              ),
                             ),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              height: 32,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.language, color: Colors.blue, size: 32),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 86,
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/images/ttet-logo.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.language, color: Colors.blue, size: 24),
+                                ),
+                              ),
                             ),
-                          ),
-                          Consumer(
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => context.push('/profile'),
+                          child: Consumer(
                             builder: (context, ref, child) {
                               final userAsync = ref.watch(userModelProvider);
-                              final avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
-                              
+                              String? avatarUrl = CourseAssetUrl.resolve(
+                                userAsync.value?.avatar,
+                              );
+                              final schoolLogo =
+                                  dashboardAsync.value?.schoolLogo;
+                              if ((avatarUrl == null || avatarUrl.isEmpty) &&
+                                  schoolLogo != null &&
+                                  schoolLogo.isNotEmpty) {
+                                avatarUrl = CourseAssetUrl.resolve(schoolLogo);
+                              }
+
                               Widget placeholder = Container(
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                   color: const Color(0xFFE65100),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.2),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -236,10 +277,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                   height: 44,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 2),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -249,8 +295,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                     child: CachedNetworkImage(
                                       imageUrl: avatarUrl,
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => placeholder,
-                                      errorWidget: (context, url, error) => placeholder,
+                                      placeholder: (context, url) =>
+                                          placeholder,
+                                      errorWidget: (context, url, error) =>
+                                          placeholder,
                                     ),
                                   ),
                                 );
@@ -258,47 +306,45 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               return placeholder;
                             },
                           ),
-                        ],
-                      ),
-                      const Spacer(),
-                      const SizedBox(height: 16),
-                      Text(
-                        _headerGreeting(),
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _headerGreeting(),
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        roleLabel,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      roleLabel,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
                       ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
             Positioned(
               left: 20,
               right: 20,
-              top: 240,
+              top: 230,
               child: dashboardAsync.when(
                 data: (data) => _buildPremiumOverviewCard(
                   institutes: '${data.totalSchools}',
-                  activeCourses:
-                      '${data.totalCourses > 0 ? data.totalCourses : data.totalClasses}',
+                  activeCourses: '${data.totalCourses}',
                   totalStudents: '${data.totalStudents}',
                   isDark: isDark,
                 ),
@@ -321,7 +367,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 90),
+        const SizedBox(height: 25),
       ],
     );
   }
@@ -334,13 +380,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.08),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -357,13 +405,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               color: colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildPremiumStatItem('Total Schools', institutes, const Color(0xFF3B82F6), isDark),
-              _buildPremiumStatItem('Active Projects', activeCourses, const Color(0xFFF97316), isDark),
-              _buildPremiumStatItem('Total Students', totalStudents, const Color(0xFF22C55E), isDark),
+              _buildPremiumStatItem(
+                'Total Schools',
+                institutes,
+                const Color(0xFF3B82F6),
+                isDark,
+              ),
+              _buildPremiumStatItem(
+                'Total Courses',
+                activeCourses,
+                const Color(0xFFF97316),
+                isDark,
+              ),
+              _buildPremiumStatItem(
+                'Total Students',
+                totalStudents,
+                const Color(0xFF22C55E),
+                isDark,
+              ),
             ],
           ),
         ],
@@ -371,13 +434,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildPremiumStatItem(String label, String value, Color color, bool isDark) {
+  Widget _buildPremiumStatItem(
+    String label,
+    String value,
+    Color color,
+    bool isDark,
+  ) {
     return Column(
       children: [
         Text(
           value,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: color,
             height: 1.1,
@@ -412,7 +480,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
@@ -428,13 +496,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    iconColor.withValues(alpha: 0.8),
-                    iconColor,
-                  ],
+                  colors: [iconColor.withValues(alpha: 0.8), iconColor],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -447,13 +512,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   ),
                 ],
               ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 24,
-              ),
+              child: Icon(icon, color: Colors.white, size: 22),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,7 +522,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
                     ),
@@ -469,8 +530,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -480,19 +543,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
             if (trailingText != null) ...[
               const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  trailingText,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Text(
+                trailingText,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ] else

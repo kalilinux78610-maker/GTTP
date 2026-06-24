@@ -24,67 +24,39 @@ class GalleryScreen extends ConsumerWidget {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF6F8FA),
-      body: Column(
-        children: [
-          _buildHeaderStack(context, ref),
-          Expanded(
-            child: eventsAsync.when(
-              data: (events) {
-                if (events.isEmpty) {
-                  return _EmptyState(onRefresh: () => ref.invalidate(eventsProvider));
-                }
+        body: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(eventsProvider);
+            await ref.read(eventsProvider.future);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              _buildHeaderSliver(context, ref),
+              ...eventsAsync.when(
+                data: (events) {
+                  if (events.isEmpty) {
+                    return <Widget>[
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyState(
+                          onRefresh: () => ref.invalidate(eventsProvider),
+                        ),
+                      ),
+                    ];
+                  }
 
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(eventsProvider);
-                    await ref.read(eventsProvider.future);
-                  },
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                          child: Text(
-                            '${events.length} event${events.length == 1 ? '' : 's'}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) => Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _GalleryEventTile(
-                                event: events[index],
-                                onTap: () => _showEventDetail(context, events[index]),
-                              ),
-                            ),
-                            childCount: events.length,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              loading: () => Skeletonizer(
-                enabled: true,
-                child: CustomScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  slivers: [
+                  return <Widget>[
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(height: 14, width: 80, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(4))),
+                        child: Text(
+                          '${events.length} event${events.length == 1 ? '' : 's'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ),
                     ),
@@ -93,6 +65,46 @@ class GalleryScreen extends ConsumerWidget {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _GalleryEventTile(
+                              event: events[index],
+                              onTap: () =>
+                                  _showEventDetail(context, events[index]),
+                            ),
+                          ),
+                          childCount: events.length,
+                        ),
+                      ),
+                    ),
+                  ];
+                },
+                loading: () => <Widget>[
+                  SliverToBoxAdapter(
+                    child: Skeletonizer(
+                      enabled: true,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            height: 14,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Skeletonizer(
+                          enabled: true,
+                          child: Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: Material(
                               color: Colors.white,
@@ -103,13 +115,35 @@ class GalleryScreen extends ConsumerWidget {
                                 children: [
                                   Container(height: 200, color: Colors.grey),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Container(height: 16, width: 250, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(4))),
+                                        Container(
+                                          height: 16,
+                                          width: 250,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
                                         const SizedBox(height: 8),
-                                        Container(height: 16, width: 120, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(4))),
+                                        Container(
+                                          height: 16,
+                                          width: 120,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -117,101 +151,114 @@ class GalleryScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          childCount: 3,
                         ),
+                        childCount: 3,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              error: (error, _) => _ErrorState(
-                message: error.toString(),
-                onRetry: () => ref.invalidate(eventsProvider),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ));
-  }
-
-  Widget _buildHeaderStack(BuildContext context, WidgetRef ref) {
-    final topInset = MediaQuery.of(context).padding.top;
-    final headerHeight = 240 - 56 + topInset;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: headerHeight,
-          width: double.infinity,
-          color: const Color(0xFF3B82F6),
-          padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                      onPressed: () {
-                        NavigationUtils.safePop(context);
-                      },
-                    ),
                   ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
-                      onPressed: () => ref.invalidate(eventsProvider),
+                ],
+                error: (error, _) => <Widget>[
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ErrorState(
+                      message: error.toString(),
+                      onRetry: () => ref.invalidate(eventsProvider),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Gallery',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'School Event Activities',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  height: 1.3,
-                ),
-              ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
+  Widget _buildHeaderSliver(BuildContext context, WidgetRef ref) {
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 140.0,
+      backgroundColor: const Color(0xFF357AB6),
+      elevation: 0,
+      leadingWidth: 72,
+      leading: Center(
+        child: Container(
+          width: 42,
+          height: 42,
+          margin: const EdgeInsets.only(left: 20, bottom: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 20,
+            ),
+            onPressed: () {
+              NavigationUtils.safePop(context);
+            },
+          ),
+        ),
+      ),
+      flexibleSpace: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final topPadding = MediaQuery.of(context).padding.top;
+          final collapsedHeight = kToolbarHeight + topPadding;
+          final expandedHeight = 150.0;
+          final currentHeight = constraints.maxHeight;
 
+          // expandRatio goes from 0.0 (collapsed) to 1.0 (expanded)
+          final expandRatio =
+              ((currentHeight - collapsedHeight) /
+                      (expandedHeight - collapsedHeight))
+                  .clamp(0.0, 1.0);
+
+          return FlexibleSpaceBar(
+            centerTitle: true,
+            titlePadding: EdgeInsets.only(bottom: 21 + (expandRatio * 20)),
+            title: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text(
+                  'Gallery',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                if (expandRatio > 0.01)
+                  ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: expandRatio,
+                      child: Opacity(
+                        opacity: expandRatio,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: const Text(
+                            'School Event Activities',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   void _showEventDetail(BuildContext context, EventModel event) {
     showModalBottomSheet<void>(
@@ -225,10 +272,7 @@ class GalleryScreen extends ConsumerWidget {
 }
 
 class _GalleryEventTile extends StatelessWidget {
-  const _GalleryEventTile({
-    required this.event,
-    required this.onTap,
-  });
+  const _GalleryEventTile({required this.event, required this.onTap});
 
   final EventModel event;
   final VoidCallback onTap;
@@ -248,9 +292,7 @@ class _GalleryEventTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 240,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           fit: StackFit.expand,
@@ -295,7 +337,8 @@ class _GalleryEventTile extends StatelessWidget {
                       letterSpacing: 0.5,
                     ),
                   ),
-                  if (event.eventDate != null && event.eventDate!.isNotEmpty) ...[
+                  if (event.eventDate != null &&
+                      event.eventDate!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       event.eventDate!,
@@ -342,12 +385,12 @@ class _EventDetailSheet extends StatelessWidget {
     if (allImages.length == 1) {
       return GestureDetector(
         onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => FullScreenImageViewer(
-              images: allImages,
-              initialIndex: 0,
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  FullScreenImageViewer(images: allImages, initialIndex: 0),
             ),
-          ));
+          );
         },
         child: CourseCoverImage(
           imageUrl: allImages.first,
@@ -362,15 +405,19 @@ class _EventDetailSheet extends StatelessWidget {
     return Column(
       children: List.generate(allImages.length, (index) {
         return Padding(
-          padding: EdgeInsets.only(bottom: index == allImages.length - 1 ? 0 : 12.0),
+          padding: EdgeInsets.only(
+            bottom: index == allImages.length - 1 ? 0 : 12.0,
+          ),
           child: GestureDetector(
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => FullScreenImageViewer(
-                  images: allImages,
-                  initialIndex: index,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => FullScreenImageViewer(
+                    images: allImages,
+                    initialIndex: index,
+                  ),
                 ),
-              ));
+              );
             },
             child: CourseCoverImage(
               imageUrl: allImages[index],
@@ -403,96 +450,114 @@ class _EventDetailSheet extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                child: Column(
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Text(
-                            event.title,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E293B),
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Color(0xFF475569), size: 20),
-                            onPressed: () => Navigator.of(context).pop(),
-                            padding: const EdgeInsets.all(8),
-                            constraints: const BoxConstraints(),
-                          ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Color(0xFF475569),
+                                  size: 20,
+                                ),
+                                onPressed: () => Navigator.of(context).pop(),
+                                padding: const EdgeInsets.all(8),
+                                constraints: const BoxConstraints(),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                  children: [
-                    _buildImagesCarousel(context),
-              const SizedBox(height: 12),
-              if (event.eventDate != null || event.eventTime != null || event.location != null)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (event.eventDate != null && event.eventDate!.isNotEmpty)
-                      _DetailChip(icon: Icons.calendar_today_outlined, label: event.eventDate!),
-                    if (event.eventTime != null && event.eventTime!.isNotEmpty)
-                      _DetailChip(icon: Icons.access_time, label: event.eventTime!),
-                    if (event.location != null && event.location!.isNotEmpty)
-                      _DetailChip(icon: Icons.location_on_outlined, label: event.location!),
-                  ],
-                ),
-              if (event.description.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  event.description,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF475569),
-                    height: 1.5,
                   ),
-                ),
-              ],
-                  ],
-                ),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                      children: [
+                        _buildImagesCarousel(context),
+                        const SizedBox(height: 12),
+                        if (event.eventDate != null ||
+                            event.eventTime != null ||
+                            event.location != null)
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (event.eventDate != null &&
+                                  event.eventDate!.isNotEmpty)
+                                _DetailChip(
+                                  icon: Icons.calendar_today_outlined,
+                                  label: event.eventDate!,
+                                ),
+                              if (event.eventTime != null &&
+                                  event.eventTime!.isNotEmpty)
+                                _DetailChip(
+                                  icon: Icons.access_time,
+                                  label: event.eventTime!,
+                                ),
+                              if (event.location != null &&
+                                  event.location!.isNotEmpty)
+                                _DetailChip(
+                                  icon: Icons.location_on_outlined,
+                                  label: event.location!,
+                                ),
+                            ],
+                          ),
+                        if (event.description.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            event.description,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF475569),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      );
-    },
-  ),
-);
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -544,7 +609,11 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey.shade300),
+            Icon(
+              Icons.photo_library_outlined,
+              size: 64,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 16),
             const Text(
               'No events in gallery yet',
@@ -558,7 +627,11 @@ class _EmptyState extends StatelessWidget {
             Text(
               'Event photos will appear here when events are published.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
             TextButton.icon(
@@ -601,7 +674,11 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(

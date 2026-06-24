@@ -35,7 +35,9 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
   @override
   Widget build(BuildContext context) {
     final noticesAsync = ref.watch(filteredNoticesProvider);
-    final isAuthorized = _userRole?.toLowerCase() == 'national coordinator' || _userRole?.toLowerCase() == 'superadmin';
+    final isAuthorized =
+        _userRole?.toLowerCase() == 'national coordinator' ||
+        _userRole?.toLowerCase() == 'superadmin';
 
     int unreadCount = 0;
     if (noticesAsync.hasValue && noticesAsync.value != null) {
@@ -44,281 +46,376 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
-      body: Column(
-        children: [
-          // Custom Solid Header
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF336DF2),
-            ),
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 24,
-              right: 24,
-              bottom: 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Back Button
-                    InkWell(
-                      onTap: () => context.go('/dashboard'),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    // Action Buttons
-                    Row(
-                      children: [
-                        if (isAuthorized) ...[
-                          InkWell(
-                            onTap: () => context.push('/notices/create'),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF97316),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFF97316).withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                // Title
-                const Text(
-                  'Notices',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Subtitle
-                Text(
-                  unreadCount > 0 
-                      ? '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}'
-                      : 'Stay updated with recent events',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // White Area for Category Chips
-          Container(
-            width: double.infinity,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  _CategoryChip(
-                    label: 'All',
-                    isSelected: _selectedCategory == null,
-                    onTap: () {
-                      setState(() => _selectedCategory = null);
-                      ref.read(noticeCategoryProvider.notifier).setCategory(null);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _CategoryChip(
-                    label: 'Announcements',
-                    isSelected: _selectedCategory == 'Announcement',
-                    onTap: () {
-                      setState(() => _selectedCategory = 'Announcement');
-                      ref.read(noticeCategoryProvider.notifier).setCategory('Announcement');
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _CategoryChip(
-                    label: 'Events',
-                    isSelected: _selectedCategory == 'Event',
-                    onTap: () {
-                      setState(() => _selectedCategory = 'Event');
-                      ref.read(noticeCategoryProvider.notifier).setCategory('Event');
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _CategoryChip(
-                    label: 'Updates',
-                    isSelected: _selectedCategory == 'Update',
-                    onTap: () {
-                      setState(() => _selectedCategory = 'Update');
-                      ref.read(noticeCategoryProvider.notifier).setCategory('Update');
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _CategoryChip(
-                    label: 'Alerts',
-                    isSelected: _selectedCategory == 'Alert',
-                    onTap: () {
-                      setState(() => _selectedCategory = 'Alert');
-                      ref.read(noticeCategoryProvider.notifier).setCategory('Alert');
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Notices List
-          Expanded(
-            child: noticesAsync.when(
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(noticesNotifierProvider.notifier).refresh(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildHeaderSliver(context, isAuthorized, unreadCount),
+            ...noticesAsync.when(
               data: (notices) {
                 if (notices.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.notifications_none,
-                          size: 64,
-                          color: Colors.grey.shade300,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _selectedCategory == null
-                              ? 'No notices found'
-                              : 'No notices match your filters',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () => ref.read(noticesNotifierProvider.notifier).refresh(),
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      24, 16, 24,
-                      MediaQuery.of(context).padding.bottom + 90,
-                    ),
-                    itemCount: notices.length,
-                    itemBuilder: (context, index) {
-                      return _NoticeCard(notice: notices[index]);
-                    },
-                  ),
-                );
-              },
-              loading: () => Skeletonizer(
-                enabled: true,
-                child: ListView.builder(
-                  padding: EdgeInsets.fromLTRB(
-                    24, 16, 24,
-                    MediaQuery.of(context).padding.bottom + 90,
-                  ),
-                  itemCount: 5,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
+                  return <Widget>[
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Row(
-                              children: [
-                                Container(height: 24, width: 80, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(8))),
-                                const SizedBox(width: 8),
-                                Container(height: 24, width: 60, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(8))),
-                              ],
+                            Icon(
+                              Icons.notifications_none,
+                              size: 64,
+                              color: Colors.grey.shade300,
                             ),
-                            const SizedBox(height: 12),
-                            const Text('Loading Notice Title Here...', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            const Text('Loading content of the notice goes here. This takes up some space.', style: TextStyle(fontSize: 14)),
-                            const SizedBox(height: 12),
-                            Divider(color: Colors.grey.shade200, thickness: 1.5),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(height: 16, width: 100, color: Colors.grey),
-                                Container(height: 16, width: 80, color: Colors.grey),
-                              ],
+                            const SizedBox(height: 16),
+                            Text(
+                              _selectedCategory == null
+                                  ? 'No notices found'
+                                  : 'No notices match your filters',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              error: (error, stack) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to load notices:\n$error',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Colors.red.shade400),
+                    ),
+                  ];
+                }
+
+                return <Widget>[
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      16,
+                      24,
+                      MediaQuery.of(context).padding.bottom + 90,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => _NoticeCard(notice: notices[index]),
+                        childCount: notices.length,
                       ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => ref.read(noticesNotifierProvider.notifier).refresh(),
-                        child: const Text('Retry'),
+                    ),
+                  ),
+                ];
+              },
+              loading: () => [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    16,
+                    24,
+                    MediaQuery.of(context).padding.bottom + 90,
+                  ),
+                  sliver: Skeletonizer.sliver(
+                    enabled: true,
+                    child: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        height: 40,
+                                        width: 40,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.grey,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            height: 16,
+                                            width: 120,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            height: 12,
+                                            width: 80,
+                                            color: Colors.grey,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Loading Notice Title Here...',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Loading content of the notice goes here. This takes up some space.',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Divider(
+                                    color: Colors.grey.shade200,
+                                    thickness: 1.5,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        height: 16,
+                                        width: 100,
+                                        color: Colors.grey,
+                                      ),
+                                      Container(
+                                        height: 16,
+                                        width: 80,
+                                        color: Colors.grey,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: 5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              error: (error, stack) => [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Failed to load notices:\n$error',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.red.shade400,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => ref
+                                .read(noticesNotifierProvider.notifier)
+                                .refresh(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSliver(BuildContext context, bool isAuthorized, int unreadCount) {
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 150.0 + 48.0,
+      backgroundColor: const Color(0xFF357AB6),
+      elevation: 0,
+      leadingWidth: 72,
+      leading: Center(
+        child: Container(
+          width: 42,
+          height: 42,
+          margin: const EdgeInsets.only(left: 24, bottom: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: InkWell(
+            onTap: () => context.go('/dashboard'),
+            borderRadius: BorderRadius.circular(16),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        if (isAuthorized)
+          Container(
+            margin: const EdgeInsets.only(right: 24, bottom: 5),
+            child: Center(
+              child: InkWell(
+                onTap: () => context.push('/notices/create'),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF97316),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF97316).withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
                     ],
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    color: Colors.white,
+                    size: 22,
                   ),
                 ),
               ),
             ),
           ),
-        ],
+      ],
+      flexibleSpace: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final topPadding = MediaQuery.of(context).padding.top;
+          final collapsedHeight = kToolbarHeight + topPadding + 48.0;
+          final expandedHeight = 150.0 + 48.0;
+          final currentHeight = constraints.maxHeight;
+          
+          final expandRatio = ((currentHeight - collapsedHeight) / (expandedHeight - collapsedHeight)).clamp(0.0, 1.0);
+
+          return FlexibleSpaceBar(
+            centerTitle: true,
+            titlePadding: EdgeInsets.only(bottom: 21 + 48.0 + (expandRatio * 20)),
+            title: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text(
+                  'Notices',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+                if (expandRatio > 0.01)
+                  ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: expandRatio,
+                      child: Opacity(
+                        opacity: expandRatio,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            unreadCount > 0
+                              ? '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}'
+                              : 'Stay updated with recent events',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(48),
+        child: Container(
+          width: double.infinity,
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                _CategoryChip(
+                  label: 'All',
+                  isSelected: _selectedCategory == null,
+                  onTap: () {
+                    setState(() => _selectedCategory = null);
+                    ref.read(noticeCategoryProvider.notifier).setCategory(null);
+                  },
+                ),
+                const SizedBox(width: 8),
+                _CategoryChip(
+                  label: 'Announcements',
+                  isSelected: _selectedCategory == 'Announcement',
+                  onTap: () {
+                    setState(() => _selectedCategory = 'Announcement');
+                    ref.read(noticeCategoryProvider.notifier).setCategory('Announcement');
+                  },
+                ),
+                const SizedBox(width: 8),
+                _CategoryChip(
+                  label: 'Events',
+                  isSelected: _selectedCategory == 'Event',
+                  onTap: () {
+                    setState(() => _selectedCategory = 'Event');
+                    ref.read(noticeCategoryProvider.notifier).setCategory('Event');
+                  },
+                ),
+                const SizedBox(width: 8),
+                _CategoryChip(
+                  label: 'Updates',
+                  isSelected: _selectedCategory == 'Update',
+                  onTap: () {
+                    setState(() => _selectedCategory = 'Update');
+                    ref.read(noticeCategoryProvider.notifier).setCategory('Update');
+                  },
+                ),
+                const SizedBox(width: 8),
+                _CategoryChip(
+                  label: 'Alerts',
+                  isSelected: _selectedCategory == 'Alert',
+                  onTap: () {
+                    setState(() => _selectedCategory = 'Alert');
+                    ref.read(noticeCategoryProvider.notifier).setCategory('Alert');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -340,17 +437,17 @@ class _CategoryChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF336DF2) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: isSelected 
-              ? null 
+          color: isSelected ? const Color(0xFF357AB6) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? null
               : Border.all(color: Colors.grey.shade200, width: 1.5),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF336DF2).withValues(alpha: 0.3),
+                    color: const Color(0xFF357AB6).withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -366,7 +463,7 @@ class _CategoryChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
             color: isSelected ? Colors.white : const Color(0xFF6B7280),
           ),
@@ -401,7 +498,20 @@ class _NoticeCard extends ConsumerWidget {
     try {
       // Handles both "2026-05-23T10:15:40.000000Z" and "2026-05-23 16:04"
       final dt = DateTime.parse(dateStr.replaceFirst(' ', 'T'));
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
     } catch (_) {
       return dateStr.split(' ').first;
@@ -451,23 +561,32 @@ class _NoticeCard extends ConsumerWidget {
                       _PriorityBadge(),
                       const SizedBox(width: 8),
                     ],
-                    if (isNew) ...[
-                      const Spacer(),
-                      _NewBadge(),
-                    ],
+                    if (isNew) ...[const Spacer(), _NewBadge()],
                     if (notice.isPinned && !isNew) ...[
                       const Spacer(),
-                      const Icon(Icons.push_pin, size: 18, color: Color(0xFFF97316)),
+                      const Icon(
+                        Icons.push_pin,
+                        size: 18,
+                        color: Color(0xFFF97316),
+                      ),
                     ] else if (notice.isPinned && isNew) ...[
                       const SizedBox(width: 8),
-                      const Icon(Icons.push_pin, size: 18, color: Color(0xFFF97316)),
+                      const Icon(
+                        Icons.push_pin,
+                        size: 18,
+                        color: Color(0xFFF97316),
+                      ),
                     ],
                   ],
                 ),
-                if (notice.targetAudience != null && notice.targetAudience!.isNotEmpty) ...[
+                if (notice.targetAudience != null &&
+                    notice.targetAudience!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(6),
@@ -476,7 +595,11 @@ class _NoticeCard extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.group, color: Color(0xFF6B7280), size: 12),
+                        const Icon(
+                          Icons.group,
+                          color: Color(0xFF6B7280),
+                          size: 12,
+                        ),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
@@ -524,17 +647,29 @@ class _NoticeCard extends ConsumerWidget {
                 Row(
                   children: [
                     if (notice.createdAt.isNotEmpty) ...[
-                      Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey.shade500),
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: Colors.grey.shade500,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         _formatDate(notice.createdAt),
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                     const Spacer(),
                     Text(
                       'By ${notice.authorName}',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -559,7 +694,7 @@ class _CategoryBadge extends StatelessWidget {
     Color bgColor;
     Color textColor;
     IconData? icon;
-    
+
     switch (category.toLowerCase()) {
       case 'announcement':
         bgColor = const Color(0xFFEFF6FF);

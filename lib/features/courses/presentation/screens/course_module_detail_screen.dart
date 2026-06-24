@@ -751,7 +751,6 @@ class _RequirementCardState extends ConsumerState<_RequirementCard> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'],
-      withData: true,
     );
 
     if (result != null) {
@@ -769,6 +768,8 @@ class _RequirementCardState extends ConsumerState<_RequirementCard> {
       final cId = GoRouterState.of(context).pathParameters['id'];
       final mId = GoRouterState.of(context).pathParameters['moduleId'];
       
+      final bytes = _selectedFile != null ? await _selectedFile!.readAsBytes() : null;
+
       await ref.read(reportsRepositoryProvider).submitReport(
         courseId: cId,
         moduleId: mId,
@@ -779,7 +780,7 @@ class _RequirementCardState extends ConsumerState<_RequirementCard> {
             : 'Module assignment submission',
         category: ReportCategory.theory,
         fileName: _selectedFile?.name,
-        fileBytes: _selectedFile?.bytes,
+        fileBytes: bytes,
       );
       
       if (mounted) {

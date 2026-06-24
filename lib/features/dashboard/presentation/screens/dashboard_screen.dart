@@ -162,37 +162,73 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
               end: Alignment.bottomCenter,
             ),
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              child: Column(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: MediaQuery.of(context).padding.top + 10,
+              bottom: 10,
+            ),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           // Logo Box
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 86,
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Image.asset(
-                              'assets/images/logo.png', // Assuming exists
-                              height: 32,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.language,
-                                      color: Color(0xFF3286C9), size: 32),
-                            ),
+                                child: Center(
+                                  child: Image.asset(
+                                    'assets/images/gttp-logo.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Icon(Icons.language, color: Color(0xFF3286C9), size: 24),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 86,
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Image.asset(
+                                    'assets/images/ttet-logo.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Icon(Icons.language, color: Color(0xFF3286C9), size: 24),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                       // Profile Avatar
                       GestureDetector(
@@ -200,7 +236,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                         child: Consumer(
                           builder: (context, ref, child) {
                             final userAsync = ref.watch(userModelProvider);
-                            final avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
+                            final dashboardAsync = ref.watch(dashboardDataProvider);
+                            String? avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
+                            final schoolLogo = dashboardAsync.value?.schoolLogo;
+                            if ((avatarUrl == null || avatarUrl.isEmpty) && schoolLogo != null && schoolLogo.isNotEmpty) {
+                              avatarUrl = CourseAssetUrl.resolve(schoolLogo);
+                            }
                             
                             Widget placeholder = Container(
                               width: 45,
@@ -246,7 +287,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                       ),
                     ],
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
                   Text(
                     _headerGreeting(),
                     textAlign: TextAlign.center,
@@ -281,16 +322,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                 ],
               ),
             ),
-          ),
         ),
 
         // Overview Card (Overlapping)
         Positioned(
-          top: 240,
+          top: 230,
           left: 20,
           right: 20,
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -313,7 +353,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                     fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 dashboardAsync.when(
                   data: (data) {
                     // Fallback logic: if dashboard returns 0, try to count from the actual lists
@@ -366,7 +406,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 26,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: valueColor,
               ),
@@ -391,10 +431,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
 
   Widget _buildQuickAccessList() {
     final dashboardAsync = ref.watch(dashboardDataProvider);
+    final coursesFallback = ref.watch(coursesProvider).value?.length ?? 0;
     final certsFallback = ref.watch(certificatesProvider).value?.length ?? 0;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 80, left: 24, right: 24),
+      padding: const EdgeInsets.only(top: 53, left: 24, right: 24),
       child: dashboardAsync.when(
         data: (data) {
           final userAsync = ref.watch(userModelProvider);
@@ -404,7 +445,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             role: role,
             data: data,
             buildQuickAccessCard: _buildQuickAccessCard,
+            coursesFallback: coursesFallback,
             certsFallback: certsFallback,
+            onNavigateCourses: () => context.go('/courses'),
             onNavigateCertificates: () => context.go('/dashboard/certificates'),
             onNavigateGallery: () => context.go('/dashboard/gallery'),
           );
@@ -448,10 +491,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Container(
-          width: 50,
-          height: 50,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: iconBg,
             borderRadius: BorderRadius.circular(14),
@@ -463,7 +506,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                )
             ]
           ),
-          child: Icon(icon, color: iconColor, size: 26),
+          child: Icon(icon, color: iconColor, size: 22),
         ),
         title: Text(
           title,

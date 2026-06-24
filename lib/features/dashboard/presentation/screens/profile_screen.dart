@@ -1,9 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
@@ -29,7 +28,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _parentMobile = '';
   String _instituteType = '';
   String _avatar = '';
-  bool _isUploadingAvatar = false;
   @override
   void initState() {
     super.initState();
@@ -38,12 +36,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final storage = ref.read(secureStorageProvider);
-    
+
     // --- 1. FAST PATH: Load from local cache immediately ---
     var user = await storage.getUserModel();
     final fallbackName = await storage.getDisplayName();
     var dashboard = ref.read(dashboardDataProvider).value;
-    
+
     void updateState(dynamic u, dynamic d) {
       if (!mounted) return;
       String roleRaw = u?.effectiveRole ?? '';
@@ -72,7 +70,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         display = localPart
             .replaceAll(RegExp(r'[._-]+'), ' ')
             .split(' ')
-            .map((s) => s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1)}' : '')
+            .map(
+              (s) =>
+                  s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1)}' : '',
+            )
             .join(' ');
       }
 
@@ -83,17 +84,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (phone.isEmpty && (d?.currentUserPhone?.isNotEmpty ?? false)) {
         phone = d!.currentUserPhone!;
       }
-      if (institute.isEmpty && (d?.currentUserOrganization?.isNotEmpty ?? false)) {
+      if (institute.isEmpty &&
+          (d?.currentUserOrganization?.isNotEmpty ?? false)) {
         institute = d!.currentUserOrganization!;
       } else if (institute.isEmpty && (d?.schoolName?.isNotEmpty ?? false)) {
         institute = d!.schoolName!;
       }
-      if (instituteType.isEmpty && (d?.currentUserInstituteType?.isNotEmpty ?? false)) {
+      if (instituteType.isEmpty &&
+          (d?.currentUserInstituteType?.isNotEmpty ?? false)) {
         instituteType = d!.currentUserInstituteType!;
-      } else if (instituteType.isEmpty && (d?.schoolType?.isNotEmpty ?? false)) {
+      } else if (instituteType.isEmpty &&
+          (d?.schoolType?.isNotEmpty ?? false)) {
         instituteType = d!.schoolType!;
       }
-      
+
       setState(() {
         _displayName = display;
         _email = email;
@@ -132,11 +136,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     // Persist dashboard-derived fields when the user record was missing them
     if (user != null &&
-        (_phone.isNotEmpty || _institute.isNotEmpty || _instituteType.isNotEmpty)) {
+        (_phone.isNotEmpty ||
+            _institute.isNotEmpty ||
+            _instituteType.isNotEmpty)) {
       final updatedUser = user.copyWith(
         phone: _phone.isNotEmpty ? _phone : user.phone,
         institute: _institute.isNotEmpty ? _institute : user.institute,
-        instituteType: _instituteType.isNotEmpty ? _instituteType : user.instituteType,
+        instituteType: _instituteType.isNotEmpty
+            ? _instituteType
+            : user.instituteType,
       );
       if (updatedUser.phone != user.phone ||
           updatedUser.institute != user.institute ||
@@ -147,22 +155,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     // Fallback: Try to fetch from students API directly if fields are missing for a student
-    if (_role.toLowerCase() == 'student' && (_studentClass.isEmpty || _parentMobile.isEmpty)) {
+    if (_role.toLowerCase() == 'student' &&
+        (_studentClass.isEmpty || _parentMobile.isEmpty)) {
       try {
         // Bypass cache and fetch directly to ensure we get the latest data
         final gttpDataSource = ref.read(gttpRemoteDataSourceProvider);
         final students = await gttpDataSource.getStudents();
-        
+
         final emailLower = _email.toLowerCase();
         final me = students.firstWhere(
-          (s) => (s['email'] ?? s['contact_email'] ?? '').toString().toLowerCase() == emailLower, 
-          orElse: () => <String, dynamic>{}
+          (s) =>
+              (s['email'] ?? s['contact_email'] ?? '')
+                  .toString()
+                  .toLowerCase() ==
+              emailLower,
+          orElse: () => <String, dynamic>{},
         );
-        
+
         if (me.isNotEmpty && mounted) {
-          final newClass = (me['class'] ?? me['class_name'] ?? me['student_class'] ?? '').toString();
-          final newParentMobile = (me['parent_mobile'] ?? me['parent_phone'] ?? '').toString();
-          
+          final newClass =
+              (me['class'] ?? me['class_name'] ?? me['student_class'] ?? '')
+                  .toString();
+          final newParentMobile =
+              (me['parent_mobile'] ?? me['parent_phone'] ?? '').toString();
+
           setState(() {
             if (_studentClass.isEmpty) _studentClass = newClass;
             if (_parentMobile.isEmpty) _parentMobile = newParentMobile;
@@ -173,12 +189,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _avatar = (me['avatar'] ?? '').toString();
             }
           });
-          
+
           // Optionally save to secure storage so it persists
           if (user != null) {
             final updatedUser = user.copyWith(
               studentClass: newClass.isNotEmpty ? newClass : user.studentClass,
-              parentMobile: newParentMobile.isNotEmpty ? newParentMobile : user.parentMobile,
+              parentMobile: newParentMobile.isNotEmpty
+                  ? newParentMobile
+                  : user.parentMobile,
+              avatar: _avatar.isNotEmpty ? _avatar : user.avatar,
             );
             await storage.saveUserModel(updatedUser);
             ref.invalidate(userModelProvider);
@@ -191,29 +210,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     // Fallback: Try to fetch from faculties API if fields are still missing
-    final isStaffRole = _role.toLowerCase().contains('faculty') || 
-                          _role.toLowerCase().contains('teacher') || 
-                          _role.toLowerCase().contains('principal') || 
-                          _role.toLowerCase().contains('coordinator') ||
-                          _role.toLowerCase().contains('administrator');
-                          
-    if (isStaffRole && (_phone.isEmpty || _institute.isEmpty || _instituteType.isEmpty)) {
+    final isStaffRole =
+        _role.toLowerCase().contains('faculty') ||
+        _role.toLowerCase().contains('teacher') ||
+        _role.toLowerCase().contains('principal') ||
+        _role.toLowerCase().contains('coordinator') ||
+        _role.toLowerCase().contains('administrator');
+
+    if (isStaffRole &&
+        (_phone.isEmpty || _institute.isEmpty || _instituteType.isEmpty)) {
       try {
         final gttpDataSource = ref.read(gttpRemoteDataSourceProvider);
         final faculties = await gttpDataSource.getFaculty();
-        
+
         final emailLower = _email.toLowerCase();
-        final me = faculties.firstWhere(
-          (f) {
-            final userObj = f['user'] is Map ? f['user'] as Map : f;
-            return (userObj['email'] ?? '').toString().toLowerCase() == emailLower;
-          }, 
-          orElse: () => <String, dynamic>{}
-        );
-        
+        final me = faculties.firstWhere((f) {
+          final userObj = f['user'] is Map ? f['user'] as Map : f;
+          return (userObj['email'] ?? '').toString().toLowerCase() ==
+              emailLower;
+        }, orElse: () => <String, dynamic>{});
+
         if (me.isNotEmpty && mounted) {
           final userObj = me['user'] is Map ? me['user'] as Map : me;
-          
+
           String getValid(List<Map> maps, List<String> keys) {
             for (var map in maps) {
               for (var key in keys) {
@@ -225,10 +244,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             return '';
           }
 
-          final newPhone = getValid([userObj, me], ['phone', 'mobile', 'mobile_number']);
-          final newInstitute = getValid([userObj, me], ['school_name', 'institute']);
+          final newPhone = getValid(
+            [userObj, me],
+            ['phone', 'mobile', 'mobile_number'],
+          );
+          final newInstitute = getValid(
+            [userObj, me],
+            ['school_name', 'institute'],
+          );
           final newInstituteType = getValid([userObj, me], ['institute_type']);
-          
+
           setState(() {
             if (_phone.isEmpty) _phone = newPhone;
             if (_institute.isEmpty) _institute = newInstitute;
@@ -237,12 +262,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _avatar = (userObj['avatar'] ?? me['avatar'] ?? '').toString();
             }
           });
-          
+
           if (user != null) {
             final updatedUser = user.copyWith(
               phone: newPhone.isNotEmpty ? newPhone : user.phone,
-              institute: newInstitute.isNotEmpty ? newInstitute : user.institute,
-              instituteType: newInstituteType.isNotEmpty ? newInstituteType : user.instituteType,
+              institute: newInstitute.isNotEmpty
+                  ? newInstitute
+                  : user.institute,
+              instituteType: newInstituteType.isNotEmpty
+                  ? newInstituteType
+                  : user.instituteType,
+              avatar: _avatar.isNotEmpty ? _avatar : user.avatar,
             );
             await storage.saveUserModel(updatedUser);
             ref.invalidate(userModelProvider);
@@ -255,7 +285,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String get _initials {
-    if (_displayName.trim().isEmpty) return 'DR'; // Fallback to DR to match design
+    if (_displayName.trim().isEmpty) {
+      return 'DR'; // Fallback to DR to match design
+    }
     final parts = _displayName.trim().split(RegExp(r'\s+'));
     if (parts.length > 1) {
       final first = parts[0];
@@ -265,26 +297,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     }
     return _displayName.substring(0, 1).toUpperCase();
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => _isUploadingAvatar = true);
-      try {
-        await ref.read(authRemoteDataSourceProvider).uploadAvatar(pickedFile.path);
-        await _loadProfile(); // Refresh UI with new data
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload image: $e')),
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _isUploadingAvatar = false);
-      }
-    }
   }
 
   Color get _themeColor {
@@ -307,10 +319,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
     final themeColor = _themeColor;
-    
+
     final dashboardAsync = ref.watch(dashboardDataProvider);
     final schoolLogo = dashboardAsync.value?.schoolLogo;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -318,50 +330,70 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             // Top Dynamic Header
             Container(
-              height: 200 + topPadding,
+              height: 190.0,
               width: double.infinity,
-              color: themeColor,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    themeColor.withValues(alpha: 0.8),
+                    themeColor,
+                    themeColor.withValues(alpha: 0.9),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              // child: Stack removed for cleaner look
             ),
-            
+
             // Header Content
             Padding(
-              padding: EdgeInsets.only(top: topPadding + 24, left: 24, right: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.only(
+                top: topPadding + 16,
+                left: 20,
+                right: 20,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  InkWell(
-                    onTap: () => context.go('/dashboard'),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: InkWell(
+                      onTap: () => context.go('/dashboard'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 18,
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'My Profile',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'My Profile',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
                   ),
+                  const SizedBox(width: 42), // Balance for the back button
                 ],
               ),
             ),
 
             // Profile Body
             Padding(
-              padding: EdgeInsets.only(top: 150 + topPadding, left: 24, right: 24),
+              padding: const EdgeInsets.only(
+                top: 140.0,
+                left: 24,
+                right: 24,
+              ),
               child: Column(
                 children: [
                   // Avatar
@@ -380,89 +412,66 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ],
                     ),
-                    child: InkWell(
-                      onTap: _isUploadingAvatar ? null : _pickImage,
-                      borderRadius: BorderRadius.circular(50),
-                      child: Stack(
-                        children: [
-                          Builder(
-                            builder: (context) {
-                              String? imageUrlToShow;
-                              if (_avatar.isNotEmpty) {
-                                imageUrlToShow = CourseAssetUrl.resolve(_avatar);
-                              }
-                              if (imageUrlToShow == null && schoolLogo != null && schoolLogo.isNotEmpty) {
-                                imageUrlToShow = CourseAssetUrl.resolve(schoolLogo);
-                              }
+                    child: Builder(
+                      builder: (context) {
+                        String? imageUrlToShow;
+                        if (_avatar.isNotEmpty) {
+                          imageUrlToShow = CourseAssetUrl.resolve(_avatar);
+                        }
+                        if (imageUrlToShow == null &&
+                            schoolLogo != null &&
+                            schoolLogo.isNotEmpty) {
+                          imageUrlToShow = CourseAssetUrl.resolve(schoolLogo);
+                        }
 
-                              if (imageUrlToShow != null) {
-                                return SizedBox(
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  child: ClipOval(
-                                    child: CachedNetworkImage(
-                                      imageUrl: imageUrlToShow,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(
-                                        child: Text(
-                                          _initials,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      errorWidget: (context, url, error) => Center(
-                                        child: Text(
-                                          _initials,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
+                        if (imageUrlToShow != null) {
+                          return SizedBox(
+                            width: double.infinity,
+                            height: double.infinity,
+                            child: ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: imageUrlToShow,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Center(
+                                  child: Text(
+                                    _initials,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                );
-                              }
-                              
-                              return Center(
-                                child: Text(
-                                  _initials,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
+                                ),
+                                errorWidget: (context, url, error) => Center(
+                                  child: Text(
+                                    _initials,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              );
-                            }
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
                               ),
-                              child: _isUploadingAvatar 
-                                ? const SizedBox(
-                                    width: 16, height: 16, 
-                                    child: CircularProgressIndicator(strokeWidth: 2)
-                                  )
-                                : Icon(Icons.camera_alt, color: themeColor, size: 16),
+                            ),
+                          );
+                        }
+
+                        return Center(
+                          child: Text(
+                            _initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  
+                  const SizedBox(height: 12),
+
                   // Name
                   Text(
                     _displayName.trim().isEmpty ? 'User' : _displayName,
@@ -473,10 +482,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: themeColor,
                       borderRadius: BorderRadius.circular(20),
@@ -484,20 +496,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.shield_outlined, color: Colors.white, size: 14),
+                        const Icon(
+                          Icons.shield_outlined,
+                          color: Colors.white,
+                          size: 12,
+                        ),
                         const SizedBox(width: 6),
                         Text(
-                          _role.isNotEmpty ? _role : 'Unknown Role',
+                          _role.isNotEmpty ? _role : 'User',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
                   // Info Card
                   Container(
@@ -515,100 +531,145 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        Builder(builder: (context) {
-                          final infoItems = <Widget>[];
+                        Builder(
+                          builder: (context) {
+                            final infoItems = <Widget>[];
 
-                          infoItems.add(_buildInfoItem(
-                            icon: Icons.email_outlined,
-                            iconColor: const Color(0xFF3B82F6),
-                            bgColor: const Color(0xFFEFF6FF),
-                            title: 'Email',
-                            value: _email.isNotEmpty ? _email : 'Not Provided',
-                          ));
+                            infoItems.add(
+                              _buildInfoItem(
+                                icon: Icons.email_outlined,
+                                iconColor: const Color(0xFF3B82F6),
+                                bgColor: const Color(0xFFEFF6FF),
+                                title: 'Email',
+                                value: _email.isNotEmpty
+                                    ? _email
+                                    : 'Not Provided',
+                              ),
+                            );
 
-                          if (_role.toLowerCase() != 'student' || _phone.isNotEmpty) {
-                            final dashboardPhone = dashboardAsync.value?.currentUserPhone ?? '';
-                            infoItems.add(_buildInfoItem(
-                              icon: Icons.phone_outlined,
-                              iconColor: const Color(0xFF10B981),
-                              bgColor: const Color(0xFFECFDF5),
-                              title: 'Phone',
-                              value: _phone.isNotEmpty
-                                  ? _phone
-                                  : (dashboardPhone.isNotEmpty ? dashboardPhone : 'Not Provided'),
-                            ));
-                          }
+                            if (_role.toLowerCase() != 'student' ||
+                                _phone.isNotEmpty) {
+                              final dashboardPhone =
+                                  dashboardAsync.value?.currentUserPhone ?? '';
+                              infoItems.add(
+                                _buildInfoItem(
+                                  icon: Icons.phone_outlined,
+                                  iconColor: const Color(0xFF10B981),
+                                  bgColor: const Color(0xFFECFDF5),
+                                  title: 'Phone',
+                                  value: _phone.isNotEmpty
+                                      ? _phone
+                                      : (dashboardPhone.isNotEmpty
+                                            ? dashboardPhone
+                                            : 'Not Provided'),
+                                ),
+                              );
+                            }
 
-                          if (_role.toLowerCase() == 'student') {
-                            if (_studentClass.isNotEmpty) {
-                              infoItems.add(_buildInfoItem(
-                                icon: Icons.class_outlined,
+                            if (_role.toLowerCase() == 'student') {
+                              if (_studentClass.isNotEmpty) {
+                                infoItems.add(
+                                  _buildInfoItem(
+                                    icon: Icons.class_outlined,
+                                    iconColor: const Color(0xFFF97316),
+                                    bgColor: const Color(0xFFFFF7ED),
+                                    title: 'Class',
+                                    value: _studentClass,
+                                  ),
+                                );
+                              }
+                            }
+
+                            infoItems.add(
+                              _buildInfoItem(
+                                icon: Icons.apartment_outlined,
                                 iconColor: const Color(0xFFF97316),
                                 bgColor: const Color(0xFFFFF7ED),
-                                title: 'Class',
-                                value: _studentClass,
-                              ));
+                                title: 'Organization',
+                                value:
+                                    _institute.isNotEmpty &&
+                                        _institute.toLowerCase() != 'school'
+                                    ? _institute
+                                    : (dashboardAsync
+                                                  .value
+                                                  ?.currentUserOrganization
+                                                  ?.isNotEmpty ==
+                                              true
+                                          ? dashboardAsync
+                                                .value!
+                                                .currentUserOrganization!
+                                          : (dashboardAsync
+                                                        .value
+                                                        ?.schoolName
+                                                        ?.isNotEmpty ==
+                                                    true
+                                                ? dashboardAsync
+                                                      .value!
+                                                      .schoolName!
+                                                : (_role.toLowerCase().contains(
+                                                            'super admin',
+                                                          ) ||
+                                                          _role
+                                                              .toLowerCase()
+                                                              .contains('admin')
+                                                      ? 'GTTP'
+                                                      : 'Not Provided'))),
+                              ),
+                            );
+
+                            if (_role.toLowerCase() == 'student' &&
+                                _parentMobile.isNotEmpty) {
+                              infoItems.add(
+                                _buildInfoItem(
+                                  icon: Icons.family_restroom_outlined,
+                                  iconColor: const Color(0xFFEC4899),
+                                  bgColor: const Color(0xFFFCE7F3),
+                                  title: "Parent's Mobile",
+                                  value: _parentMobile,
+                                ),
+                              );
                             }
-                          }
-                          
-                          infoItems.add(_buildInfoItem(
-                            icon: Icons.apartment_outlined,
-                            iconColor: const Color(0xFFF97316),
-                            bgColor: const Color(0xFFFFF7ED),
-                            title: 'Organization',
-                            value: _institute.isNotEmpty && _institute.toLowerCase() != 'school'
-                                ? _institute
-                                : (dashboardAsync.value?.currentUserOrganization?.isNotEmpty == true
-                                    ? dashboardAsync.value!.currentUserOrganization!
-                                    : (dashboardAsync.value?.schoolName?.isNotEmpty == true
-                                        ? dashboardAsync.value!.schoolName!
-                                        : (_role.toLowerCase().contains('super admin') || _role.toLowerCase().contains('admin') ? 'GTTP' : 'Not Provided'))),
-                          ));
 
-                          if (_role.toLowerCase() == 'student' && _parentMobile.isNotEmpty) {
-                            infoItems.add(_buildInfoItem(
-                              icon: Icons.family_restroom_outlined,
-                              iconColor: const Color(0xFFEC4899),
-                              bgColor: const Color(0xFFFCE7F3),
-                              title: "Parent's Mobile",
-                              value: _parentMobile,
-                            ));
-                          }
+                            final dashboardSchoolType =
+                                dashboardAsync
+                                    .value
+                                    ?.currentUserInstituteType ??
+                                dashboardAsync.value?.schoolType ??
+                                '';
 
-                          final dashboardSchoolType =
-                              dashboardAsync.value?.currentUserInstituteType ??
-                              dashboardAsync.value?.schoolType ??
-                              '';
-                          
-                          String displayType = _instituteType.isNotEmpty
-                              ? _instituteType
-                              : dashboardSchoolType;
-                              
-                          if (displayType.isEmpty && _institute.toLowerCase() == 'school') {
-                            displayType = 'school';
-                          }
+                            String displayType = _instituteType.isNotEmpty
+                                ? _instituteType
+                                : dashboardSchoolType;
 
-                          final formattedType = displayType.isNotEmpty
-                              ? '${displayType[0].toUpperCase()}${displayType.substring(1)}'
-                              : 'Not Provided';
-
-                          infoItems.add(_buildInfoItem(
-                            icon: Icons.account_balance_outlined,
-                            iconColor: const Color(0xFF3B82F6),
-                            bgColor: const Color(0xFFEFF6FF),
-                            title: 'Institute Type',
-                            value: formattedType,
-                          ));
-
-                          final childrenWithDividers = <Widget>[];
-                          for (int i = 0; i < infoItems.length; i++) {
-                            childrenWithDividers.add(infoItems[i]);
-                            if (i < infoItems.length - 1) {
-                              childrenWithDividers.add(_buildDivider());
+                            if (displayType.isEmpty &&
+                                _institute.toLowerCase() == 'school') {
+                              displayType = 'school';
                             }
-                          }
-                          return Column(children: childrenWithDividers);
-                        }),
+
+                            final formattedType = displayType.isNotEmpty
+                                ? '${displayType[0].toUpperCase()}${displayType.substring(1)}'
+                                : 'Not Provided';
+
+                            infoItems.add(
+                              _buildInfoItem(
+                                icon: Icons.account_balance_outlined,
+                                iconColor: const Color(0xFF3B82F6),
+                                bgColor: const Color(0xFFEFF6FF),
+                                title: 'Institute Type',
+                                value: formattedType,
+                              ),
+                            );
+
+                            final childrenWithDividers = <Widget>[];
+                            for (int i = 0; i < infoItems.length; i++) {
+                              childrenWithDividers.add(infoItems[i]);
+                              if (i < infoItems.length - 1) {
+                                childrenWithDividers.add(_buildDivider());
+                              }
+                            }
+                            return Column(children: childrenWithDividers);
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -619,12 +680,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final result = await context.push<bool>('/profile/edit');
+                        final result = await context.push<bool>(
+                          '/profile/edit',
+                        );
                         if (result == true) {
                           _loadProfile();
                         }
                       },
-                      icon: Icon(Icons.settings_outlined, color: themeColor, size: 24),
+                      icon: Icon(
+                        Icons.settings_outlined,
+                        color: themeColor,
+                        size: 24,
+                      ),
                       label: Text(
                         'Edit Profile',
                         style: TextStyle(
@@ -634,8 +701,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: themeColor, width: 2),
+                        backgroundColor: themeColor.withValues(alpha: 0.05),
+                        side: BorderSide(
+                          color: themeColor.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -657,7 +727,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           context.go('/login');
                         }
                       },
-                      icon: const Icon(Icons.logout, color: Colors.white, size: 24),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                       label: const Text(
                         'Logout',
                         style: TextStyle(
@@ -673,14 +747,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 2,
-                        shadowColor: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                        shadowColor: const Color(
+                          0xFFEF4444,
+                        ).withValues(alpha: 0.3),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-
-                  const SizedBox(height: 120), // Space for bottom nav
+                  const SizedBox(height: 160), // Space for bottom nav
                 ],
               ),
             ),
@@ -703,10 +778,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: bgColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
             child: Icon(icon, color: iconColor, size: 22),
           ),
           const SizedBox(width: 16),
@@ -723,12 +795,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Color(0xFF2A3A4A),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      color: Color(0xFF2A3A4A),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

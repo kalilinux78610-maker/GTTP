@@ -44,10 +44,10 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
           }
           selectedOption ??= question.options[0]; // fallback
           
-          print('Question ID: ${question.id}');
-          print('Selected Option ID: ${selectedOption.id}');
-          print('Is Correct: ${selectedOption.isCorrect}');
-          print('Question Points: ${question.points}');
+          debugPrint('Question ID: ${question.id}');
+          debugPrint('Selected Option ID: ${selectedOption.id}');
+          debugPrint('Is Correct: ${selectedOption.isCorrect}');
+          debugPrint('Question Points: ${question.points}');
 
           if (selectedOption.isCorrect == true || 
               selectedOption.isCorrect == 1 || 
@@ -57,7 +57,7 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
           }
         }
       }
-      print('Calculated Score: $score');
+      debugPrint('Calculated Score: $score');
 
       int totalPoints = questions.fold(0, (sum, q) => sum + (q.points as int));
       int percentage = totalPoints > 0 ? ((score / totalPoints) * 100).round() : 0;

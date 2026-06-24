@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gttp/core/router/navigation_utils.dart';
 import 'package:gttp/features/reports/presentation/screens/student_progress_screen.dart';
 import '../../data/models/course_model.dart';
 import '../../data/models/course_module_model.dart';
@@ -64,6 +65,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
               (course.endDate?.isNotEmpty ?? false);
 
           return SafeArea(
+            top: true,
             bottom: false,
             child: SingleChildScrollView(
               padding: EdgeInsets.only(bottom: bottomPad),
@@ -131,15 +133,15 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
             fit: BoxFit.cover,
           ),
           Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            top: 16,
             left: 16,
             child: _overlayIconButton(
-              icon: Icons.arrow_back,
-              onTap: () => context.pop(),
+              icon: Icons.arrow_back_ios_new,
+              onTap: () => NavigationUtils.safePop(context),
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            top: 16,
             right: 16,
             child: _overlayIconButton(
               icon: Icons.share_outlined,
@@ -155,16 +157,17 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.35),
-      shape: const CircleBorder(),
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
-        customBorder: const CircleBorder(),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
+        borderRadius: BorderRadius.circular(16),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -618,7 +621,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildStudentList(students),
+                _buildStudentList(students, courseId),
               ],
             );
           },
@@ -627,7 +630,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
     );
   }
 
-  Widget _buildStudentList(List<Map<String, dynamic>> students) {
+  Widget _buildStudentList(List<Map<String, dynamic>> students, String courseId) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -674,7 +677,10 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => StudentProgressScreen(studentId: studentId),
+                      builder: (context) => StudentProgressScreen(
+                        studentId: studentId,
+                        courseId: courseId,
+                      ),
                     ),
                   );
                 }

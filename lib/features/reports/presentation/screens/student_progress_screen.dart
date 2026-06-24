@@ -6,8 +6,13 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 class StudentProgressScreen extends ConsumerWidget {
   final String? studentId;
+  final String? courseId;
 
-  const StudentProgressScreen({super.key, this.studentId});
+  const StudentProgressScreen({
+    super.key,
+    this.studentId,
+    this.courseId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,7 +59,11 @@ class StudentProgressScreen extends ConsumerWidget {
           ),
         ),
         data: (progress) {
-          final courses = progress.courses;
+          var courses = progress.courses;
+          if (courseId != null) {
+            courses = courses.where((c) => c.id.toString() == courseId).toList();
+          }
+
           if (courses.isEmpty) {
             return const Center(
               child: Text(
@@ -64,8 +73,10 @@ class StudentProgressScreen extends ConsumerWidget {
             );
           }
 
+          final bottomPadding = MediaQuery.of(context).padding.bottom + 120;
           return ListView.builder(
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: bottomPadding),
             itemCount: courses.length + 1, // +1 for the student header
             itemBuilder: (context, index) {
               if (index == 0) {
