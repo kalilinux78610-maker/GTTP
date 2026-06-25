@@ -11,6 +11,8 @@ import '../../data/models/course_module_model.dart';
 import '../providers/course_details_provider.dart';
 import '../providers/courses_provider.dart';
 import '../../data/repositories/courses_repository_impl.dart';
+import 'package:gttp/features/certificates/presentation/providers/certificates_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:gttp/core/auth/user_role.dart';
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
@@ -510,6 +512,8 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                 color: const Color(0xFF398FDE),
               ),
             ),
+            const SizedBox(height: 16),
+            _CourseCertificatesSection(courseId: course.id),
           ] else if (course.isEnrollable && isStudent)
             _EnrollButton(courseId: course.id),
         ],
@@ -1095,6 +1099,98 @@ class _EnrollButtonState extends ConsumerState<_EnrollButton> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
       ),
+    );
+  }
+}
+
+class _CourseCertificatesSection extends ConsumerWidget {
+  final String courseId;
+
+  const _CourseCertificatesSection({required this.courseId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final certificatesAsync = ref.watch(courseCertificatesProvider(courseId));
+
+    return certificatesAsync.when(
+      data: (certificates) {
+        if (certificates.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Your Certificates',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181C1F),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...certificates.map((cert) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: cert.type?.toLowerCase() == 'participation'
+                        ? const Color(0xFFEFF6FF)
+                        : const Color(0xFFECFDF5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.military_tech_outlined,
+                    color: cert.type?.toLowerCase() == 'participation'
+                        ? const Color(0xFF3B82F6)
+                        : const Color(0xFF10B981),
+                  ),
+                ),
+                title: Text(
+                  cert.type != null ? 'Certificate of ${cert.type}' : 'Course Certificate',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                subtitle: Text(
+                  cert.issuedDate,
+                  style: const TextStyle(fontSize: 12),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.download_outlined, color: Color(0xFF398FDE)),
+                  onPressed: () async {
+                    if (cert.certificateUrl != null && cert.certificateUrl!.isNotEmpty) {
+                      final uri = Uri.tryParse(cert.certificateUrl!);
+                      if (uri != null && await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not open the certificate link')),
+                          );
+                        }
+                      }
+                    }
+                  },
+                ),
+              ),
+            )),
+          ],
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stackTrace) => const SizedBox.shrink(),
     );
   }
 }

@@ -91,6 +91,17 @@ class CoursesRemoteDataSource {
     return response;
   }
 
+  Future<Map<String, dynamic>> getSubmoduleSubmission(String courseId, String moduleId, String submoduleId) async {
+    final response = await _apiClient.get(
+      '/courses/$courseId/modules/$moduleId/submodules/$submoduleId/submission',
+      requiresAuth: true,
+    );
+    if (response['data'] != null) {
+      return Map<String, dynamic>.from(response['data']);
+    }
+    return response;
+  }
+
   Future<void> submitSessionProof(String courseId, String sessionId, String fileName, List<int> fileBytes) async {
     final payload = FormData.fromMap({
       'course_id': courseId,

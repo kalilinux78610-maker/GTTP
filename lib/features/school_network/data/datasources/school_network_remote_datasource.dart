@@ -73,4 +73,15 @@ class SchoolNetworkRemoteDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getStudentCourses(String studentId) async {
+    try {
+      final response = await _apiClient.get('/students/$studentId/courses', requiresAuth: true);
+      return ApiJsonParser.extractList(response);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch courses for student $studentId: $e');
+    }
+  }
+
 }

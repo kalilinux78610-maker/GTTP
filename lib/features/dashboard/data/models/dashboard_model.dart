@@ -14,6 +14,11 @@ class DashboardModel {
   /// Total number of faculties/teachers
   final int totalFaculties;
 
+  /// Class Overview Stats
+  final int completionPercentage;
+  final int needGrading;
+
+
   /// Logged-in user display name when the API includes it (e.g. under `user`).
   final String? currentUserDisplayName;
   
@@ -53,6 +58,8 @@ class DashboardModel {
     this.totalCourses = 0,
     this.totalGallery = 0,
     this.totalFaculties = 0,
+    this.completionPercentage = 0,
+    this.needGrading = 0,
     this.currentUserDisplayName,
     this.schoolLogo,
     this.schoolName,
@@ -135,6 +142,8 @@ class DashboardModel {
       totalGallery: pick('total_gallery', 'totalGallery'),
       totalCourses: totalCourses,
       totalFaculties: pick('total_faculties', 'totalFaculties') == 0 ? pick('total_teachers', 'totalTeachers') == 0 ? pick('faculties_count', 'facultiesCount') : pick('total_teachers', 'totalTeachers') : pick('total_faculties', 'totalFaculties'),
+      completionPercentage: pick('completion_percentage', 'completionPercentage') == 0 ? pick('completion_rate', 'completionRate') : pick('completion_percentage', 'completionPercentage'),
+      needGrading: pick('need_grading', 'needGrading') == 0 ? pick('pending_grading', 'pendingGrading') : pick('need_grading', 'needGrading'),
       currentUserDisplayName: currentUserDisplayName,
       schoolLogo: json['school_logo'] as String? ?? json['schoolLogo'] as String?,
       schoolName: json['school_name'] as String? ?? json['schoolName'] as String? ?? (json['school'] is Map ? json['school']['name'] as String? : null),
@@ -163,6 +172,8 @@ class DashboardModel {
     int? totalCourses,
     int? totalGallery,
     int? totalFaculties,
+    int? completionPercentage,
+    int? needGrading,
     String? currentUserDisplayName,
     String? schoolLogo,
     String? schoolName,
@@ -189,6 +200,8 @@ class DashboardModel {
       totalCourses: totalCourses ?? this.totalCourses,
       totalGallery: totalGallery ?? this.totalGallery,
       totalFaculties: totalFaculties ?? this.totalFaculties,
+      completionPercentage: completionPercentage ?? this.completionPercentage,
+      needGrading: needGrading ?? this.needGrading,
       currentUserDisplayName: currentUserDisplayName ?? this.currentUserDisplayName,
       schoolLogo: schoolLogo ?? this.schoolLogo,
       schoolName: schoolName ?? this.schoolName,
@@ -220,6 +233,8 @@ class DashboardModel {
       'total_courses': totalCourses,
       'total_gallery': totalGallery,
       'total_faculties': totalFaculties,
+      'completion_percentage': completionPercentage,
+      'need_grading': needGrading,
       'currentUserDisplayName': currentUserDisplayName,
       'school_logo': schoolLogo,
       'school_name': schoolName,

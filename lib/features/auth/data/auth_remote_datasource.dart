@@ -349,7 +349,7 @@ class AuthRemoteDataSource {
   }
 
   Future<void> fetchMe() async {
-    final response = await _apiClient.get('/auth/profile', requiresAuth: true);
+    final response = await _apiClient.get('/auth/me', requiresAuth: true);
     
     final email = _readString(response, keys: ['email', 'user_email']);
     final displayName = _readString(

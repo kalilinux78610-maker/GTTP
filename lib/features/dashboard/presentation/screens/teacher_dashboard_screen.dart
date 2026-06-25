@@ -69,7 +69,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 64),
                     Text(
                       'QUICK ACCESS',
                       style: TextStyle(
@@ -78,6 +78,19 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white54 : Colors.black54,
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPremiumQuickAccessCard(
+                      icon: Icons.book_outlined,
+                      iconColor: const Color(0xFF209E5A), // Green
+                      title: 'Courses',
+                      subtitle: 'View your enrolled courses',
+                      trailingText: dashboardAsync.maybeWhen(
+                        data: (data) => '${data.totalCourses} Enrolled',
+                        orElse: () => 'Courses',
+                      ),
+                      onTap: () => context.push('/courses'),
+                      isDark: isDark,
                     ),
                     const SizedBox(height: 16),
                     _buildPremiumQuickAccessCard(
@@ -323,6 +336,8 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                   totalStudents: '${data.totalStudents}',
                   activeCourses: '${data.totalCourses}',
                   certificates: '${data.totalCertificates}',
+                  needGrading: '${data.needGrading}',
+                  completionPercentage: '${data.completionPercentage}',
                   isDark: isDark,
                 ),
                 loading: () => Skeletonizer(
@@ -331,6 +346,8 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                     totalStudents: '000',
                     activeCourses: '000',
                     certificates: '000',
+                    needGrading: '0',
+                    completionPercentage: '0',
                     isDark: isDark,
                   ),
                 ),
@@ -338,6 +355,8 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                   totalStudents: '—',
                   activeCourses: '—',
                   certificates: '—',
+                  needGrading: '—',
+                  completionPercentage: '—',
                   isDark: isDark,
                 ),
               ),
@@ -353,6 +372,8 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
     required String totalStudents,
     required String activeCourses,
     required String certificates,
+    required String needGrading,
+    required String completionPercentage,
     required bool isDark,
   }) {
     return Container(
@@ -387,8 +408,8 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(child: _buildPremiumStatItem('Total Students', totalStudents, const Color(0xFF3B82F6), isDark)),
-              Expanded(child: _buildPremiumStatItem('Need Grading', activeCourses, const Color(0xFFF97316), isDark)),
-              Expanded(child: _buildPremiumStatItem('Completion', '0%', const Color(0xFF22C55E), isDark)),
+              Expanded(child: _buildPremiumStatItem('Need Grading', needGrading, const Color(0xFFF97316), isDark)),
+              Expanded(child: _buildPremiumStatItem('Completion', '$completionPercentage%', const Color(0xFF22C55E), isDark)),
             ],
           ),
         ],

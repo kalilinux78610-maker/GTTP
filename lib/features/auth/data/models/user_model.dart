@@ -68,7 +68,21 @@ class UserModel extends User {
       passportExpiry: ApiJsonParser.tryString(json['passport_expiry']),
       roleLevel: ApiJsonParser.asInt(json['role_level'] ?? json['roleLevel']),
       isAlumni: ApiJsonParser.asBool(json['is_alumni']),
-      avatar: ApiJsonParser.tryString(json['avatar']),
+      avatar: () {
+        final parsedAvatar = ApiJsonParser.tryString(json['avatar']);
+        if (parsedAvatar == null || parsedAvatar.isEmpty) return null;
+        
+        // Prevent using the institute logo as the user's avatar
+        if (schoolMap != null) {
+          final schoolLogo = ApiJsonParser.tryString(schoolMap['logo']) ??
+              ApiJsonParser.tryString(schoolMap['avatar']) ??
+              ApiJsonParser.tryString(schoolMap['image']);
+          if (parsedAvatar == schoolLogo) {
+            return null; // It's the school logo, so the user actually has no avatar
+          }
+        }
+        return parsedAvatar;
+      }(),
       isActive: ApiJsonParser.asBool(json['is_active']),
       createdAt: ApiJsonParser.tryString(json['created_at']),
       updatedAt: ApiJsonParser.tryString(json['updated_at']),
@@ -142,6 +156,7 @@ class UserModel extends User {
     int? roleLevel,
     bool? isAlumni,
     String? avatar,
+    bool clearAvatar = false,
     bool? isActive,
     String? createdAt,
     String? updatedAt,
@@ -165,7 +180,7 @@ class UserModel extends User {
       passportExpiry: passportExpiry ?? this.passportExpiry,
       roleLevel: roleLevel ?? this.roleLevel,
       isAlumni: isAlumni ?? this.isAlumni,
-      avatar: avatar ?? this.avatar,
+      avatar: clearAvatar ? null : (avatar ?? this.avatar),
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

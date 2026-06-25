@@ -50,6 +50,18 @@ class UserProfileSync {
           role: newUserModel.role?.isNotEmpty == true ? newUserModel.role : null,
           roles: newUserModel.roles.isNotEmpty ? newUserModel.roles : null,
           avatar: newUserModel.avatar?.isNotEmpty == true ? newUserModel.avatar : null,
+          clearAvatar: () {
+            // If the user's avatar is missing from the response, but they have an old cached one,
+            // check if the cached one was erroneously set to the school logo. If it was, clear it.
+            if (newUserModel.avatar == null && existingUser.avatar != null) {
+              final schoolMap = response['school'] is Map ? response['school'] : null;
+              final schoolLogo = schoolMap?['logo']?.toString() ??
+                  schoolMap?['avatar']?.toString() ??
+                  schoolMap?['image']?.toString();
+              if (existingUser.avatar == schoolLogo) return true;
+            }
+            return false;
+          }(),
           passportNumber: newUserModel.passportNumber?.isNotEmpty == true
               ? newUserModel.passportNumber
               : null,
@@ -83,27 +95,41 @@ class UserProfileSync {
       for (final entry in map.entries) {
         final value = entry.value;
         if (value == null) continue;
-        if (value is Map || value is List) continue;
+        
+        // Preserve maps (like 'school') so we can use them later, but don't overwrite
+        if (value is Map) {
+          merged.putIfAbsent(entry.key, () => value);
+          continue;
+        }
+        
+        if (value is List) continue;
         final text = value.toString().trim();
         if (text.isEmpty) continue;
         merged.putIfAbsent(entry.key, () => value);
       }
     }
 
-    absorb(response);
-    absorb(response['user']);
-    absorb(response['profile']);
-    absorb(response['student']);
-    absorb(response['admin']);
-
     final data = response['data'];
+
+    // Highest priority: Explicit user/profile objects inside data or response
     if (data is Map) {
-      absorb(data);
       absorb(data['user']);
       absorb(data['profile']);
       absorb(data['student']);
       absorb(data['admin']);
     }
+    absorb(response['user']);
+    absorb(response['profile']);
+    absorb(response['student']);
+    absorb(response['admin']);
+
+    // Lower priority: Root data object
+    if (data is Map) {
+      absorb(data);
+    }
+
+    // Lowest priority: Root response object
+    absorb(response);
 
     if (!_looksLikeUserMap(merged)) return null;
 

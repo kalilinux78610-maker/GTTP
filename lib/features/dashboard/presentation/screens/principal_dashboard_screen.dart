@@ -68,7 +68,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 64),
                     Text(
                       'Quick Access',
                       style: TextStyle(
@@ -76,6 +76,20 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildOldQuickAccessCard(
+                      icon: Icons.book_outlined,
+                      iconColor: const Color(0xFF209E5A), // Green
+                      title: 'Courses',
+                      subtitle: 'View your enrolled courses',
+                      trailingText: dashboardAsync.maybeWhen(
+                        data: (data) => '${data.totalCourses} Enrolled',
+                        loading: () => '...',
+                        orElse: () => 'Courses',
+                      ),
+                      onTap: () => context.push('/courses'),
+                      isDark: isDark,
                     ),
                     const SizedBox(height: 16),
                     _buildOldQuickAccessCard(

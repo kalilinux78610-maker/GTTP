@@ -49,6 +49,20 @@ class CertificatesRemoteDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getCourseCertificate(String courseId) async {
+    try {
+      final response = await _apiClient.get(
+        '/courses/$courseId/certificate',
+        requiresAuth: true,
+      );
+      return _extractList(response);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch certificate for course $courseId: $e');
+    }
+  }
+
   List<Map<String, dynamic>> _extractList(Map<String, dynamic> response) {
     // Handle various response shapes
     if (response['data'] is List) {

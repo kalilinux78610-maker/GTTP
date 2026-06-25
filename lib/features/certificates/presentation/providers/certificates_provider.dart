@@ -164,3 +164,7 @@ final filteredCertificatesProvider = Provider<AsyncValue<List<CertificateModel>>
 final certificateBuilderProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return ref.read(certificatesRepositoryProvider).getCertificateBuilder();
 });
+
+final courseCertificatesProvider = FutureProvider.family<List<CertificateModel>, String>((ref, courseId) async {
+  return ref.read(certificatesRepositoryProvider).getCourseCertificate(courseId);
+});

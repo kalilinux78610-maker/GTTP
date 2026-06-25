@@ -53,4 +53,16 @@ class CertificatesRepositoryImpl implements CertificatesRepository {
       throw ApiException('Failed to get certificate builder: $e');
     }
   }
+
+  @override
+  Future<List<CertificateModel>> getCourseCertificate(String courseId) async {
+    try {
+      final data = await _remoteDataSource.getCourseCertificate(courseId);
+      return data.map((json) => CertificateModel.fromJson(json)).toList();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to get certificate for course $courseId: $e');
+    }
+  }
 }
