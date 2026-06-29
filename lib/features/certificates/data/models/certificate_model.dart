@@ -10,6 +10,7 @@ class CertificateModel {
   final String? certificateUrl;
   final String? description;
   final String? type;
+  final String? base64Pdf;
 
   CertificateModel({
     required this.id,
@@ -23,6 +24,7 @@ class CertificateModel {
     this.certificateUrl,
     this.description,
     this.type,
+    this.base64Pdf,
   });
 
   factory CertificateModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,16 @@ class CertificateModel {
       return '';
     }
 
+    String? parseUrl(dynamic value) {
+      if (value == null) return null;
+      var str = value.toString().trim();
+      if (str.isEmpty) return null;
+      if (!str.startsWith('http://') && !str.startsWith('https://')) {
+        str = 'https://$str';
+      }
+      return str;
+    }
+
     return CertificateModel(
       id: getString(['id', 'certificate_id', 'certificateId', 'cert_id']),
       title: getString(['title', 'name', 'certificate_name', 'certificateTitle', 'type']),
@@ -50,9 +62,10 @@ class CertificateModel {
       issuedDate: getString(['issued_date', 'issuedDate', 'date', 'created_at', 'createdAt', 'issue_date']),
       expiryDate: getString(['expiry_date', 'expiryDate', 'expires_at', 'expiresAt', 'valid_until']),
       status: getString(['status', 'certificate_status', 'state']),
-      certificateUrl: tryString(json['certificate_url'] ?? json['download_url'] ?? json['image_url'] ?? json['url'] ?? json['file_url'] ?? json['pdf_url']),
+      certificateUrl: parseUrl(json['certificateUrl'] ?? json['certificate_url'] ?? json['download_url'] ?? json['image_url'] ?? json['url'] ?? json['file_url'] ?? json['pdf_url']),
       description: tryString(json['description'] ?? json['notes'] ?? json['remarks']),
       type: tryString(json['type']),
+      base64Pdf: tryString(json['base64_pdf'] ?? json['base64Pdf'] ?? json['base64']),
     );
   }
 
@@ -86,6 +99,7 @@ class CertificateModel {
       'certificateUrl': certificateUrl,
       'description': description,
       'type': type,
+      'base64Pdf': base64Pdf,
     };
   }
 }

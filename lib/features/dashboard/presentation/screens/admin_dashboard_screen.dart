@@ -81,19 +81,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildPremiumQuickAccessCard(
-                      icon: Icons.book_outlined,
-                      iconColor: const Color(0xFF209E5A), // Green
-                      title: 'Courses',
-                      subtitle: 'View enrolled courses',
-                      trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalCourses} Courses',
-                        orElse: () => 'Courses',
-                      ),
-                      onTap: () => context.push('/courses'),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 16),
+
                     _buildPremiumQuickAccessCard(
                       icon: Icons.campaign_rounded,
                       iconColor: const Color(0xFFF97316),

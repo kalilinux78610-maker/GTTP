@@ -146,7 +146,7 @@ class CourseModuleMcqOptionModel {
       id: str(json['id']),
       questionId: str(json['question_id']),
       optionText: str(json['option_text']),
-      isCorrect: ApiJsonParser.asBool(json['is_correct']),
+      isCorrect: ApiJsonParser.asBool(json['is_correct'] ?? json['isCorrect'] ?? json['correct'] ?? false),
       order: int.tryParse(str(json['order'])) ?? 0,
     );
   }
@@ -257,6 +257,7 @@ class CourseModuleModel {
   final bool isCompleted;
   final bool isSequential;
   final bool isLocked;
+  final bool isExpired;
   final String? externalUrl;
   final String? materialUrl;
   final String? materialLabel;
@@ -281,6 +282,7 @@ class CourseModuleModel {
     this.isCompleted = false,
     this.isSequential = true,
     this.isLocked = false,
+    this.isExpired = false,
     this.externalUrl,
     this.materialUrl,
     this.materialLabel,
@@ -315,16 +317,25 @@ class CourseModuleModel {
       }
     }
 
+    final needsUpload = [
+      'upload', 'report', 'assignment', 'test_case', 'industry_visit', 'poster'
+    ].any((t) => type.contains(t));
+
     // Fallback for upload modules if backend didn't provide criterias
-    if (requirements.isEmpty && (type.contains('upload') || type == 'report' || type == 'assignment')) {
+    if (requirements.isEmpty && needsUpload) {
       String desc = str(json['overview'] ?? json['instructions'] ?? 'Please upload your completed analysis or required document.');
       desc = desc.replaceAll(RegExp(r'<[^>]*>'), '').trim();
       if (desc.isEmpty) desc = 'Please upload your completed analysis or required document.';
 
+      String reqTitle = 'Upload your assignment/report *';
+      if (type.contains('visit') || type.contains('poster') || type.contains('image')) {
+        reqTitle = 'Upload your photo/image *';
+      }
+
       requirements.add(
         CourseModuleRequirementModel(
           id: str(json['id'] ?? json['module_id'] ?? 'req_1'),
-          title: 'Upload your assignment/report *',
+          title: reqTitle,
           description: desc,
           status: str(json['status']).isEmpty ? 'pending' : str(json['status']).toLowerCase(),
           needsAdminApproval: true,
@@ -372,6 +383,7 @@ class CourseModuleModel {
       isCompleted: ApiJsonParser.asBool(json['is_completed'] ?? json['isCompleted'] ?? json['completed']),
       isSequential: ApiJsonParser.asBool(json['is_sequential'] ?? json['isSequential'] ?? '1'),
       isLocked: lockedBySequence,
+      isExpired: _checkIfExpired(str(json['deadline_date'] ?? json['due_date'] ?? json['dueDate'])),
       externalUrl: str(json['external_url'] ?? json['externalUrl']).isEmpty
           ? null
           : str(json['external_url'] ?? json['externalUrl']),
@@ -448,6 +460,17 @@ class CourseModuleModel {
     }
   }
 
+  static bool _checkIfExpired(String raw) {
+    if (raw.isEmpty) return false;
+    try {
+      final dt = DateTime.parse(raw);
+      // Only expired if the deadline is entirely in the past (start of the next day)
+      return dt.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+    } catch (_) {
+      return false;
+    }
+  }
+
   CourseModule toEntity() {
     return CourseModule(
       id: id,
@@ -461,6 +484,7 @@ class CourseModuleModel {
       isCompleted: isCompleted,
       isSequential: isSequential,
       isLocked: isLocked,
+      isExpired: isExpired,
       externalUrl: externalUrl,
       materialUrl: materialUrl,
       materialLabel: materialLabel,
@@ -487,6 +511,7 @@ class CourseModuleModel {
       'is_completed': isCompleted,
       'is_sequential': isSequential,
       'isLocked': isLocked,
+      'isExpired': isExpired,
       'external_url': externalUrl,
       'material_url': materialUrl,
       'material_label': materialLabel,

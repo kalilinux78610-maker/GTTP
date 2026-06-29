@@ -19,6 +19,7 @@ class CourseModel {
   final String? passPercentage;
   final bool isEnrollable;
   final bool isEnrolled;
+  final bool isExpired;
   final int? progressPercent;
   final String? pdfUrl;
   final List<CourseModuleModel> modules;
@@ -39,6 +40,7 @@ class CourseModel {
     this.passPercentage,
     this.isEnrollable = false,
     this.isEnrolled = false,
+    this.isExpired = false,
     this.progressPercent,
     this.pdfUrl,
     this.modules = const [],
@@ -144,6 +146,16 @@ class CourseModel {
     final rawDescription = getString(['description', 'details', 'summary', 'about']);
     final modules = parseModules();
 
+    bool isExpired = false;
+    final endDateRaw = tryString(json['end_date'] ?? json['endDate']);
+    if (endDateRaw != null && endDateRaw.isNotEmpty) {
+      try {
+        final endDt = DateTime.parse(endDateRaw);
+        // Add 1 day to the end date so it expires at midnight the day after
+        isExpired = DateTime.now().isAfter(endDt.add(const Duration(days: 1)));
+      } catch (_) {}
+    }
+
     final idRaw = json['id'] ?? json['course_id'];
     final id = ApiJsonParser.asString(idRaw);
 
@@ -179,6 +191,7 @@ class CourseModel {
       passPercentage: tryString(json['pass_percentage'] ?? json['passPercentage']),
       isEnrollable: getBool(['is_enrollable', 'isEnrollable', 'enrollable']),
       isEnrolled: getBool(['is_enrolled', 'isEnrolled', 'enrolled', 'joined']),
+      isExpired: isExpired,
       progressPercent: parseProgress(modules),
       pdfUrl: CourseAssetUrl.resolve(
         json['course_details_pdf'] ??
@@ -206,6 +219,7 @@ class CourseModel {
     String? passPercentage,
     bool? isEnrollable,
     bool? isEnrolled,
+    bool? isExpired,
     int? progressPercent,
     String? pdfUrl,
     List<CourseModuleModel>? modules,
@@ -226,6 +240,7 @@ class CourseModel {
       passPercentage: passPercentage ?? this.passPercentage,
       isEnrollable: isEnrollable ?? this.isEnrollable,
       isEnrolled: isEnrolled ?? this.isEnrolled,
+      isExpired: isExpired ?? this.isExpired,
       progressPercent: progressPercent ?? this.progressPercent,
       pdfUrl: pdfUrl ?? this.pdfUrl,
       modules: modules ?? this.modules,

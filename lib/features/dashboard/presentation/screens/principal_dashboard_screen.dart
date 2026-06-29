@@ -6,6 +6,7 @@ import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:gttp/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:gttp/features/courses/data/models/course_asset_url.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:gttp/core/auth/user_role.dart';
 
 class PrincipalDashboardScreen extends ConsumerStatefulWidget {
   final String displayName;
@@ -78,20 +79,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildOldQuickAccessCard(
-                      icon: Icons.book_outlined,
-                      iconColor: const Color(0xFF209E5A), // Green
-                      title: 'Courses',
-                      subtitle: 'View your enrolled courses',
-                      trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalCourses} Enrolled',
-                        loading: () => '...',
-                        orElse: () => 'Courses',
-                      ),
-                      onTap: () => context.push('/courses'),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 16),
+
                     _buildOldQuickAccessCard(
                       icon: Icons.people_outline,
                       iconColor: const Color(0xFF3B82F6),
@@ -112,7 +100,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                       title: 'Faculty Members',
                       subtitle: 'View faculty & teaching staff',
                       trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalUsers} Faculty',
+                        data: (data) => '${data.totalFaculties} Faculty',
                         loading: () => '...',
                         orElse: () => 'Faculty',
                       ),
@@ -125,7 +113,11 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                       iconColor: const Color(0xFF10B981),
                       title: 'Gallery',
                       subtitle: 'View school events & activities',
-                      trailingText: 'View Photos',
+                      trailingText: dashboardAsync.maybeWhen(
+                        data: (data) => data.totalGallery > 0 ? '${data.totalGallery} Photos' : 'View Photos',
+                        loading: () => '...',
+                        orElse: () => 'View Photos',
+                      ),
                       onTap: () => context.push('/dashboard/gallery'),
                       isDark: isDark,
                     ),
@@ -305,9 +297,9 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
                       const SizedBox(height: 8),
                       userAsync.when(
                         data: (user) {
-                          final schoolName = dashboardAsync.value?.schoolName ?? user?.institute ?? 'School Overview';
+                          final role = AppUserRole.fromApi(user?.effectiveRole);
                           return Text(
-                            schoolName,
+                            role.label,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.9),
@@ -331,7 +323,7 @@ class _PrincipalDashboardScreenState extends ConsumerState<PrincipalDashboardScr
               child: dashboardAsync.when(
                 data: (data) => _buildOldOverviewCard(
                   totalStudents: '${data.totalStudents}',
-                  facultyMembers: '${data.totalUsers}',
+                  facultyMembers: '${data.totalFaculties}',
                   activeCourses: '${data.totalCourses}',
                   isDark: isDark,
                 ),

@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:gttp/features/downloads/domain/services/pdf_download_service.dart';
 import '../../../../core/router/navigation_utils.dart';
 import 'offline_pdf_viewer_screen.dart';
@@ -12,6 +15,7 @@ import '../providers/course_details_provider.dart';
 import '../providers/courses_provider.dart';
 import '../../data/repositories/courses_repository_impl.dart';
 import 'package:gttp/features/certificates/presentation/providers/certificates_provider.dart';
+import 'package:gttp/features/certificates/data/models/certificate_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:gttp/core/auth/user_role.dart';
@@ -765,17 +769,17 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
                       const SizedBox(width: 16),
                     ],
                     if (module.dueDate != null) ...[
-                      const Icon(
+                      Icon(
                         Icons.calendar_today_outlined,
                         size: 14,
-                        color: Color(0xFF9CA3AF),
+                        color: module.isExpired ? Colors.red.shade400 : const Color(0xFF9CA3AF),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Due: ${module.dueDate}',
-                        style: const TextStyle(
+                        module.isExpired ? 'Expired: ${module.dueDate}' : 'Due: ${module.dueDate}',
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6B7280),
+                          color: module.isExpired ? Colors.red.shade400 : const Color(0xFF6B7280),
                         ),
                       ),
                     ],
@@ -1164,20 +1168,7 @@ class _CourseCertificatesSection extends ConsumerWidget {
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.download_outlined, color: Color(0xFF398FDE)),
-                  onPressed: () async {
-                    if (cert.certificateUrl != null && cert.certificateUrl!.isNotEmpty) {
-                      final uri = Uri.tryParse(cert.certificateUrl!);
-                      if (uri != null && await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Could not open the certificate link')),
-                          );
-                        }
-                      }
-                    }
-                  },
+                  onPressed: () => _handleCertificate(context, cert),
                 ),
               ),
             )),
@@ -1192,5 +1183,47 @@ class _CourseCertificatesSection extends ConsumerWidget {
       ),
       error: (error, stackTrace) => const SizedBox.shrink(),
     );
+  }
+
+  Future<void> _handleCertificate(BuildContext context, CertificateModel certificate) async {
+    if (certificate.base64Pdf != null && certificate.base64Pdf!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(certificate.base64Pdf!);
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/certificate_${certificate.id}.pdf');
+        await file.writeAsBytes(bytes);
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path)],
+          text: 'My Certificate for ${certificate.courseName}',
+        ));
+        return;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open certificate: $e')),
+          );
+        }
+      }
+    }
+
+    final urlString = certificate.certificateUrl;
+    if (urlString != null && urlString.isNotEmpty) {
+      final uri = Uri.tryParse(urlString);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open the certificate link')),
+          );
+        }
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No certificate available')),
+        );
+      }
+    }
   }
 }

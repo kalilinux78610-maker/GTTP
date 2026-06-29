@@ -79,22 +79,10 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildPremiumQuickAccessCard(
-                      icon: Icons.book_outlined,
-                      iconColor: const Color(0xFF209E5A), // Green
-                      title: 'Courses',
-                      subtitle: 'View your enrolled courses',
-                      trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalCourses} Enrolled',
-                        orElse: () => 'Courses',
-                      ),
-                      onTap: () => context.push('/courses'),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 16),
+
                     _buildPremiumQuickAccessCard(
                       icon: Icons.business,
-                      iconColor: const Color(0xFF3B82F6),
+                      iconColor: const Color(0xFF3286C9),
                       title: 'Institute Records',
                       subtitle: 'View assigned schools &\ncollege students',
                       trailingText: dashboardAsync.maybeWhen(
@@ -144,7 +132,7 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
               right: 0,
               height: 1000,
               child: Container(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFF3B82F6),
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFF3286C9),
               ),
             ),
             Container(
@@ -156,7 +144,7 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                      : [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
+                      : [const Color(0xFF3286C9), const Color(0xFF1B639E)],
                 ),
               ),
               child: Padding(

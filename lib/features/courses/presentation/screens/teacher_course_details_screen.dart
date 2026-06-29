@@ -459,11 +459,11 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
                       const SizedBox(width: 16),
                     ],
                     if (module.dueDate != null) ...[
-                      const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF9CA3AF)),
+                      Icon(Icons.calendar_today_outlined, size: 14, color: module.isExpired ? Colors.red.shade400 : const Color(0xFF9CA3AF)),
                       const SizedBox(width: 4),
                       Text(
-                        'Due: ${module.dueDate}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        module.isExpired ? 'Expired: ${module.dueDate}' : 'Due: ${module.dueDate}',
+                        style: TextStyle(fontSize: 12, color: module.isExpired ? Colors.red.shade400 : const Color(0xFF6B7280)),
                       ),
                     ],
                   ],

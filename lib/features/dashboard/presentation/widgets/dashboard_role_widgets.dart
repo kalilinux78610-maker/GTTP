@@ -31,8 +31,17 @@ class DashboardRoleWidgets {
           buildStatItem('${data.totalCourses}', 'Courses', const Color(0xFF209E5A)),
         ],
       );
+    } else if (role == AppUserRole.faculty) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          buildStatItem('${data.totalClasses}', 'Total Classes', const Color(0xFF3286C9)),
+          buildStatItem('${data.totalStudents}', 'Students', const Color(0xFFE65C00)),
+          buildStatItem('${data.totalNotices}', 'Notices', const Color(0xFF209E5A)),
+        ],
+      );
     } else {
-      // Default / Student / Teacher fallback
+      // Default / Student fallback
       final displayCourses = coursesFallback > 0 ? coursesFallback : data.totalCourses;
       final displaySchedules = data.totalSchedules > 0 ? data.totalSchedules : schedulesFallback;
       final displayCerts = data.totalCertificates > 0 ? data.totalCertificates : certsFallback;
@@ -151,15 +160,16 @@ class DashboardRoleWidgets {
             ),
           ),
           const SizedBox(height: 16),
-          buildQuickAccessCard(
-            title: 'Courses',
-            subtitle: 'View your enrolled courses',
-            trailing: '$displayCourses Enrolled',
-            icon: Icons.menu_book_outlined,
-            iconColor: Colors.white,
-            iconBg: const Color(0xFF3286C9),
-            onTap: onNavigateCourses,
-          ),
+          if (role == AppUserRole.student)
+            buildQuickAccessCard(
+              title: 'Courses',
+              subtitle: 'View your enrolled courses',
+              trailing: '$displayCourses Enrolled',
+              icon: Icons.menu_book_outlined,
+              iconColor: Colors.white,
+              iconBg: const Color(0xFF3286C9),
+              onTap: onNavigateCourses,
+            ),
           buildQuickAccessCard(
             title: 'Certificates',
             subtitle: 'View all your earned certificates',
@@ -172,6 +182,7 @@ class DashboardRoleWidgets {
           buildQuickAccessCard(
             title: 'Gallery',
             subtitle: 'View school events & competitions',
+            trailing: data.totalGallery > 0 ? '${data.totalGallery} Photos' : null,
             icon: Icons.photo_library_outlined,
             iconColor: Colors.white,
             iconBg: const Color(0xFFEA3A3D),

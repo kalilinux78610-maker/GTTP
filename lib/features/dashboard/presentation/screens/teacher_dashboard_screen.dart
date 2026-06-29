@@ -80,19 +80,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildPremiumQuickAccessCard(
-                      icon: Icons.book_outlined,
-                      iconColor: const Color(0xFF209E5A), // Green
-                      title: 'Courses',
-                      subtitle: 'View your enrolled courses',
-                      trailingText: dashboardAsync.maybeWhen(
-                        data: (data) => '${data.totalCourses} Enrolled',
-                        orElse: () => 'Courses',
-                      ),
-                      onTap: () => context.push('/courses'),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 16),
+
                     _buildPremiumQuickAccessCard(
                       icon: Icons.people_alt_outlined,
                       iconColor: const Color(0xFF8B5CF6),
@@ -111,7 +99,10 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                       iconColor: const Color(0xFF10B981),
                       title: 'Gallery',
                       subtitle: 'View photos and media updates',
-                      trailingText: 'View Photos',
+                      trailingText: dashboardAsync.maybeWhen(
+                        data: (data) => '${data.totalGallery} Photos',
+                        orElse: () => 'View Photos',
+                      ),
                       onTap: () => context.push('/dashboard/gallery'),
                       isDark: isDark,
                     ),

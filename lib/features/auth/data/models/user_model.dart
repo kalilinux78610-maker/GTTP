@@ -72,15 +72,9 @@ class UserModel extends User {
         final parsedAvatar = ApiJsonParser.tryString(json['avatar']);
         if (parsedAvatar == null || parsedAvatar.isEmpty) return null;
         
-        // Prevent using the institute logo as the user's avatar
-        if (schoolMap != null) {
-          final schoolLogo = ApiJsonParser.tryString(schoolMap['logo']) ??
-              ApiJsonParser.tryString(schoolMap['avatar']) ??
-              ApiJsonParser.tryString(schoolMap['image']);
-          if (parsedAvatar == schoolLogo) {
-            return null; // It's the school logo, so the user actually has no avatar
-          }
-        }
+        // We no longer discard the avatar if it matches schoolLogo because the
+        // backend might legitimately return it. Fallback UI rules should be 
+        // handled in the presentation layer instead.
         return parsedAvatar;
       }(),
       isActive: ApiJsonParser.asBool(json['is_active']),

@@ -10,7 +10,7 @@ class CertificatesRemoteDataSource {
   Future<List<Map<String, dynamic>>> getCertificates() async {
     try {
       final response = await _apiClient.get(
-        '/v1/certificates',
+        '/certificates',
         requiresAuth: true,
       );
       return _extractList(response);
@@ -24,7 +24,7 @@ class CertificatesRemoteDataSource {
   Future<Map<String, dynamic>> getCertificateDetail(String id) async {
     try {
       final response = await _apiClient.get(
-        '/v1/certificates/$id',
+        '/certificates/$id',
         requiresAuth: true,
       );
       return response;
@@ -55,6 +55,19 @@ class CertificatesRemoteDataSource {
         '/courses/$courseId/certificate',
         requiresAuth: true,
       );
+      
+      // Handle the specific shape: response['data']['certificates'][i]['certificate']
+      if (response['data'] is Map && (response['data'] as Map).containsKey('certificates')) {
+        final list = response['data']['certificates'] as List;
+        return list.whereType<Map>().map((item) {
+          final map = Map<String, dynamic>.from(item);
+          if (map['certificate'] is Map) {
+            return Map<String, dynamic>.from(map['certificate']);
+          }
+          return null;
+        }).whereType<Map<String, dynamic>>().toList();
+      }
+      
       return _extractList(response);
     } on ApiException {
       rethrow;
@@ -64,32 +77,30 @@ class CertificatesRemoteDataSource {
   }
 
   List<Map<String, dynamic>> _extractList(Map<String, dynamic> response) {
+    List<Map<String, dynamic>> extractAndUnwrap(List rawList) {
+      return rawList.whereType<Map>().map((item) {
+        final map = Map<String, dynamic>.from(item);
+        if (map['certificate'] is Map) {
+          return Map<String, dynamic>.from(map['certificate']);
+        }
+        return map;
+      }).toList();
+    }
+
     // Handle various response shapes
     if (response['data'] is List) {
-      return (response['data'] as List)
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      return extractAndUnwrap(response['data'] as List);
     }
     if (response['certificates'] is List) {
-      return (response['certificates'] as List)
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      return extractAndUnwrap(response['certificates'] as List);
     }
     if (response['items'] is List) {
-      return (response['items'] as List)
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      return extractAndUnwrap(response['items'] as List);
     }
     // Fallback: find first list value
     for (final value in response.values) {
       if (value is List) {
-        return value
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+        return extractAndUnwrap(value);
       }
     }
     if (kDebugMode) debugPrint('[Certificates] No list found in response.');

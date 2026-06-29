@@ -219,7 +219,10 @@ class _CourseModuleDetailScreenState extends ConsumerState<CourseModuleDetailScr
             );
           }
 
-          return _ModuleBody(module: m, isStudent: isStudent);
+          final courseState = ref.watch(courseDetailsProvider(widget.courseId));
+          final isExpired = courseState.value?.isExpired ?? false;
+
+          return _ModuleBody(module: m, isStudent: isStudent, isExpired: isExpired);
         },
       ),
     );
@@ -227,10 +230,11 @@ class _CourseModuleDetailScreenState extends ConsumerState<CourseModuleDetailScr
 }
 
 class _ModuleBody extends ConsumerWidget {
-  const _ModuleBody({required this.module, required this.isStudent});
+  const _ModuleBody({required this.module, required this.isStudent, required this.isExpired});
 
   final CourseModuleModel module;
   final bool isStudent;
+  final bool isExpired;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -352,7 +356,8 @@ class _ModuleBody extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _metaRow(
                     Icons.calendar_today_outlined,
-                    'Deadline: ${m.dueDate}',
+                    m.isExpired ? 'Expired: ${m.dueDate}' : 'Deadline: ${m.dueDate}',
+                    color: m.isExpired ? Colors.red.shade400 : null,
                   ),
                 ],
               ],
@@ -595,27 +600,50 @@ class _ModuleBody extends ConsumerWidget {
                     ],
                   ),
                 ),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    final cId = GoRouterState.of(context).pathParameters['id'];
-                    final mId = GoRouterState.of(context).pathParameters['moduleId'];
-                    if (cId != null && mId != null) {
-                      context.push('/courses/$cId/modules/$mId/quiz');
-                    }
-                  },
-                  icon: const Icon(Icons.quiz_outlined, size: 18),
-                  label: const Text('Take MCQ Quiz'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C3AED), // Purple for quiz
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              if (isExpired)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.timer_off_outlined, color: Color(0xFFDC2626)),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Course expired. Quizzes are closed.',
+                          style: TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final cId = GoRouterState.of(context).pathParameters['id'];
+                      final mId = GoRouterState.of(context).pathParameters['moduleId'];
+                      if (cId != null && mId != null) {
+                        context.push('/courses/$cId/modules/$mId/quiz');
+                      }
+                    },
+                    icon: const Icon(Icons.quiz_outlined, size: 18),
+                    label: const Text('Take MCQ Quiz'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF7C3AED), // Purple for quiz
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ] else ...[
              _infoCard(
@@ -678,14 +706,14 @@ class _ModuleBody extends ConsumerWidget {
     );
   }
 
-  Widget _metaRow(IconData icon, String text) {
+  Widget _metaRow(IconData icon, String text, {Color? color}) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+        Icon(icon, size: 16, color: color ?? const Color(0xFF9CA3AF)),
         const SizedBox(width: 8),
         Text(
           text,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          style: TextStyle(fontSize: 14, color: color ?? const Color(0xFF6B7280)),
         ),
       ],
     );
@@ -693,7 +721,7 @@ class _ModuleBody extends ConsumerWidget {
 
   ({Color bg, Color fg}) _typeBadgeStyle(String type) {
     final t = type.toLowerCase();
-    if (t.contains('report') || t.contains('upload')) {
+    if (['report', 'upload', 'assignment', 'test_case', 'industry_visit', 'poster'].any((key) => t.contains(key))) {
       return (bg: const Color(0xFFFFF3E8), fg: const Color(0xFFEA7A1A));
     }
     return (bg: const Color(0xFFE8F4FD), fg: const Color(0xFF2976C7));

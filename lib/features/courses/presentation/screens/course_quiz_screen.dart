@@ -35,24 +35,21 @@ class _CourseQuizScreenState extends ConsumerState<CourseQuizScreen> {
       for (final question in questions) {
         final selectedOptionId = _selectedAnswers[question.id];
         if (selectedOptionId != null) {
-          dynamic selectedOption;
-          for (final o in question.options) {
-            if (o.id == selectedOptionId) {
-              selectedOption = o;
-              break;
-            }
-          }
-          selectedOption ??= question.options[0]; // fallback
+          final selectedOption = question.options.firstWhere(
+            (o) => o.id == selectedOptionId,
+            orElse: () => question.options.first,
+          );
           
+          final bool isCorrect = selectedOption.isCorrect == true ||
+              selectedOption.isCorrect.toString().toLowerCase() == 'true' ||
+              selectedOption.isCorrect.toString() == '1';
+
           debugPrint('Question ID: ${question.id}');
           debugPrint('Selected Option ID: ${selectedOption.id}');
-          debugPrint('Is Correct: ${selectedOption.isCorrect}');
+          debugPrint('Is Correct: $isCorrect');
           debugPrint('Question Points: ${question.points}');
 
-          if (selectedOption.isCorrect == true || 
-              selectedOption.isCorrect == 1 || 
-              selectedOption.isCorrect?.toString() == '1' || 
-              selectedOption.isCorrect?.toString().toLowerCase() == 'true') {
+          if (isCorrect) {
             score += (question.points as int);
           }
         }

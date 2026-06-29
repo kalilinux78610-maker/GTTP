@@ -56,6 +56,7 @@ class CourseModule {
   final List<CourseModuleRequirement> requirements;
   final List<CourseSession> sessions;
   final int order;
+  final bool isExpired;
   
   final int completedSubmissionsCount;
   final int pendingSubmissionsCount;
@@ -75,6 +76,7 @@ class CourseModule {
     this.isCompleted = false,
     this.isSequential = true,
     this.isLocked = false,
+    this.isExpired = false,
     this.externalUrl,
     this.materialUrl,
     this.materialLabel,
@@ -107,6 +109,7 @@ class CourseModule {
     bool? isCompleted,
     bool? isSequential,
     bool? isLocked,
+    bool? isExpired,
     String? externalUrl,
     String? materialUrl,
     String? materialLabel,
@@ -130,6 +133,7 @@ class CourseModule {
       isCompleted: isCompleted ?? this.isCompleted,
       isSequential: isSequential ?? this.isSequential,
       isLocked: isLocked ?? this.isLocked,
+      isExpired: isExpired ?? this.isExpired,
       externalUrl: externalUrl ?? this.externalUrl,
       materialUrl: materialUrl ?? this.materialUrl,
       materialLabel: materialLabel ?? this.materialLabel,

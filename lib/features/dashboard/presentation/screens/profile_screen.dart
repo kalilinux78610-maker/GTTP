@@ -419,6 +419,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           imageUrlToShow = CourseAssetUrl.resolve(_avatar);
                         }
                         if (imageUrlToShow == null &&
+                            _role.toLowerCase() != 'student' &&
                             schoolLogo != null &&
                             schoolLogo.isNotEmpty) {
                           imageUrlToShow = CourseAssetUrl.resolve(schoolLogo);
@@ -616,19 +617,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                       : 'Not Provided'))),
                               ),
                             );
-
-                            if (_role.toLowerCase() == 'student' &&
-                                _parentMobile.isNotEmpty) {
-                              infoItems.add(
-                                _buildInfoItem(
-                                  icon: Icons.family_restroom_outlined,
-                                  iconColor: const Color(0xFFEC4899),
-                                  bgColor: const Color(0xFFFCE7F3),
-                                  title: "Parent's Mobile",
-                                  value: _parentMobile,
-                                ),
-                              );
-                            }
 
                             final dashboardSchoolType =
                                 dashboardAsync

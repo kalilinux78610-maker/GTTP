@@ -5,7 +5,7 @@ import 'package:gttp/core/network/connectivity_service.dart';
 import 'package:gttp/features/certificates/data/models/certificate_model.dart';
 import 'package:gttp/features/certificates/data/repositories/certificates_repository_impl.dart';
 
-const _certificatesCacheKey = 'certificates_list';
+const _certificatesCacheKey = 'certificates_list_v3';
 const _cacheTTL = Duration(minutes: 30);
 
 /// Provider for the list of certificates with offline support

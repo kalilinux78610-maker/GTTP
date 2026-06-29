@@ -46,6 +46,9 @@ class CourseAssetUrl {
 
     var text = ApiJsonParser.asString(value);
     if (text.isEmpty) return null;
+    
+    // Fix JSON escaped slashes like "\/"
+    text = text.replaceAll(r'\', '');
 
     // Handle JSON-ish array strings: ["https://..."] or [url1, url2]
     if (text.startsWith('[') && text.endsWith(']')) {

@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gttp/features/certificates/data/models/certificate_model.dart';
@@ -335,14 +339,7 @@ class _CertificateCard extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            final url = certificate.certificateUrl;
-                            if (url != null && url.isNotEmpty) {
-                              _launchUrl(context, url);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('No certificate URL available')),
-                              );
-                            }
+                            _handleCertificate(context, certificate);
                           },
                           icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
                           label: const Text('View'),
@@ -360,14 +357,7 @@ class _CertificateCard extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            final url = certificate.certificateUrl;
-                            if (url != null && url.isNotEmpty) {
-                              _launchUrl(context, url);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('No certificate URL available')),
-                              );
-                            }
+                            _handleCertificate(context, certificate);
                           },
                           icon: const Icon(Icons.download_outlined, size: 18),
                           label: const Text('Download'),
@@ -393,14 +383,43 @@ class _CertificateCard extends StatelessWidget {
     );
   }
   
-  Future<void> _launchUrl(BuildContext context, String urlString) async {
-    final uri = Uri.tryParse(urlString);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _handleCertificate(BuildContext context, CertificateModel certificate) async {
+    if (certificate.base64Pdf != null && certificate.base64Pdf!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(certificate.base64Pdf!);
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/certificate_${certificate.id}.pdf');
+        await file.writeAsBytes(bytes);
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path)],
+          text: 'My Certificate for ${certificate.courseName}',
+        ));
+        return;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open certificate: $e')),
+          );
+        }
+      }
+    }
+
+    final urlString = certificate.certificateUrl;
+    if (urlString != null && urlString.isNotEmpty) {
+      final uri = Uri.tryParse(urlString);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open the certificate link')),
+          );
+        }
+      }
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the certificate link')),
+          const SnackBar(content: Text('No certificate available')),
         );
       }
     }
