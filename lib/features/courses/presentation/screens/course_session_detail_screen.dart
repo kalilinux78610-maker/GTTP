@@ -165,6 +165,10 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
     final isLiveSession = type == 'live session (meeting link)' || type == 'live session';
     final isMCQ = type == 'mcq test' || type == 'mcq' || type == 'quiz';
 
+    final courseState = ref.watch(courseDetailsProvider(widget.courseId));
+    final course = courseState.value;
+    final isExpired = course?.isExpired ?? false;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -216,6 +220,34 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                               color: Color(0xFFD97706),
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (isExpired) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 20),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'This course has expired. No further submissions are allowed.',
+                              style: TextStyle(
+                                color: Color(0xFF991B1B),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -423,9 +455,32 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                     ),
                     const SizedBox(height: 12),
                   ] else if (isMCQ) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
+                    if (isExpired && !_isCompletedLocally && widget.session.submissionStatus == 'pending')
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.timer_off_outlined, color: Color(0xFFDC2626)),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Course expired. Quizzes are closed.',
+                                style: TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
                         onPressed: () async {
                           // Route to the quiz screen, passing the submoduleId
                           final result = await context.push<bool>('/courses/${widget.courseId}/modules/${widget.moduleId}/quiz?submoduleId=${widget.session.id}');
@@ -484,7 +539,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                     const SizedBox(height: 12),
                   ],
 
-                  if (_requiresProofUpload) ...[
+                  if (_requiresProofUpload && widget.isStudent) ...[
                     const SizedBox(height: 24),
                     const Row(
                       children: [
@@ -501,13 +556,47 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
-                      ),
+                    if (isExpired && !_isCompletedLocally && widget.session.submissionStatus == 'pending')
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Column(
+                          children: const [
+                            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 32),
+                            SizedBox(height: 12),
+                            Text(
+                              'Course Expired',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF991B1B),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'This course has passed its end date. Submissions are no longer accepted.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFFB91C1C),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -664,12 +753,13 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
           ),
 
           if (widget.isStudent && !_isCompletedLocally && !_requiresProofUpload && !isMCQ)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(20),
+            if (!isExpired)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF9FAFB),
                   border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
