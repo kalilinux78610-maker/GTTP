@@ -125,7 +125,7 @@ class CoordinatorCourseDetailsScreen extends ConsumerWidget {
       flexibleSpace: FlexibleSpaceBar(
         background: CourseCoverImage(
           imageUrl: course.thumbnailUrl,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           placeholderColor: const Color(0xFF0F62FE),
         ),
       ),

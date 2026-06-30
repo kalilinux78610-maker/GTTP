@@ -293,7 +293,7 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             imageUrl: course.thumbnailUrl,
             height: 240,
             width: double.infinity,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
           ),
           Positioned(
             top: 16,

@@ -429,6 +429,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         }
 
                         if (imageUrlToShow != null) {
+                          debugPrint('AVATAR_URL_DEBUG: $imageUrlToShow');
                           return SizedBox(
                             width: double.infinity,
                             height: double.infinity,

@@ -130,7 +130,7 @@ class _TeacherCourseDetailsScreenState extends ConsumerState<TeacherCourseDetail
             imageUrl: course.thumbnailUrl,
             height: 240,
             width: double.infinity,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
           ),
           Positioned(
             top: 16,

@@ -295,7 +295,7 @@ class _CourseCard extends ConsumerWidget {
             imageUrl: course.thumbnailUrl,
             height: 160,
             width: double.infinity,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           Padding(

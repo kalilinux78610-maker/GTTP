@@ -18,7 +18,7 @@ class CourseCoverImage extends StatelessWidget {
     required this.imageUrl,
     this.height,
     this.width,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
     this.borderRadius,
     this.placeholder,
     this.placeholderColor = const Color(0xFF398FDE),
