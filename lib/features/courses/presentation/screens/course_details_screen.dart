@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:gttp/features/downloads/domain/services/pdf_download_service.dart';
 import '../../../../core/router/navigation_utils.dart';
 import 'offline_pdf_viewer_screen.dart';
+import 'material_viewer_screen.dart';
 import '../../data/models/course_model.dart';
 import '../../data/models/course_module_model.dart';
 import '../providers/course_details_provider.dart';
@@ -1166,9 +1167,20 @@ class _CourseCertificatesSection extends ConsumerWidget {
                   cert.issuedDate,
                   style: const TextStyle(fontSize: 12),
                 ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.download_outlined, color: Color(0xFF398FDE)),
-                  onPressed: () => _handleCertificate(context, cert),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_red_eye_outlined, color: Color(0xFF3B82F6)),
+                      onPressed: () => _viewCertificate(context, cert),
+                      tooltip: 'View Certificate',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.download_outlined, color: Color(0xFF398FDE)),
+                      onPressed: () => _handleCertificate(context, cert),
+                      tooltip: 'Download Certificate',
+                    ),
+                  ],
                 ),
               ),
             )),
@@ -1183,6 +1195,57 @@ class _CourseCertificatesSection extends ConsumerWidget {
       ),
       error: (error, stackTrace) => const SizedBox.shrink(),
     );
+  }
+
+  Future<void> _viewCertificate(BuildContext context, CertificateModel certificate) async {
+    if (certificate.base64Pdf != null && certificate.base64Pdf!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(certificate.base64Pdf!);
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/certificate_${certificate.id}.pdf');
+        await file.writeAsBytes(bytes);
+        
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OfflinePdfViewerScreen(
+                title: certificate.title,
+                localPath: file.path,
+              ),
+            ),
+          );
+        }
+        return;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open certificate: $e')),
+          );
+        }
+      }
+    }
+
+    final urlString = certificate.certificateUrl;
+    if (urlString != null && urlString.isNotEmpty) {
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MaterialViewerScreen(
+              title: certificate.title,
+              url: urlString,
+            ),
+          ),
+        );
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No certificate available to view')),
+        );
+      }
+    }
   }
 
   Future<void> _handleCertificate(BuildContext context, CertificateModel certificate) async {
