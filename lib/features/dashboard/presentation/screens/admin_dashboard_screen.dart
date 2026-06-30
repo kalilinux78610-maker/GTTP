@@ -234,11 +234,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               );
                               final schoolLogo =
                                   dashboardAsync.value?.schoolLogo;
-                              if ((avatarUrl == null || avatarUrl.isEmpty) &&
-                                  schoolLogo != null &&
-                                  schoolLogo.isNotEmpty) {
-                                avatarUrl = CourseAssetUrl.resolve(schoolLogo);
-                              }
+                              // No longer falling back to schoolLogo, use user initials instead
 
                               Widget placeholder = Container(
                                 width: 44,

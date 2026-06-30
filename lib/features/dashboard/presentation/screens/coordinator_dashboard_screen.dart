@@ -221,9 +221,7 @@ class _CoordinatorDashboardScreenState extends ConsumerState<CoordinatorDashboar
                               final userAsync = ref.watch(userModelProvider);
                               String? avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
                               final schoolLogo = dashboardAsync.value?.schoolLogo;
-                              if ((avatarUrl == null || avatarUrl.isEmpty) && schoolLogo != null && schoolLogo.isNotEmpty) {
-                                avatarUrl = CourseAssetUrl.resolve(schoolLogo);
-                              }
+                              // No longer falling back to schoolLogo, use user initials instead
                               
                               Widget placeholder = Container(
                                 width: 44,

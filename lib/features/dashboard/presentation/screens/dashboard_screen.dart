@@ -241,10 +241,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                             final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
                             final schoolLogo = dashboardAsync.value?.schoolLogo;
                             
-                            // Do not fallback to institute avatar for students
-                            if (role != AppUserRole.student && (avatarUrl == null || avatarUrl.isEmpty) && schoolLogo != null && schoolLogo.isNotEmpty) {
-                              avatarUrl = CourseAssetUrl.resolve(schoolLogo);
-                            }
+                            // Do not fallback to institute avatar for any role anymore, let it show initials
                             
                             Widget placeholder = Container(
                               width: 45,
