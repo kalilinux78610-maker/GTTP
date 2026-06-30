@@ -57,22 +57,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   bool _validate() {
     String? nameErr;
-    String? phoneErr;
     final name = _nameController.text.trim();
-    final phone = _phoneController.text.trim();
 
     if (name.isEmpty) {
       nameErr = 'Please enter your name';
     }
-    if (phone.isEmpty) {
-      phoneErr = 'Please enter your phone number';
-    }
 
     setState(() {
       _nameError = nameErr;
-      _phoneError = phoneErr;
+      _phoneError = null; // phone is optional
     });
-    return nameErr == null && phoneErr == null;
+    return nameErr == null;
   }
 
   Future<void> _saveProfile() async {
@@ -86,15 +81,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       // Update data on the backend API
       await ref.read(authRepositoryProvider).updateProfile(
         name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
       );
 
       // Update local storage manually just in case
       final user = await storage.getUserModel();
       if (user != null) {
+        final phone = _phoneController.text.trim();
         final updatedUser = user.copyWith(
           name: _nameController.text.trim(),
-          phone: _phoneController.text.trim(),
+          phone: phone.isNotEmpty ? phone : null,
         );
         await storage.saveUserModel(updatedUser);
       }

@@ -23,7 +23,7 @@ abstract class AuthRepository {
 
   Future<void> updateProfile({
     required String name,
-    required String phone,
+    String? phone,
   });
 
   Future<void> uploadAvatar(String imagePath);

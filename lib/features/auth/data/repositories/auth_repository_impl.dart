@@ -75,6 +75,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    // Always attempt server-side logout first to invalidate the JWT,
+    // then clear local state regardless of outcome.
+    try {
+      await _remoteDataSource.logout();
+    } catch (_) {
+      // Ignore — local cleanup still proceeds.
+    }
     await _secureStorage.clearTokens();
     await _secureStorage.clearPendingUserId();
     await _secureStorage.clearUserProfile();
@@ -83,13 +90,14 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> updateProfile({
     required String name,
-    required String phone,
+    String? phone,
   }) async {
     try {
-      await _remoteDataSource.updateUserProfile({
-        'name': name,
-        'phone': phone,
-      });
+      final data = <String, dynamic>{'name': name};
+      if (phone != null && phone.trim().isNotEmpty) {
+        data['phone'] = phone.trim();
+      }
+      await _remoteDataSource.updateUserProfile(data);
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Failed to update profile.');
