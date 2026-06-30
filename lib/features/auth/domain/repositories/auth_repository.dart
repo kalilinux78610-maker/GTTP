@@ -20,4 +20,11 @@ abstract class AuthRepository {
   });
 
   Future<void> logout();
+
+  Future<void> updateProfile({
+    required String name,
+    required String phone,
+  });
+
+  Future<void> uploadAvatar(String imagePath);
 }

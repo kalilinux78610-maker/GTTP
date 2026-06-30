@@ -388,7 +388,7 @@ class AuthRemoteDataSource {
   }
 
   Future<void> updateUserProfile(Map<String, dynamic> data) async {
-    await _apiClient.post('/auth/profile/update', data: data, requiresAuth: true);
+    await _apiClient.put('/auth/profile', data: data, requiresAuth: true);
     // After update, fetch the latest profile data
     await fetchMe();
   }

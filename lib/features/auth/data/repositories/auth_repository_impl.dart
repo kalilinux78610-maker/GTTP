@@ -79,4 +79,30 @@ class AuthRepositoryImpl implements AuthRepository {
     await _secureStorage.clearPendingUserId();
     await _secureStorage.clearUserProfile();
   }
+
+  @override
+  Future<void> updateProfile({
+    required String name,
+    required String phone,
+  }) async {
+    try {
+      await _remoteDataSource.updateUserProfile({
+        'name': name,
+        'phone': phone,
+      });
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to update profile.');
+    }
+  }
+
+  @override
+  Future<void> uploadAvatar(String imagePath) async {
+    try {
+      await _remoteDataSource.uploadAvatar(imagePath);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to upload avatar.');
+    }
+  }
 }

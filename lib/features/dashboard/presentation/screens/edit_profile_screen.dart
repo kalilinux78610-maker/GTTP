@@ -84,10 +84,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final storage = ref.read(secureStorageProvider);
       
       // Update data on the backend API
-      await ref.read(authRemoteDataSourceProvider).updateUserProfile({
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-      });
+      await ref.read(authRepositoryProvider).updateProfile(
+        name: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+      );
 
       // Update local storage manually just in case
       final user = await storage.getUserModel();
