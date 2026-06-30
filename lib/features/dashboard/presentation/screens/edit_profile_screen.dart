@@ -125,19 +125,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     final themeColor = _themeColor;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
+      // Shrinks the body so the keyboard never covers the Save button
+      resizeToAvoidBottomInset: true,
+      body: Column(
         children: [
+          // ── Fixed header (never scrolls away) ──────────────────────────
           Container(
-            height: 140 + topPadding,
             width: double.infinity,
             color: themeColor,
-          ),
-          Padding(
-            padding: EdgeInsets.only(top: topPadding + 24, left: 24, right: 24),
+            padding: EdgeInsets.only(
+              top: topPadding + 16,
+              bottom: 20,
+              left: 24,
+              right: 24,
+            ),
             child: Row(
               children: [
                 InkWell(
@@ -151,7 +157,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -166,74 +176,84 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: EdgeInsets.only(top: 100 + topPadding, left: 24, right: 24),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+
+          // ── Scrollable form body ────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 28,
+                // Extra bottom space so Save button clears the keyboard
+                bottom: bottomPadding + 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Full Name',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2A3A4A),
-                        fontSize: 13,
-                      ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomTextField(
-                    controller: _nameController,
-                    hintText: 'Enter your full name',
-                    prefixIcon: Icons.person_outline,
-                    errorText: _nameError,
-                    textInputAction: TextInputAction.next,
-                    onChanged: (_) => setState(() => _nameError = null),
-                  ),
-                  const SizedBox(height: 20),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Phone Number',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2A3A4A),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomTextField(
-                    controller: _phoneController,
-                    hintText: 'Enter your phone number',
-                    prefixIcon: Icons.phone_outlined,
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.done,
-                    errorText: _phoneError,
-                    onChanged: (_) => setState(() => _phoneError = null),
-                  ),
-                  const SizedBox(height: 32),
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : CustomButton(
-                          text: 'Save Changes',
-                          onPressed: _saveProfile,
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Full Name',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2A3A4A),
+                          fontSize: 13,
                         ),
-                ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    CustomTextField(
+                      controller: _nameController,
+                      hintText: 'Enter your full name',
+                      prefixIcon: Icons.person_outline,
+                      errorText: _nameError,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() => _nameError = null),
+                    ),
+                    const SizedBox(height: 20),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Phone Number',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2A3A4A),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    CustomTextField(
+                      controller: _phoneController,
+                      hintText: 'Enter your phone number (optional)',
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.done,
+                      errorText: _phoneError,
+                      onChanged: (_) => setState(() => _phoneError = null),
+                    ),
+                    const SizedBox(height: 32),
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : CustomButton(
+                            text: 'Save Changes',
+                            onPressed: _saveProfile,
+                          ),
+                  ],
+                ),
               ),
             ),
           ),
