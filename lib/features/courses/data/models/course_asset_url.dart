@@ -45,7 +45,7 @@ class CourseAssetUrl {
     }
 
     var text = ApiJsonParser.asString(value);
-    if (text.isEmpty) return null;
+    if (text.isEmpty || text.toLowerCase() == 'null') return null;
     
     // Fix JSON escaped slashes like "\/"
     text = text.replaceAll(r'\', '');
