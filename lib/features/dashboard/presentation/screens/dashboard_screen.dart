@@ -236,7 +236,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                         child: Consumer(
                           builder: (context, ref, child) {
                             final userAsync = ref.watch(userModelProvider);
-                            final dashboardAsync = ref.watch(dashboardDataProvider);
+
                             String? avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
 
                             
