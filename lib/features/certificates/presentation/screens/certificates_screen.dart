@@ -10,6 +10,8 @@ import 'package:gttp/features/certificates/presentation/providers/certificates_p
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../courses/presentation/screens/material_viewer_screen.dart';
+import '../../courses/presentation/screens/offline_pdf_viewer_screen.dart';
 
 class CertificatesScreen extends ConsumerStatefulWidget {
   const CertificatesScreen({super.key});
@@ -339,7 +341,7 @@ class _CertificateCard extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            _handleCertificate(context, certificate);
+                            _viewCertificate(context, certificate);
                           },
                           icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
                           label: const Text('View'),
@@ -381,6 +383,57 @@ class _CertificateCard extends StatelessWidget {
         ),
       ),
     );
+  }
+  
+  Future<void> _viewCertificate(BuildContext context, CertificateModel certificate) async {
+    if (certificate.base64Pdf != null && certificate.base64Pdf!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(certificate.base64Pdf!);
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/certificate_${certificate.id}.pdf');
+        await file.writeAsBytes(bytes);
+        
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OfflinePdfViewerScreen(
+                title: certificate.title,
+                localPath: file.path,
+              ),
+            ),
+          );
+        }
+        return;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open certificate: $e')),
+          );
+        }
+      }
+    }
+
+    final urlString = certificate.certificateUrl;
+    if (urlString != null && urlString.isNotEmpty) {
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MaterialViewerScreen(
+              title: certificate.title,
+              url: urlString,
+            ),
+          ),
+        );
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No certificate available to view')),
+        );
+      }
+    }
   }
   
   Future<void> _handleCertificate(BuildContext context, CertificateModel certificate) async {
