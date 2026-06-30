@@ -59,7 +59,6 @@ class CustomTextField extends StatelessWidget {
             enableSuggestions: !isPassword,
             autofillHints: autofillHints,
             onChanged: onChanged,
-            scrollPadding: const EdgeInsets.only(bottom: 120), // Ensures keyboard doesn't hide it
             style: const TextStyle(
               color: AppTheme.textDark,
               fontWeight: FontWeight.w500,
