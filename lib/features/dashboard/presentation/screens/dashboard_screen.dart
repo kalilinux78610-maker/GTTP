@@ -118,7 +118,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
   Widget _buildDashboardBody(List<Color> gradientColors) {
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(dashboardDataProvider);`n          await ref.read(dashboardDataProvider.future);
+        ref.invalidate(dashboardDataProvider);
+        await ref.read(dashboardDataProvider.future);
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
