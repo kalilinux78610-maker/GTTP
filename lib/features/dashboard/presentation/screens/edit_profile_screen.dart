@@ -130,50 +130,55 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      // Shrinks the body so the keyboard never covers the Save button
-      resizeToAvoidBottomInset: true,
+      // Handle insets manually to avoid rendering glitches on some devices
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
           // ── Fixed header (never scrolls away) ──────────────────────────
           Container(
             width: double.infinity,
             color: themeColor,
-            padding: EdgeInsets.only(
-              top: topPadding + 16,
-              bottom: 20,
-              left: 24,
-              right: 24,
-            ),
-            child: Row(
-              children: [
-                InkWell(
-                  onTap: () {
-                    if (context.canPop()) context.pop();
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: 16,
+                  bottom: 20,
+                  left: 24,
+                  right: 24,
+                ),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        if (context.canPop()) context.pop();
+                      },
                       borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 18,
+                    const SizedBox(width: 16),
+                    const Text(
+                      'Edit Profile',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Edit Profile',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
 
@@ -184,8 +189,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 left: 24,
                 right: 24,
                 top: 28,
-                // Extra bottom space so Save button clears the keyboard
-                bottom: bottomPadding + 24,
+                // Add keyboard inset height manually so user can scroll to the button
+                bottom: MediaQuery.of(context).viewInsets.bottom + bottomPadding + 24,
               ),
               child: Container(
                 padding: const EdgeInsets.all(24),
