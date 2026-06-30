@@ -224,8 +224,10 @@ class _CourseDetailsScreenState extends ConsumerState<CourseDetailsScreen> {
             top: true,
             bottom: true,
             child: RefreshIndicator(
-              onRefresh: () async =>
-                  ref.invalidate(courseDetailsProvider(widget.courseId)),
+              onRefresh: () async {
+                ref.invalidate(courseDetailsProvider(widget.courseId));
+                await ref.read(courseDetailsProvider(widget.courseId).future);
+              },
               child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 24),

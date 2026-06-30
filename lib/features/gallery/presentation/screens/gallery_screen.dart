@@ -40,7 +40,10 @@ class GalleryScreen extends ConsumerWidget {
                       SliverFillRemaining(
                         hasScrollBody: false,
                         child: _EmptyState(
-                          onRefresh: () => ref.invalidate(eventsProvider),
+                          onRefresh: () async {
+                            ref.invalidate(eventsProvider);
+                            await ref.read(eventsProvider.future);
+                          },
                         ),
                       ),
                     ];

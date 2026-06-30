@@ -66,7 +66,10 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
           if (courses.isEmpty) return _buildEmptyState();
 
           return RefreshIndicator(
-            onRefresh: () async => ref.refresh(coursesProvider),
+            onRefresh: () async {
+              ref.invalidate(coursesProvider);
+              await ref.read(coursesProvider.future);
+            },
             child: ListView(
               padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
               children: [

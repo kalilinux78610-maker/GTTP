@@ -46,7 +46,10 @@ class EventsScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.refresh(eventsProvider),
+            onRefresh: () async {
+              ref.invalidate(eventsProvider);
+              await ref.read(eventsProvider.future);
+            },
             child: ListView.builder(
               padding: EdgeInsets.fromLTRB(
                 16, 16, 16,
