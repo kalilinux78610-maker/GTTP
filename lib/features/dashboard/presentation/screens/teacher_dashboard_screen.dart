@@ -227,10 +227,6 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                             builder: (context, ref, child) {
                               final userAsync = ref.watch(userModelProvider);
                               String? avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
-                              final schoolLogo = dashboardAsync.value?.schoolLogo;
-                              if ((avatarUrl == null || avatarUrl.isEmpty) && schoolLogo != null && schoolLogo.isNotEmpty) {
-                                avatarUrl = CourseAssetUrl.resolve(schoolLogo);
-                              }
                               
                               Widget placeholder = Container(
                                 width: 44,

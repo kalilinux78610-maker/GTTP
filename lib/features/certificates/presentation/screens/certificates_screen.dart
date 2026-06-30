@@ -10,8 +10,8 @@ import 'package:gttp/features/certificates/presentation/providers/certificates_p
 import 'package:gttp/features/auth/presentation/providers/auth_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import '../../courses/presentation/screens/material_viewer_screen.dart';
-import '../../courses/presentation/screens/offline_pdf_viewer_screen.dart';
+import 'package:gttp/features/courses/presentation/screens/material_viewer_screen.dart';
+import 'package:gttp/features/courses/presentation/screens/offline_pdf_viewer_screen.dart';
 
 class CertificatesScreen extends ConsumerStatefulWidget {
   const CertificatesScreen({super.key});

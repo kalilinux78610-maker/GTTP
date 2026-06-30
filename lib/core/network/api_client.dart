@@ -209,6 +209,33 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Object? data,
+    bool requiresAuth = false,
+  }) async {
+    try {
+      if (requiresAuth) {
+        final token = await _secureStorage.getAccessToken();
+        if (token == null || token.isEmpty) {
+          throw ApiException('You are not authenticated.');
+        }
+      }
+
+      final response = await _dio.put<dynamic>(path, data: data);
+      final body = response.data;
+      if (body is Map<String, dynamic>) {
+        return body;
+      }
+      return {'data': body};
+    } on DioException catch (e) {
+      throw ApiException(
+        _extractErrorMessage(e),
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> get(
     String path, {
     Object? data,

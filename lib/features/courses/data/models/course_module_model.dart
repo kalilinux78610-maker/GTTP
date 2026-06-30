@@ -40,9 +40,9 @@ class CourseModuleRequirementModel {
       id: str(json['id'] ?? json['criteria_id'] ?? json['requirement_id']),
       title: str(json['title'] ?? json['name'] ?? json['criteria_title']),
       description: str(json['description'] ?? json['details'] ?? json['instruction']),
-      status: str(json['status'] ?? json['review_status'] ?? json['approval_status']).isEmpty
-          ? 'pending_review'
-          : str(json['status'] ?? json['review_status'] ?? json['approval_status']).toLowerCase(),
+      status: str(json['submission_status'] ?? json['status'] ?? json['review_status'] ?? json['approval_status']).isEmpty
+          ? 'not_started'
+          : str(json['submission_status'] ?? json['status'] ?? json['review_status'] ?? json['approval_status']).toLowerCase(),
       needsAdminApproval: ApiJsonParser.asBool(
         json['needs_admin_approval'] ?? json['requires_admin_approval'] ?? json['admin_approval'],
       ),
@@ -66,12 +66,14 @@ class CourseModuleRequirementModel {
           ? null
           : str(json['class'] ?? json['class_name'] ?? student?['class']),
       submittedAt: str(
-        json['submitted_at'] ?? json['submitted_date'] ?? submission?['submitted_at'],
+        json['submitted_at'] ?? json['uploaded_at'] ?? json['submitted_date'] ?? submission?['submitted_at'],
       ).isEmpty
           ? null
-          : str(json['submitted_at'] ?? json['submitted_date'] ?? submission?['submitted_at']),
+          : str(json['submitted_at'] ?? json['uploaded_at'] ?? json['submitted_date'] ?? submission?['submitted_at']),
       fileUrl: CourseAssetUrl.resolve(
-        json['file_url'] ??
+        json['uploaded_file_url'] ??
+            json['proof_url'] ??
+            json['file_url'] ??
             json['file_path'] ??
             json['submission_url'] ??
             submission?['file_url'] ??
@@ -90,7 +92,7 @@ class CourseModuleRequirementModel {
 
   bool get isPending {
     final s = status.toLowerCase();
-    return s.contains('pending') || s.contains('awaiting') || s.contains('review');
+    return s.contains('pending') || s.contains('awaiting') || s.contains('review') || s.contains('submitted');
   }
 
   CourseModuleRequirement toEntity() {

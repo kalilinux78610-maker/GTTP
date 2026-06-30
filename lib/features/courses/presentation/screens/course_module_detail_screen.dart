@@ -940,95 +940,153 @@ class _RequirementCardState extends ConsumerState<_RequirementCard> {
           const SizedBox(height: 16),
           // Upload Box UI (Only for students)
           if (widget.isStudent && !approved) ...[
-            InkWell(
-              onTap: _pickFile,
-              borderRadius: BorderRadius.circular(12),
-              child: DottedBorder(
-                options: const RoundedRectDottedBorderOptions(
-                  color: Color(0xFFCBD5E1),
-                  strokeWidth: 1.5,
-                  dashPattern: [6, 4],
-                  radius: Radius.circular(12),
-                  padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            if (pending || widget.requirement.submittedAt != null || widget.requirement.fileUrl != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: Column(
-                    children: [
-                      Icon(
-                        _selectedFile != null
-                            ? Icons.file_present_rounded
-                            : Icons.file_upload_outlined,
-                        size: 32,
-                        color: _selectedFile != null
-                            ? const Color(0xFF398FDE)
-                            : const Color(0xFF3B82F6),
+                child: Column(
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Color(0xFF16A34A), size: 32),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Assignment Submitted',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF15803D),
+                        fontSize: 16,
                       ),
+                    ),
+                    if (widget.requirement.submittedAt != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Submitted: ${widget.requirement.submittedAt}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF166534)),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: _pickFile,
+                      icon: const Icon(Icons.upload_file, size: 16),
+                      label: const Text('Replace Submission'),
+                    ),
+                    if (_selectedFile != null) ...[
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.attach_file, size: 16, color: Color(0xFF3B82F6)),
+                          const Icon(Icons.attach_file, size: 14, color: Color(0xFF3B82F6)),
                           const SizedBox(width: 4),
                           Text(
-                            _selectedFile != null ? _selectedFile!.name : 'Choose File',
-                            style: const TextStyle(
-                              color: Color(0xFF3B82F6),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                            _selectedFile!.name,
+                            style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 13),
                           ),
                         ],
                       ),
-                      if (_selectedFile != null) ...[
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () => setState(() => _selectedFile = null),
-                          icon: const Icon(Icons.close, size: 16),
-                          label: const Text('Remove File'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _isSubmitting ? null : _submitFile,
+                          icon: _isSubmitting 
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.send, size: 16),
+                          label: Text(_isSubmitting ? 'Updating...' : 'Update Submission'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1F9254),
                           ),
                         ),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+            ] else ...[
+              InkWell(
+                onTap: _pickFile,
+                borderRadius: BorderRadius.circular(12),
+                child: DottedBorder(
+                  options: const RoundedRectDottedBorderOptions(
+                    color: Color(0xFFCBD5E1),
+                    strokeWidth: 1.5,
+                    dashPattern: [6, 4],
+                    radius: Radius.circular(12),
+                    padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      children: [
+                        Icon(
+                          _selectedFile != null
+                              ? Icons.file_present_rounded
+                              : Icons.file_upload_outlined,
+                          size: 32,
+                          color: _selectedFile != null
+                              ? const Color(0xFF398FDE)
+                              : const Color(0xFF3B82F6),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.attach_file, size: 16, color: Color(0xFF3B82F6)),
+                            const SizedBox(width: 4),
+                            Text(
+                              _selectedFile != null ? _selectedFile!.name : 'Choose File',
+                              style: const TextStyle(
+                                color: Color(0xFF3B82F6),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_selectedFile != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: () => setState(() => _selectedFile = null),
+                            icon: const Icon(Icons.close, size: 16),
+                            label: const Text('Remove File'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'Accepted: PDF, DOC, DOCX | Max: 10 MB',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-            ),
-            if (_selectedFile != null) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isSubmitting ? null : _submitFile,
-                  icon: _isSubmitting 
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.send, size: 16),
-                  label: Text(_isSubmitting ? 'Submitting...' : 'Submit Assignment'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF1F9254),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-            if (widget.requirement.submittedAt != null) ...[
               const SizedBox(height: 12),
-              Center(
+              const Center(
                 child: Text(
-                  'Submitted: ${widget.requirement.submittedAt}',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  'Accepted: PDF, DOC, DOCX | Max: 10 MB',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
               ),
+              if (_selectedFile != null) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _isSubmitting ? null : _submitFile,
+                    icon: _isSubmitting 
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.send, size: 16),
+                    label: Text(_isSubmitting ? 'Submitting...' : 'Submit Assignment'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1F9254),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
           if (widget.requirement.studentName != null) ...[
