@@ -238,8 +238,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                             final userAsync = ref.watch(userModelProvider);
                             final dashboardAsync = ref.watch(dashboardDataProvider);
                             String? avatarUrl = CourseAssetUrl.resolve(userAsync.value?.avatar);
-                            final role = AppUserRole.fromApi(userAsync.value?.effectiveRole);
-                            final schoolLogo = dashboardAsync.value?.schoolLogo;
+
                             
                             // Do not fallback to institute avatar for any role anymore, let it show initials
                             

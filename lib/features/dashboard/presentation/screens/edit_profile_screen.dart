@@ -124,7 +124,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
+
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final themeColor = _themeColor;
 
