@@ -168,6 +168,10 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
     final courseState = ref.watch(courseDetailsProvider(widget.courseId));
     final course = courseState.value;
     final isExpired = course?.isExpired ?? false;
+    
+    final hasSubmitted = widget.session.submissionStatus == 'submitted' || 
+                         widget.session.submissionStatus == 'approved' || 
+                         widget.session.submissionStatus == 'completed';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -455,7 +459,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                     ),
                     const SizedBox(height: 12),
                   ] else if (isMCQ) ...[
-                    if (isExpired && !_isCompletedLocally && widget.session.submissionStatus == 'pending')
+                    if (isExpired && !_isCompletedLocally && !hasSubmitted)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
@@ -556,7 +560,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                       ],
                     ),
                     const SizedBox(height: 12),
-                    if (isExpired && !_isCompletedLocally && widget.session.submissionStatus == 'pending')
+                    if (isExpired && !_isCompletedLocally && !hasSubmitted)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -634,7 +638,7 @@ class _CourseSessionDetailScreenState extends ConsumerState<CourseSessionDetailS
                             ),
                           ),
                           const SizedBox(height: 24),
-                          if (!_isCompletedLocally && widget.session.submissionStatus != 'pending') ...[
+                          if (!_isCompletedLocally && !hasSubmitted) ...[
                             InkWell(
                               onTap: _pickFile,
                               borderRadius: BorderRadius.circular(8),
